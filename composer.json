@@ -1,0 +1,33 @@
+{
+  "name": "sk/smart-id-relying-party-api",
+  "type": "library",
+  "description": "Smart-ID Relying Party PHP Api v5 client",
+  "homepage": "https://github.com/jeserkin/smart-id-php-client",
+  "keywords": [
+    "smart-id",
+    "relying",
+    "party",
+    "api"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Eugene Serin",
+      "homepage": "https://github.com/jeserkin"
+    }
+  ],
+  "require": {
+    "php": ">=5.6",
+    "ext-curl": "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "5.7.14"
+  },
+  "minimum-stability": "dev",
+  "autoload": {
+    "psr-0": {
+      "Sk\\SmartId\\": "src/",
+      "Sk\\SmartId\\Tests": "tests/"
+    }
+  }
+}
