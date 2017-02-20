@@ -3,10 +3,17 @@ namespace Sk\SmartId;
 
 use InvalidArgumentException;
 use Sk\SmartId\Api\AbstractApi;
+use Sk\SmartId\Api\ApiType;
+use Sk\SmartId\Api\Authentication;
 
 class Client
 {
 	const VERSION = '5.0';
+
+	/**
+	 * @var array
+	 */
+	private $apis = array();
 
 	/**
 	 * @var string
@@ -32,9 +39,9 @@ class Client
 	{
 		switch ( $apiName )
 		{
-			case 'authentication':
+			case ApiType::AUTHENTICATION:
 			{
-				// @TODO
+				return $this->authentication();
 			}
 
 			default:
@@ -42,6 +49,19 @@ class Client
 				throw new InvalidArgumentException( 'No such api at present time!' );
 			}
 		}
+	}
+
+	/**
+	 * @return Authentication
+	 */
+	public function authentication()
+	{
+		if ( !isset( $this->apis['authentication'] ) )
+		{
+			$this->apis['authentication'] = new Authentication( $this );
+		}
+
+		return $this->apis['authentication'];
 	}
 
 	/**
