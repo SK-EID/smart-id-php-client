@@ -56,7 +56,7 @@ class Client
    */
   public function authentication()
   {
-    if ( !isset( $this->apis['authentication'] ) )
+    if ( ! isset( $this->apis['authentication'] ) )
     {
       $this->apis['authentication'] = new Authentication( $this );
     }
