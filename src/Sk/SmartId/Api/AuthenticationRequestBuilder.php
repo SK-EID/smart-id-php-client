@@ -3,10 +3,14 @@ namespace Sk\SmartId\Api;
 
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
+use Sk\SmartId\Api\Data\CertificateParser;
 use Sk\SmartId\Api\Data\NationalIdentity;
+use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SignableHash;
+use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
 use Sk\SmartId\Exception\InvalidParametersException;
+use Sk\SmartId\Exception\TechnicalErrorException;
 
 class AuthenticationRequestBuilder extends SmartIdRequestBuilder
 {
@@ -57,10 +61,11 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
 
   /**
    * @param SmartIdConnector $connector
+   * @param SessionStatusPoller $sessionStatusPoller
    */
-  public function __construct( SmartIdConnector $connector )
+  public function __construct( SmartIdConnector $connector, SessionStatusPoller $sessionStatusPoller )
   {
-    parent::__construct( $connector );
+    parent::__construct( $connector, $sessionStatusPoller );
   }
 
   /**
@@ -174,14 +179,17 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   }
 
   /**
-   * @return AuthenticationSessionResponse
+   * @return SmartIdAuthenticationResult
    */
   public function authenticate()
   {
     $this->validateParameters();
     $request = $this->createAuthenticationSessionRequest();
     $response = $this->getAuthenticationResponse( $request );
-    return $response;
+    $sessionStatus = $this->getSessionStatusPoller()->fetchFinalSessionStatus( $response->getSessionID() );
+    $this->validateResponse( $sessionStatus );
+    $authenticationResult = $this->createSmartIdAuthenticationResult( $sessionStatus );
+    return $authenticationResult;
   }
 
   /**
@@ -304,5 +312,40 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   private function isSignableDataSet()
   {
     return isset( $this->dataToSign );
+  }
+
+  /**
+   * @param SessionStatus $sessionStatus
+   * @throws TechnicalErrorException
+   */
+  private function validateResponse( SessionStatus $sessionStatus )
+  {
+    if ( $sessionStatus->getSignature() === null )
+    {
+      throw new TechnicalErrorException( 'Signature was not present in the response' );
+    }
+    if ( $sessionStatus->getCert() === null )
+    {
+      throw new TechnicalErrorException( 'Certificate was not present in the response' );
+    }
+  }
+
+  /**
+   * @param SessionStatus $sessionStatus
+   * @return SmartIdAuthenticationResult
+   */
+  private function createSmartIdAuthenticationResult( SessionStatus $sessionStatus )
+  {
+    $sessionResult = $sessionStatus->getResult();
+    $sessionSignature = $sessionStatus->getSignature();
+    $sessionCertificate = $sessionStatus->getCert();
+    $authenticationResult = new SmartIdAuthenticationResult();
+    $authenticationResult->setDocumentNumber( $sessionResult->getDocumentNumber() );
+    $authenticationResult->setEndResult( $sessionResult->getEndResult() );
+    $authenticationResult->setValueInBase64( $sessionSignature->getValue() );
+    $authenticationResult->setAlgorithmName( $sessionSignature->getAlgorithm() );
+    $authenticationResult->setCertificate( $sessionCertificate->getValue() );
+    $authenticationResult->setCertificateLevel( $sessionCertificate->getCertificateLevel() );
+    return $authenticationResult;
   }
 }

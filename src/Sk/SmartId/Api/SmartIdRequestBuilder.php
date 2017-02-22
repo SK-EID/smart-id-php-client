@@ -11,6 +11,11 @@ abstract class SmartIdRequestBuilder
   private $connector;
 
   /**
+   * @var SessionStatusPoller
+   */
+  private $sessionStatusPoller;
+
+  /**
    * @var string
    */
   private $relyingPartyUUID;
@@ -22,10 +27,12 @@ abstract class SmartIdRequestBuilder
 
   /**
    * @param SmartIdConnector $connector
+   * @param SessionStatusPoller $sessionStatusPoller
    */
-  public function __construct( SmartIdConnector $connector )
+  public function __construct( SmartIdConnector $connector, SessionStatusPoller $sessionStatusPoller )
   {
     $this->connector = $connector;
+    $this->sessionStatusPoller = $sessionStatusPoller;
   }
 
   /**
@@ -54,6 +61,14 @@ abstract class SmartIdRequestBuilder
   public function getConnector()
   {
     return $this->connector;
+  }
+
+  /**
+   * @return SessionStatusPoller
+   */
+  public function getSessionStatusPoller()
+  {
+    return $this->sessionStatusPoller;
   }
 
   /**

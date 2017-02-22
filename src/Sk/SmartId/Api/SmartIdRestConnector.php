@@ -4,7 +4,10 @@ namespace Sk\SmartId\Api;
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\NationalIdentity;
+use Sk\SmartId\Api\Data\SessionStatus;
+use Sk\SmartId\Api\Data\SessionStatusRequest;
 use Sk\SmartId\Exception\NotFoundException;
+use Sk\SmartId\Exception\SessionNotFoundException;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\UserAccountNotFoundException;
 use Sk\SmartId\Util\Curl;
@@ -13,6 +16,7 @@ class SmartIdRestConnector implements SmartIdConnector
 {
   const AUTHENTICATE_BY_DOCUMENT_NUMBER_PATH = '/authentication/document/{documentNumber}';
   const AUTHENTICATE_BY_NATIONAL_IDENTITY_PATH = '/authentication/pno/{country}/{nationalIdentityNumber}';
+  const SESSION_STATUS_URI = '/session/{sessionId}';
 
   /**
    * @var string
@@ -37,7 +41,7 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param AuthenticationSessionRequest $request
    * @return AuthenticationSessionResponse
    */
-  function authenticate( $documentNumber, AuthenticationSessionRequest $request )
+  public function authenticate( $documentNumber, AuthenticationSessionRequest $request )
   {
     $url = rtrim( $this->endpointUrl, '/' ) . self::AUTHENTICATE_BY_DOCUMENT_NUMBER_PATH;
     $url = str_replace( '{documentNumber}', $documentNumber, $url );
@@ -49,7 +53,7 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param AuthenticationSessionRequest $request
    * @return AuthenticationSessionResponse
    */
-  function authenticateWithIdentity( NationalIdentity $identity, AuthenticationSessionRequest $request )
+  public function authenticateWithIdentity( NationalIdentity $identity, AuthenticationSessionRequest $request )
   {
     $url = rtrim( $this->endpointUrl, '/' ) . self::AUTHENTICATE_BY_NATIONAL_IDENTITY_PATH;
     $url = str_replace( array(
@@ -63,6 +67,27 @@ class SmartIdRestConnector implements SmartIdConnector
   }
 
   /**
+   * @param SessionStatusRequest $request
+   * @throws SessionNotFoundException
+   * @return SessionStatus
+   */
+  public function getSessionStatus( SessionStatusRequest $request )
+  {
+    $url = rtrim( $this->endpointUrl, '/' ) . self::SESSION_STATUS_URI;
+    $url = str_replace( '{sessionId}', $request->getSessionId(), $url );
+    // @TODO Add session request timeout parameter here
+    try
+    {
+      $sessionStatus = $this->getRequest( $url, array(), 'Sk\SmartId\Api\Data\SessionStatus' );
+      return $sessionStatus;
+    }
+    catch ( NotFoundException $e )
+    {
+      throw new SessionNotFoundException();
+    }
+  }
+
+  /**
    * @param string $url
    * @param AuthenticationSessionRequest $request
    * @throws UserAccountNotFoundException
@@ -72,7 +97,7 @@ class SmartIdRestConnector implements SmartIdConnector
   {
     try
     {
-      return $this->postRequest( $url, $request, 'Sk\SmartId\Api\Data\AuthenticationSessionResponse' );
+      return $this->postRequest( $url, $request->toArray(), 'Sk\SmartId\Api\Data\AuthenticationSessionResponse' );
     }
     catch ( NotFoundException $e )
     {
@@ -82,18 +107,30 @@ class SmartIdRestConnector implements SmartIdConnector
 
   /**
    * @param string $url
-   * @param AuthenticationSessionRequest $request
+   * @param array $params
    * @param string $responseType
    * @return mixed
    */
-  private function postRequest( $url, AuthenticationSessionRequest $request, $responseType )
+  private function postRequest( $url, array $params = array(), $responseType )
   {
-    $params = $request->toArray();
     $this->curl = new Curl();
     $this->curl->curlPost( $url, array(), json_encode( $params ) );
     $this->curl->setCurlParam( CURLOPT_HTTPHEADER, array(
         'content-type: application/json',
     ) );
+    return $this->request( $url, $responseType );
+  }
+
+  /**
+   * @param string $url
+   * @param array $params
+   * @param string $responseType
+   * @return mixed
+   */
+  private function getRequest( $url, array $params = array(), $responseType )
+  {
+    $this->curl = new Curl();
+    $this->curl->curlGet( $url, $params );
     return $this->request( $url, $responseType );
   }
 

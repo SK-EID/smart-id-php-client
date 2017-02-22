@@ -5,8 +5,15 @@ use Sk\SmartId\Api\AuthenticationRequestBuilder;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\HashType;
 use Sk\SmartId\Api\Data\NationalIdentity;
+use Sk\SmartId\Api\Data\SessionCertificate;
+use Sk\SmartId\Api\Data\SessionEndResultCode;
+use Sk\SmartId\Api\Data\SessionSignature;
+use Sk\SmartId\Api\Data\SessionStatus;
+use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SignableHash;
+use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
+use Sk\SmartId\Api\SessionStatusPoller;
 use Sk\SmartId\Tests\Rest\SmartIdConnectorSpy;
 use Sk\SmartId\Tests\Setup;
 
@@ -18,6 +25,11 @@ class AuthenticationRequestBuilderTest extends Setup
   private $connector;
 
   /**
+   * @var SessionStatusPoller
+   */
+  private $sessionStatusPoller;
+
+  /**
    * @var AuthenticationRequestBuilder
    */
   private $builder;
@@ -25,8 +37,10 @@ class AuthenticationRequestBuilderTest extends Setup
   protected function setUp()
   {
     $this->connector = new SmartIdConnectorSpy();
+    $this->sessionStatusPoller = new SessionStatusPoller( $this->connector );
     $this->connector->authenticationSessionResponseToRespond = $this->createDummyAuthenticationSessionResponse();
-    $this->builder = new AuthenticationRequestBuilder( $this->connector );
+    $this->connector->sessionStatusToRespond = $this->createDummySessionStatusResponse();
+    $this->builder = new AuthenticationRequestBuilder( $this->connector, $this->sessionStatusPoller );
   }
 
   /**
@@ -43,6 +57,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
     $this->assertCorrectSignatureRequestMadeWithDocumentNumber();
+    $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResultCorrect( $authenticationResult );
   }
 
@@ -62,6 +77,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
     $this->assertCorrectSignatureRequestMadeWithDocumentNumber();
+    $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResultCorrect( $authenticationResult );
   }
 
@@ -80,6 +96,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
     $this->assertCorrectSignatureRequestMadeWithDocumentNumber();
+    $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResultCorrect( $authenticationResult );
   }
 
@@ -99,6 +116,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withCountryCode( 'EE' )
         ->authenticate();
     $this->assertCorrectSignatureRequestMadeWithNationalIdentity();
+    $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResultCorrect( $authenticationResult );
   }
 
@@ -117,6 +135,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withNationalIdentity( $identity )
         ->authenticate();
     $this->assertCorrectSignatureRequestMadeWithNationalIdentity();
+    $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResultCorrect( $authenticationResult );
   }
 
@@ -244,13 +263,43 @@ class AuthenticationRequestBuilderTest extends Setup
   }
 
   /**
-   * @return AuthenticationSessionResponse
+   * @test
+   * @expectedException \Sk\SmartId\Exception\UserRefusedException
    */
-  private function createDummyAuthenticationSessionResponse()
+  public function authenticate_withUserRefused_shouldThrowException()
   {
-    $response = new AuthenticationSessionResponse();
-    $response->setSessionId( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
-    return $response;
+    $this->connector->sessionStatusToRespond = DummyData::createUserRefusedSessionStatus();
+    $this->makeAuthenticationRequest();
+  }
+
+  /**
+   * @test
+   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
+   */
+  public function authenticate_withResultMissingInResponse_shouldThrowException()
+  {
+    $this->connector->sessionStatusToRespond->setResult( null );
+    $this->makeAuthenticationRequest();
+  }
+
+  /**
+   * @test
+   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
+   */
+  public function authenticate_withSignatureMissingInResponse_shouldThrowException()
+  {
+    $this->connector->sessionStatusToRespond->setSignature( null );
+    $this->makeAuthenticationRequest();
+  }
+
+  /**
+   * @test
+   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
+   */
+  public function authenticate_withCertificateMissingInResponse_shouldThrowException()
+  {
+    $this->connector->sessionStatusToRespond->setCert( null );
+    $this->makeAuthenticationRequest();
   }
 
   private function assertCorrectSignatureRequestMadeWithDocumentNumber()
@@ -264,15 +313,6 @@ class AuthenticationRequestBuilderTest extends Setup
         $this->connector->authenticationSessionRequestUsed->getHash() );
   }
 
-  /**
-   * @param AuthenticationSessionResponse $authenticationResult
-   */
-  private function assertAuthenticationResultCorrect( AuthenticationSessionResponse $authenticationResult )
-  {
-    $this->assertNotNull( $authenticationResult );
-    $this->assertEquals( '97f5058e-e308-4c83-ac14-7712b0eb9d86', $authenticationResult->getSessionID() );
-  }
-
   private function assertCorrectSignatureRequestMadeWithNationalIdentity()
   {
     $this->assertEquals( '31111111111', $this->connector->identityUsed->getNationalIdentityNumber() );
@@ -283,5 +323,68 @@ class AuthenticationRequestBuilderTest extends Setup
     $this->assertEquals( HashType::SHA512, $this->connector->authenticationSessionRequestUsed->getHashType() );
     $this->assertEquals( '7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w==',
         $this->connector->authenticationSessionRequestUsed->getHash() );
+  }
+
+  private function assertCorrectSessionRequestMade()
+  {
+    $this->assertEquals( '97f5058e-e308-4c83-ac14-7712b0eb9d86', $this->connector->sessionIdUsed );
+  }
+
+  /**
+   * @param SmartIdAuthenticationResult $authenticationResult
+   */
+  private function assertAuthenticationResultCorrect( SmartIdAuthenticationResult $authenticationResult )
+  {
+    $this->assertNotNull( $authenticationResult );
+    $this->assertEquals( SessionEndResultCode::OK, $authenticationResult->getEndResult() );
+    $this->assertEquals( 'c2FtcGxlIHNpZ25hdHVyZQ0K', $authenticationResult->getValueInBase64() );
+    $this->assertEquals( 'sha512WithRSAEncryption', $authenticationResult->getAlgorithmName() );
+    $this->assertEquals( 'PNOEE-31111111111', $authenticationResult->getDocumentNumber() );
+    $this->assertEquals( DummyData::CERTIFICATE, $authenticationResult->getCertificate() );
+    $this->assertEquals( 'QUALIFIED', $authenticationResult->getCertificateLevel() );
+  }
+
+  /**
+   * @return SessionStatus
+   */
+  private function createDummySessionStatusResponse()
+  {
+    $signature = new SessionSignature();
+    $signature->setValue( 'c2FtcGxlIHNpZ25hdHVyZQ0K' );
+    $signature->setAlgorithm( 'sha512WithRSAEncryption' );
+
+    $certificate = new SessionCertificate();
+    $certificate->setCertificateLevel( 'QUALIFIED' );
+    $certificate->setValue( DummyData::CERTIFICATE );
+
+    $status = new SessionStatus();
+    $status
+        ->setState( SessionStatusCode::COMPLETE )
+        ->setResult( DummyData::createSessionEndResult() )
+        ->setSignature( $signature )
+        ->setCert( $certificate );
+    return $status;
+  }
+
+  /**
+   * @return AuthenticationSessionResponse
+   */
+  private function createDummyAuthenticationSessionResponse()
+  {
+    $response = new AuthenticationSessionResponse();
+    $response->setSessionId( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
+    return $response;
+  }
+
+  private function makeAuthenticationRequest()
+  {
+    $this->builder
+        ->withRelyingPartyUUID( 'relying-party-uuid' )
+        ->withRelyingPartyName( 'relying-party-name' )
+        ->withCertificateLevel( 'ADVANCED' )
+        ->withHashType( HashType::SHA256 )
+        ->withHashInBase64( 'jsflWgpkVcWOyICotnVn5lazcXdaIWvcvNOWTYPceYQ=' )
+        ->withDocumentNumber( 'PNOEE-31111111111' )
+        ->authenticate();
   }
 }

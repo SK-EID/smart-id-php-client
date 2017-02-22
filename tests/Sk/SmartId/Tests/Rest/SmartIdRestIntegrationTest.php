@@ -3,6 +3,7 @@ namespace Sk\SmartId\Tests\Rest;
 
 use Exception;
 use Sk\SmartId\Api\Data\SignableData;
+use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
 use Sk\SmartId\Tests\Setup;
 
 class SmartIdRestIntegrationTest extends Setup
@@ -24,6 +25,18 @@ class SmartIdRestIntegrationTest extends Setup
         ->withCertificateLevel( $GLOBALS['certificate_level'] )
         ->authenticate();
 
-    $this->assertNotEmpty( $authenticationResult->getSessionID() );
+    $this->assertAuthenticationResultCreated( $authenticationResult );
+  }
+
+  /**
+   * @param SmartIdAuthenticationResult $authenticationResult
+   */
+  private function assertAuthenticationResultCreated( SmartIdAuthenticationResult $authenticationResult )
+  {
+    $this->assertNotNull( $authenticationResult );
+    $this->assertNotEmpty( $authenticationResult->getEndResult() );
+    $this->assertNotEmpty( $authenticationResult->getValueInBase64() );
+    $this->assertNotNull( $authenticationResult->getCertificate() );
+    $this->assertNotNull( $authenticationResult->getCertificateLevel() );
   }
 }

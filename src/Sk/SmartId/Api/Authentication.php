@@ -9,7 +9,8 @@ class Authentication extends AbstractApi
   public function createAuthentication()
   {
     $connector = new SmartIdRestConnector( $this->client->getHostUrl() );
-    $builder = new AuthenticationRequestBuilder( $connector );
+    $sessionStatusPoller = $this->createSessionStatusPoller( $connector );
+    $builder = new AuthenticationRequestBuilder( $connector, $sessionStatusPoller );
     $this->populateBuilderFields( $builder );
 
     return $builder;
@@ -23,5 +24,15 @@ class Authentication extends AbstractApi
     $builder
         ->withRelyingPartyUUID( $this->client->getRelyingPartyUUID() )
         ->withRelyingPartyName( $this->client->getRelyingPartyName() );
+  }
+
+  /**
+   * @param SmartIdRestConnector $connector
+   * @return SessionStatusPoller
+   */
+  private function createSessionStatusPoller( SmartIdRestConnector $connector )
+  {
+    $sessionStatusPoller = new SessionStatusPoller( $connector );
+    return $sessionStatusPoller;
   }
 }
