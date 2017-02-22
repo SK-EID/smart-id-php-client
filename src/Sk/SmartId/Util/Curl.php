@@ -1,6 +1,8 @@
 <?php
 namespace Sk\SmartId\Util;
 
+use Exception;
+
 class Curl
 {
   const
@@ -21,9 +23,9 @@ class Curl
 
   public function __construct()
   {
-    if ( ! function_exists( 'curl_init' ) )
+    if ( !function_exists( 'curl_init' ) )
     {
-      throw new \Exception( 'curl not installed' );
+      throw new Exception( 'curl not installed' );
     }
 
     $this->curl = curl_init();
@@ -54,7 +56,7 @@ class Curl
    */
   public function followLocation( $followLocation )
   {
-    $this->followLocation = ( (bool) $followLocation ? 1 : 0 );
+    $this->followLocation = ( (bool)$followLocation ? 1 : 0 );
 
     return $this;
   }
@@ -81,8 +83,8 @@ class Curl
   {
     $this->setCurlParam( CURLOPT_URL, $url );
     $this->requestMethod = self::POST;
-    $this->postFields    = $postData;
-    $this->rawData       = $rawData;
+    $this->postFields = $postData;
+    $this->rawData = $rawData;
 
     return $this;
   }
@@ -97,8 +99,8 @@ class Curl
   {
     $this->setCurlParam( CURLOPT_URL, $url );
     $this->requestMethod = self::PUT;
-    $this->postFields    = $postData;
-    $this->rawData       = $rawData;
+    $this->postFields = $postData;
+    $this->rawData = $rawData;
 
     return $this;
   }
@@ -151,12 +153,12 @@ class Curl
 
   public function importCookies( $importCookies = true )
   {
-    $this->importCookies = (bool) $importCookies;
+    $this->importCookies = (bool)$importCookies;
   }
 
   public function includeHeaders( $includeHeaders = true )
   {
-    $this->includeHeaders = (bool) $includeHeaders;
+    $this->includeHeaders = (bool)$includeHeaders;
   }
 
   protected function sendRequest()
@@ -255,7 +257,7 @@ class Curl
 
   public function getPostFieldsString()
   {
-    if ( ! empty( $this->rawData ) )
+    if ( !empty( $this->rawData ) )
     {
       return $this->rawData;
     }

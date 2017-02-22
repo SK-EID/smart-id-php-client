@@ -14,6 +14,16 @@ class NationalIdentity
   private $nationalIdentityNumber;
 
   /**
+   * @param string|null $countryCode
+   * @param string|null $nationalIdentityNumber
+   */
+  public function __construct( $countryCode = null, $nationalIdentityNumber = null )
+  {
+    $this->countryCode = $countryCode;
+    $this->nationalIdentityNumber = $nationalIdentityNumber;
+  }
+
+  /**
    * @return string
    */
   public function getCountryCode()

@@ -11,9 +11,6 @@ class Setup extends TestCase
    */
   protected $client;
 
-  /**
-   * @before
-   */
   protected function setUp()
   {
     $this->client = new Client();

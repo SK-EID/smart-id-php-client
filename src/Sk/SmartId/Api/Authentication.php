@@ -9,7 +9,7 @@ class Authentication extends AbstractApi
   public function createAuthentication()
   {
     $connector = new SmartIdRestConnector( $this->client->getHostUrl() );
-    $builder   = new AuthenticationRequestBuilder( $connector );
+    $builder = new AuthenticationRequestBuilder( $connector );
     $this->populateBuilderFields( $builder );
 
     return $builder;

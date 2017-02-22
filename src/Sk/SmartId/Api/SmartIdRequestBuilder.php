@@ -77,12 +77,12 @@ abstract class SmartIdRequestBuilder
    */
   protected function validateParameters()
   {
-    if ( ! isset( $this->relyingPartyUUID ) )
+    if ( !isset( $this->relyingPartyUUID ) )
     {
       throw new InvalidParametersException( 'Relying Party UUID parameter must be set' );
     }
 
-    if ( ! isset( $this->relyingPartyName ) )
+    if ( !isset( $this->relyingPartyName ) )
     {
       throw new InvalidParametersException( 'Relying Party Name parameter must be set' );
     }

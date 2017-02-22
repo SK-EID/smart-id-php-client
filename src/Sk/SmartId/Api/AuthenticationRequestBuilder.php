@@ -6,6 +6,7 @@ use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\NationalIdentity;
 use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SignableHash;
+use Sk\SmartId\Exception\InvalidParametersException;
 
 class AuthenticationRequestBuilder extends SmartIdRequestBuilder
 {
@@ -178,7 +179,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   public function authenticate()
   {
     $this->validateParameters();
-    $request  = $this->createAuthenticationSessionRequest();
+    $request = $this->createAuthenticationSessionRequest();
     $response = $this->getAuthenticationResponse( $request );
     return $response;
   }
@@ -257,5 +258,51 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
       return $this->nationalIdentity;
     }
     return new NationalIdentity( $this->countryCode, $this->nationalIdentityNumber );
+  }
+
+  /**
+   * @throws InvalidParametersException
+   */
+  protected function validateParameters()
+  {
+    parent::validateParameters();
+    if ( !isset( $this->documentNumber ) && !$this->hasNationalIdentity() )
+    {
+      throw new InvalidParametersException( 'Either document number or national identity must be set' );
+    }
+    if ( !isset( $this->certificateLevel ) )
+    {
+      throw new InvalidParametersException( 'Certificate level must be set' );
+    }
+    if ( !$this->isHashSet() && !$this->isSignableDataSet() )
+    {
+      throw new InvalidParametersException( 'Signable data or hash with hash type must be set' );
+    }
+  }
+
+  /**
+   * @return bool
+   */
+  private function hasNationalIdentity()
+  {
+    return isset( $this->nationalIdentity )
+        || ( strlen( $this->countryCode ) && strlen( $this->nationalIdentityNumber ) );
+  }
+
+  /**
+   * @return bool
+   */
+  private function isHashSet()
+  {
+    return ( isset( $this->hashToSign ) && $this->hashToSign->areFieldsFilled() )
+        || ( strlen( $this->hashType ) && strlen( $this->hashInBase64 ) );
+  }
+
+  /**
+   * @return bool
+   */
+  private function isSignableDataSet()
+  {
+    return isset( $this->dataToSign );
   }
 }

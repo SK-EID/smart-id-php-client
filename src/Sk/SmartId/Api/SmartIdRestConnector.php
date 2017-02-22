@@ -11,7 +11,7 @@ use Sk\SmartId\Util\Curl;
 
 class SmartIdRestConnector implements SmartIdConnector
 {
-  const AUTHENTICATE_BY_DOCUMENT_NUMBER_PATH   = '/authentication/document/{documentNumber}';
+  const AUTHENTICATE_BY_DOCUMENT_NUMBER_PATH = '/authentication/document/{documentNumber}';
   const AUTHENTICATE_BY_NATIONAL_IDENTITY_PATH = '/authentication/pno/{country}/{nationalIdentityNumber}';
 
   /**
@@ -88,7 +88,7 @@ class SmartIdRestConnector implements SmartIdConnector
    */
   private function postRequest( $url, AuthenticationSessionRequest $request, $responseType )
   {
-    $params     = $request->toArray();
+    $params = $request->toArray();
     $this->curl = new Curl();
     $this->curl->curlPost( $url, array(), json_encode( $params ) );
     $this->curl->setCurlParam( CURLOPT_HTTPHEADER, array(
