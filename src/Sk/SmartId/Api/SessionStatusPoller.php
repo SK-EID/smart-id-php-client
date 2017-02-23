@@ -1,10 +1,10 @@
 <?php
 namespace Sk\SmartId\Api;
 
+use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
-use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Exception\DocumentUnusableException;
 use Sk\SmartId\Exception\InterruptedException;
 use Sk\SmartId\Exception\SessionTimeoutException;
@@ -17,6 +17,18 @@ class SessionStatusPoller
    * @var SmartIdConnector
    */
   private $connector;
+
+  /**
+   * In milliseconds
+   * @var int
+   */
+  private $pollingSleepTimeoutMs = 1000;
+
+  /**
+   * In milliseconds
+   * @var int
+   */
+  private $sessionStatusResponseSocketOpenTimeoutMs;
 
   /**
    * @param SmartIdConnector $connector
@@ -60,9 +72,7 @@ class SessionStatusPoller
       {
         break;
       }
-
-      // @TODO Set value either in seconds or nanoseconds (for nanoseconds `time_nanosleep` func. is required )
-      sleep( 1 );
+      time_nanosleep( 0, $this->pollingSleepTimeoutMs );
     }
     return $sessionStatus;
   }
@@ -84,7 +94,10 @@ class SessionStatusPoller
   private function createSessionStatusRequest( $sessionId )
   {
     $request = new SessionStatusRequest( $sessionId );
-    // @TODO Take into account option to set request long poll timeout in milliseconds
+    if ( $this->sessionStatusResponseSocketOpenTimeoutMs )
+    {
+      $request->setSessionStatusResponseSocketOpenTimeoutMs( $this->sessionStatusResponseSocketOpenTimeoutMs );
+    }
     return $request;
   }
 
@@ -120,5 +133,36 @@ class SessionStatusPoller
     {
       throw new TechnicalErrorException( 'Session status end result is \'' . $endResult . '\'' );
     }
+  }
+
+  /**
+   * @param int $pollingSleepTimeoutMs
+   * @throws TechnicalErrorException
+   * @return $this
+   */
+  public function setPollingSleepTimeoutMs( $pollingSleepTimeoutMs )
+  {
+    if ( $pollingSleepTimeoutMs < 0 )
+    {
+      throw new TechnicalErrorException( 'Timeout can not be negative' );
+    }
+    $conversionResult = $pollingSleepTimeoutMs * pow( 10, 6 );
+    $this->pollingSleepTimeoutMs = ( $conversionResult > PHP_INT_MAX ) ? PHP_INT_MAX : $conversionResult;
+    return $this;
+  }
+
+  /**
+   * @param int $sessionStatusResponseSocketOpenTimeoutMs
+   * @throws TechnicalErrorException
+   * @return $this
+   */
+  public function setSessionStatusResponseSocketOpenTimeoutMs( $sessionStatusResponseSocketOpenTimeoutMs )
+  {
+    if ( $sessionStatusResponseSocketOpenTimeoutMs < 0 )
+    {
+      throw new TechnicalErrorException( 'Timeout can not be negative' );
+    }
+    $this->sessionStatusResponseSocketOpenTimeoutMs = $sessionStatusResponseSocketOpenTimeoutMs;
+    return $this;
   }
 }

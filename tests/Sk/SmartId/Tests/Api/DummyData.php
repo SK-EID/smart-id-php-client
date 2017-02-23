@@ -31,10 +31,30 @@ class DummyData
   }
 
   /**
+   * @return SessionStatus
+   */
+  public static function createTimeoutSessionStatus()
+  {
+    $status = self::createCompleteSessionStatus();
+    $status->setResult( self::createSessionResult( SessionEndResultCode::TIMEOUT ) );
+    return $status;
+  }
+
+  /**
+   * @return SessionStatus
+   */
+  public static function createDocumentUnusableSessionStatus()
+  {
+    $status = self::createCompleteSessionStatus();
+    $status->setResult( self::createSessionResult( SessionEndResultCode::DOCUMENT_UNUSABLE ) );
+    return $status;
+  }
+
+  /**
    * @param string $endResult
    * @return SessionResult
    */
-  private static function createSessionResult( $endResult )
+  public static function createSessionResult( $endResult )
   {
     $result = new SessionResult();
     $result->setEndResult( $endResult );

@@ -75,10 +75,10 @@ class SmartIdRestConnector implements SmartIdConnector
   {
     $url = rtrim( $this->endpointUrl, '/' ) . self::SESSION_STATUS_URI;
     $url = str_replace( '{sessionId}', $request->getSessionId(), $url );
-    // @TODO Add session request timeout parameter here
+    $params = $this->getResponseSocketOpenTimeUrlParameter( $request );
     try
     {
-      $sessionStatus = $this->getRequest( $url, array(), 'Sk\SmartId\Api\Data\SessionStatus' );
+      $sessionStatus = $this->getRequest( $url, $params, 'Sk\SmartId\Api\Data\SessionStatus' );
       return $sessionStatus;
     }
     catch ( NotFoundException $e )
@@ -103,6 +103,20 @@ class SmartIdRestConnector implements SmartIdConnector
     {
       throw new UserAccountNotFoundException();
     }
+  }
+
+  /**
+   * @param SessionStatusRequest $request
+   * @return array
+   */
+  private function getResponseSocketOpenTimeUrlParameter( SessionStatusRequest $request )
+  {
+    $params = array();
+    if ( $request->isSessionStatusResponseSocketOpenTimeoutSet() )
+    {
+      $params['timeoutMs'] = $request->getSessionStatusResponseSocketOpenTimeoutMs();
+    }
+    return $params;
   }
 
   /**
