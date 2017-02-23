@@ -72,7 +72,7 @@ class SessionStatusPoller
       {
         break;
       }
-      time_nanosleep( 0, $this->pollingSleepTimeoutMs );
+      time_nanosleep( 0, $this->convertMsToNanos( $this->pollingSleepTimeoutMs ) );
     }
     return $sessionStatus;
   }
@@ -146,9 +146,18 @@ class SessionStatusPoller
     {
       throw new TechnicalErrorException( 'Timeout can not be negative' );
     }
-    $conversionResult = $pollingSleepTimeoutMs * pow( 10, 6 );
-    $this->pollingSleepTimeoutMs = ( $conversionResult > PHP_INT_MAX ) ? PHP_INT_MAX : $conversionResult;
+    $this->pollingSleepTimeoutMs = $pollingSleepTimeoutMs;
     return $this;
+  }
+
+  /**
+   * @param int $milliseconds
+   * @return int
+   */
+  private function convertMsToNanos( $milliseconds )
+  {
+    $conversionResult = $milliseconds * pow( 10, 6 );
+    return $conversionResult > PHP_INT_MAX ? PHP_INT_MAX : $conversionResult;
   }
 
   /**
