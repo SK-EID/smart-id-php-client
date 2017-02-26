@@ -1,5 +1,5 @@
 {
-  "name": "sk/smart-id-relying-party-api",
+  "name": "smart-id-php-client/smart-id-php-client",
   "type": "library",
   "description": "Smart-ID Relying Party PHP Api v5 client",
   "homepage": "https://github.com/jeserkin/smart-id-php-client",
