@@ -55,4 +55,12 @@ class SignableData
   {
     return $this->hashType;
   }
+
+  /**
+   * @return bool
+   */
+  public function areFieldsFilled()
+  {
+    return isset( $this->hashType ) && isset( $this->dataToSign ) && strlen( $this->hashType ) > 0 && strlen( $this->dataToSign ) > 0;
+  }
 }

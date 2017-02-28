@@ -3,11 +3,9 @@ namespace Sk\SmartId\Api;
 
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
-use Sk\SmartId\Api\Data\CertificateParser;
 use Sk\SmartId\Api\Data\NationalIdentity;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SignableData;
-use Sk\SmartId\Api\Data\SignableHash;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
 use Sk\SmartId\Exception\InvalidParametersException;
 use Sk\SmartId\Exception\TechnicalErrorException;
@@ -43,11 +41,6 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    * @var SignableData
    */
   private $dataToSign;
-
-  /**
-   * @var SignableHash
-   */
-  private $hashToSign;
 
   /**
    * @var string
@@ -115,16 +108,6 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   public function withSignableData( SignableData $dataToSign )
   {
     $this->dataToSign = $dataToSign;
-    return $this;
-  }
-
-  /**
-   * @param SignableHash $hashToSign
-   * @return $this
-   */
-  public function withHash( SignableHash $hashToSign )
-  {
-    $this->hashToSign = $hashToSign;
     return $this;
   }
 
@@ -216,10 +199,6 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     {
       return $this->hashType;
     }
-    if ( isset( $this->hashToSign ) )
-    {
-      return $this->hashToSign->getHashType();
-    }
     return $this->dataToSign->getHashType();
   }
 
@@ -231,10 +210,6 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     if ( strlen( $this->hashInBase64 ) )
     {
       return $this->hashInBase64;
-    }
-    if ( isset( $this->hashToSign ) )
-    {
-      return $this->hashToSign->getHashInBase64();
     }
     return $this->dataToSign->calculateHashInBase64();
   }
@@ -302,8 +277,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    */
   private function isHashSet()
   {
-    return ( isset( $this->hashToSign ) && $this->hashToSign->areFieldsFilled() )
-        || ( strlen( $this->hashType ) && strlen( $this->hashInBase64 ) );
+    return strlen( $this->hashType ) && strlen( $this->hashInBase64 );
   }
 
   /**

@@ -11,7 +11,7 @@ use Sk\SmartId\Api\Data\SessionSignature;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SignableData;
-use Sk\SmartId\Api\Data\SignableHash;
+use Sk\SmartId\Api\Data\SignableDataGenerator;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
 use Sk\SmartId\Api\SessionStatusPoller;
 use Sk\SmartId\Tests\Rest\SmartIdConnectorSpy;
@@ -46,6 +46,25 @@ class AuthenticationRequestBuilderTest extends Setup
   /**
    * @test
    */
+  public function authenticateWithDocumentNumberAndGeneratedSignableData()
+  {
+    $dataToSign = SignableDataGenerator::generate( HashType::SHA512 );
+    $authenticationResult = $this->builder
+        ->withRelyingPartyUUID( 'relying-party-uuid' )
+        ->withRelyingPartyName( 'relying-party-name' )
+        ->withCertificateLevel( 'ADVANCED' )
+        ->withDocumentNumber( 'PNOEE-31111111111' )
+        ->withSignableData( $dataToSign )
+        ->authenticate();
+    $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber();
+    $this->assertGeneratedHash( $dataToSign );
+    $this->assertCorrectSessionRequestMade();
+    $this->assertAuthenticationResultCorrect( $authenticationResult );
+  }
+
+  /**
+   * @test
+   */
   public function authenticateWithDocumentNumberAndHashInBase64()
   {
     $authenticationResult = $this->builder
@@ -56,27 +75,8 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withHashType( HashType::SHA512 )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
-    $this->assertCorrectSignatureRequestMadeWithDocumentNumber();
-    $this->assertCorrectSessionRequestMade();
-    $this->assertAuthenticationResultCorrect( $authenticationResult );
-  }
-
-  /**
-   * @test
-   */
-  public function authenticateWithSignableHash()
-  {
-    $hashToSign = new SignableHash();
-    $hashToSign->setHashType( HashType::SHA512 );
-    $hashToSign->setHashInBase64( '7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w==' );
-    $authenticationResult = $this->builder
-        ->withRelyingPartyUUID( 'relying-party-uuid' )
-        ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
-        ->withHash( $hashToSign )
-        ->withDocumentNumber( 'PNOEE-31111111111' )
-        ->authenticate();
-    $this->assertCorrectSignatureRequestMadeWithDocumentNumber();
+    $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber();
+    $this->assertFixedHash();
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResultCorrect( $authenticationResult );
   }
@@ -95,7 +95,8 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withSignableData( $dataToSign )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
-    $this->assertCorrectSignatureRequestMadeWithDocumentNumber();
+    $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber();
+    $this->assertFixedHash();
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResultCorrect( $authenticationResult );
   }
@@ -116,6 +117,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withCountryCode( 'EE' )
         ->authenticate();
     $this->assertCorrectSignatureRequestMadeWithNationalIdentity();
+    $this->assertFixedHash();
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResultCorrect( $authenticationResult );
   }
@@ -135,6 +137,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withNationalIdentity( $identity )
         ->authenticate();
     $this->assertCorrectSignatureRequestMadeWithNationalIdentity();
+    $this->assertFixedHash();
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResultCorrect( $authenticationResult );
   }
@@ -194,40 +197,6 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( 'ADVANCED' )
         ->withHashInBase64( '7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w==' )
-        ->withDocumentNumber( 'PNOEE-31111111111' )
-        ->authenticate();
-  }
-
-  /**
-   * @test
-   * @expectedException \Sk\SmartId\Exception\InvalidParametersException
-   */
-  public function authenticateWithSignableHash_withoutHashType_shouldThrowException()
-  {
-    $hashToSign = new SignableHash();
-    $hashToSign->setHashInBase64( '7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w==' );
-    $this->builder
-        ->withRelyingPartyUUID( 'relying-party-uuid' )
-        ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
-        ->withHash( $hashToSign )
-        ->withDocumentNumber( 'PNOEE-31111111111' )
-        ->authenticate();
-  }
-
-  /**
-   * @test
-   * @expectedException \Sk\SmartId\Exception\InvalidParametersException
-   */
-  public function authenticateWithSignableHash_withoutHash_shouldThrowException()
-  {
-    $hashToSign = new SignableHash();
-    $hashToSign->setHashType( HashType::SHA512 );
-    $this->builder
-        ->withRelyingPartyUUID( 'relying-party-uuid' )
-        ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
-        ->withHash( $hashToSign )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
   }
@@ -302,15 +271,12 @@ class AuthenticationRequestBuilderTest extends Setup
     $this->makeAuthenticationRequest();
   }
 
-  private function assertCorrectSignatureRequestMadeWithDocumentNumber()
+  private function assertCorrectAuthenticationRequestMadeWithDocumentNumber()
   {
     $this->assertEquals( 'PNOEE-31111111111', $this->connector->documentNumberUsed );
     $this->assertEquals( 'relying-party-uuid', $this->connector->authenticationSessionRequestUsed->getRelyingPartyUUID() );
     $this->assertEquals( 'relying-party-name', $this->connector->authenticationSessionRequestUsed->getRelyingPartyName() );
     $this->assertEquals( 'ADVANCED', $this->connector->authenticationSessionRequestUsed->getCertificateLevel() );
-    $this->assertEquals( HashType::SHA512, $this->connector->authenticationSessionRequestUsed->getHashType() );
-    $this->assertEquals( '7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w==',
-        $this->connector->authenticationSessionRequestUsed->getHash() );
   }
 
   private function assertCorrectSignatureRequestMadeWithNationalIdentity()
@@ -320,9 +286,6 @@ class AuthenticationRequestBuilderTest extends Setup
     $this->assertEquals( 'relying-party-uuid', $this->connector->authenticationSessionRequestUsed->getRelyingPartyUUID() );
     $this->assertEquals( 'relying-party-name', $this->connector->authenticationSessionRequestUsed->getRelyingPartyName() );
     $this->assertEquals( 'ADVANCED', $this->connector->authenticationSessionRequestUsed->getCertificateLevel() );
-    $this->assertEquals( HashType::SHA512, $this->connector->authenticationSessionRequestUsed->getHashType() );
-    $this->assertEquals( '7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w==',
-        $this->connector->authenticationSessionRequestUsed->getHash() );
   }
 
   private function assertCorrectSessionRequestMade()
@@ -386,5 +349,21 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withHashInBase64( 'jsflWgpkVcWOyICotnVn5lazcXdaIWvcvNOWTYPceYQ=' )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
+  }
+
+  private function assertFixedHash()
+  {
+    $this->assertEquals( HashType::SHA512, $this->connector->authenticationSessionRequestUsed->getHashType() );
+    $this->assertEquals( '7iaw3Ur350mqGo7jwQrpkj9hiYB3Lkc/iBml1JQODbJ6wYX4oOHV+E+IvIh/1nsUNzLDBMxfqa2Ob1f1ACio/w==',
+        $this->connector->authenticationSessionRequestUsed->getHash() );
+  }
+
+  /**
+   * @param SignableData $dataToSign
+   */
+  private function assertGeneratedHash( SignableData $dataToSign )
+  {
+    $this->assertEquals( $dataToSign->getHashType(), $this->connector->authenticationSessionRequestUsed->getHashType() );
+    $this->assertEquals( $dataToSign->calculateHashInBase64(), $this->connector->authenticationSessionRequestUsed->getHash() );
   }
 }

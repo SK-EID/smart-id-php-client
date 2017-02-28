@@ -4,6 +4,7 @@ namespace Sk\SmartId\Tests\Api;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\Data\HashType;
 use Sk\SmartId\Api\Data\SignableData;
+use Sk\SmartId\Api\Data\SignableDataGenerator;
 
 class SignableDataTest extends TestCase
 {
@@ -45,5 +46,35 @@ class SignableDataTest extends TestCase
     $this->assertEquals( HashType::SHA384, $signableData->getHashType() );
     $this->assertEquals( self::SHA384_HASH_IN_BASE64, $signableData->calculateHashInBase64() );
     $this->assertEquals( base64_decode( self::SHA384_HASH_IN_BASE64 ), $signableData->calculateHash() );
+  }
+
+  /**
+   * @test
+   */
+  public function generated_signableData_withDefaultHashType_sha512()
+  {
+    $signableData = SignableDataGenerator::generate( HashType::SHA512 );
+    $this->assertEquals( HashType::SHA512, $signableData->getHashType() );
+    $this->assertEquals( base64_decode( $signableData->calculateHashInBase64() ), $signableData->calculateHash() );
+  }
+
+  /**
+   * @test
+   */
+  public function generated_signableData_withDefaultHashType_sha384()
+  {
+    $signableData = SignableDataGenerator::generate( HashType::SHA384 );
+    $this->assertEquals( HashType::SHA384, $signableData->getHashType() );
+    $this->assertEquals( base64_decode( $signableData->calculateHashInBase64() ), $signableData->calculateHash() );
+  }
+
+  /**
+   * @test
+   */
+  public function generated_signableData_withDefaultHashType_sha256()
+  {
+    $signableData = SignableDataGenerator::generate( HashType::SHA256 );
+    $this->assertEquals( HashType::SHA256, $signableData->getHashType() );
+    $this->assertEquals( base64_decode( $signableData->calculateHashInBase64() ), $signableData->calculateHash() );
   }
 }

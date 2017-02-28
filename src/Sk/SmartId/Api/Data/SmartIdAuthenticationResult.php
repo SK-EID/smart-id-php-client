@@ -124,6 +124,15 @@ class SmartIdAuthenticationResult extends AbstractData
   }
 
   /**
+   * @return AuthenticationCertificate
+   */
+  public function getCertificateInstance()
+  {
+    $parsed = CertificateParser::parseX509Certificate( $this->certificate );
+    return new AuthenticationCertificate( $parsed );
+  }
+
+  /**
    * @param string $certificate
    * @return $this
    */

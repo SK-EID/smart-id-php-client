@@ -22,8 +22,18 @@
   </php>
 
   <testsuites>
-    <testsuite name="Smart-ID Relying Party Test Suite">
+    <testsuite name="UnitTest" description="Smart-ID Relying Party Unit Test Suite">
       <directory>./tests</directory>
+      <exclude>./tests/Sk/SmartId/Tests/Api/SmartIdClientIntegrationTest.php</exclude>
+      <exclude>./tests/Sk/SmartId/Tests/Rest/SmartIdRestIntegrationTest.php</exclude>
+    </testsuite>
+
+    <testsuite name="ClientIntegrationTest" description="Smart-ID Relying Party Client Integration Test Suite">
+      <file>./tests/Sk/SmartId/Tests/Api/SmartIdClientIntegrationTest.php</file>
+    </testsuite>
+
+    <testsuite name="RestIntegrationTest" description="Smart-ID Relying Party Rest Integration Test Suite">
+      <file>./tests/Sk/SmartId/Tests/Rest/SmartIdRestIntegrationTest.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

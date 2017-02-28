@@ -12,7 +12,7 @@ abstract class AbstractData
    */
   public function __construct( $data = array() )
   {
-    if ( !empty( $data ) )
+    if ( ! empty( $data ) )
     {
       $this->fromArray( $data );
     }
@@ -74,9 +74,14 @@ abstract class AbstractData
    */
   public function __set( $key, $value )
   {
-    if ( property_exists( $this, $key ) )
+    $alternativeKey = ucwords( $key, '_' );
+    $alternativeKey = str_replace( '_', '', $alternativeKey );
+    $alternativeKey = lcfirst( $alternativeKey );
+
+    if ( property_exists( $this, $key ) || property_exists( $this, $alternativeKey ) )
     {
-      $camelizedName = 'set' . $this->camelize( $key );
+      $resultingKey = property_exists( $this, $key ) ? $key : $alternativeKey;
+      $camelizedName = 'set' . $this->camelize( $resultingKey );
 
       if ( method_exists( $this, $camelizedName ) )
       {
@@ -85,7 +90,7 @@ abstract class AbstractData
       }
       else
       {
-        $this->{$key} = $value;
+        $this->{$resultingKey} = $value;
       }
     }
     else
@@ -106,8 +111,11 @@ abstract class AbstractData
     if ( is_array( $value ) )
     {
       $Method = new ReflectionMethod( $this, $method );
+      if ( $Method->getParameters()[0]->getClass() === null )
+      {
+        return $value;
+      }
       $class = $Method->getParameters()[0]->getClass()->getName();
-
       $result = new $class( $value );
     }
     else

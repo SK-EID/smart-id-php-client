@@ -1,42 +1,104 @@
 <?php
 namespace Sk\SmartId\Tests\Rest;
 
-use Exception;
-use Sk\SmartId\Api\Data\SignableData;
-use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
-use Sk\SmartId\Tests\Setup;
+use PHPUnit\Framework\TestCase;
+use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
+use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
+use Sk\SmartId\Api\Data\DigestCalculator;
+use Sk\SmartId\Api\Data\HashType;
+use Sk\SmartId\Api\Data\SessionStatus;
+use Sk\SmartId\Api\Data\SessionStatusCode;
+use Sk\SmartId\Api\Data\SessionStatusRequest;
+use Sk\SmartId\Api\SmartIdConnector;
+use Sk\SmartId\Api\SmartIdRestConnector;
 
-class SmartIdRestIntegrationTest extends Setup
+class SmartIdRestIntegrationTest extends TestCase
 {
   /**
-   * @test
-   * @throws Exception
+   * @var SmartIdConnector
    */
-  public function authenticate()
+  private $connector;
+
+  protected function setUp()
   {
-    $dataToSign = new SignableData( $GLOBALS['data_to_sign'] );
-
-    $authenticationResult = $this->client->authentication()
-        ->createAuthentication()
-        ->withRelyingPartyUUID( $GLOBALS['relying_party_uuid'] )
-        ->withRelyingPartyName( $GLOBALS['relying_party_name'] )
-        ->withDocumentNumber( $GLOBALS['document_number'] )
-        ->withSignableData( $dataToSign )
-        ->withCertificateLevel( $GLOBALS['certificate_level'] )
-        ->authenticate();
-
-    $this->assertAuthenticationResultCreated( $authenticationResult );
+    $this->connector = new SmartIdRestConnector( $GLOBALS['host_url'] );
   }
 
   /**
-   * @param SmartIdAuthenticationResult $authenticationResult
+   * @test
    */
-  private function assertAuthenticationResultCreated( SmartIdAuthenticationResult $authenticationResult )
+  public function authenticate()
   {
-    $this->assertNotNull( $authenticationResult );
-    $this->assertNotEmpty( $authenticationResult->getEndResult() );
-    $this->assertNotEmpty( $authenticationResult->getValueInBase64() );
-    $this->assertNotNull( $authenticationResult->getCertificate() );
-    $this->assertNotNull( $authenticationResult->getCertificateLevel() );
+    $authenticationSessionResponse = $this->fetchAuthenticationSession();
+    $sessionStatus = $this->pollSessionStatus( $authenticationSessionResponse->getSessionID() );
+    $this->assertAuthenticationResultCreated( $sessionStatus );
+  }
+
+  /**
+   * @return AuthenticationSessionResponse
+   */
+  private function fetchAuthenticationSession()
+  {
+    $request = $this->createAuthenticationSessionRequest();
+    $authenticationSessionResponse = $this->connector->authenticate( $GLOBALS['document_number'], $request );
+    $this->assertNotNull( $authenticationSessionResponse );
+    $this->assertNotEmpty( $authenticationSessionResponse->getSessionID() );
+    return $authenticationSessionResponse;
+  }
+
+  /**
+   * @return AuthenticationSessionRequest
+   */
+  private function createAuthenticationSessionRequest()
+  {
+    $authenticationSessionRequest = new AuthenticationSessionRequest();
+    $authenticationSessionRequest->setRelyingPartyUUID( $GLOBALS['relying_party_uuid'] )
+        ->setRelyingPartyName( $GLOBALS['relying_party_name'] )
+        ->setCertificateLevel( $GLOBALS['certificate_level'] )
+        ->setHashType( HashType::SHA512 );
+    $hashInBase64 = $this->calculateHashInBase64( $GLOBALS['data_to_sign'] );
+    $authenticationSessionRequest->setHash( $hashInBase64 );
+    return $authenticationSessionRequest;
+  }
+
+  /**
+   * @param string $dataToSign
+   * @return string
+   */
+  private function calculateHashInBase64( $dataToSign )
+  {
+    $digestValue = DigestCalculator::calculateDigest( $dataToSign, HashType::SHA512 );
+    return base64_encode( $digestValue );
+  }
+
+  /**
+   * @param string $sessionId
+   * @return SessionStatus
+   */
+  private function pollSessionStatus( $sessionId )
+  {
+    /** @var SessionStatus $sessionStatus */
+    $sessionStatus = null;
+    while ( $sessionStatus === null || strcasecmp( SessionStatusCode::RUNNING, $sessionStatus->getState() ) === 0 )
+    {
+      $request = new SessionStatusRequest( $sessionId );
+      $sessionStatus = $this->connector->getSessionStatus( $request );
+      sleep( 1 );
+    }
+    $this->assertEquals( SessionStatusCode::COMPLETE, $sessionStatus->getState() );
+    return $sessionStatus;
+  }
+
+  /**
+   * @param SessionStatus|null $sessionStatus
+   */
+  private function assertAuthenticationResultCreated( SessionStatus $sessionStatus = null )
+  {
+    $this->assertNotNull( $sessionStatus );
+
+    $this->assertNotEmpty( $sessionStatus->getResult() );
+    $this->assertNotEmpty( $sessionStatus->getSignature()->getValue() );
+    $this->assertNotEmpty( $sessionStatus->getCert()->getValue() );
+    $this->assertNotEmpty( $sessionStatus->getCert()->getCertificateLevel() );
   }
 }
