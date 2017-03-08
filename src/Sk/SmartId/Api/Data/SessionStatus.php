@@ -1,7 +1,7 @@
 <?php
 namespace Sk\SmartId\Api\Data;
 
-class SessionStatus extends AbstractData
+class SessionStatus extends PropertyMapper
 {
   /**
    * @var string

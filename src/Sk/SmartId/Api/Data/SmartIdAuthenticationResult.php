@@ -3,7 +3,7 @@ namespace Sk\SmartId\Api\Data;
 
 use Sk\SmartId\Exception\TechnicalErrorException;
 
-class SmartIdAuthenticationResult extends AbstractData
+class SmartIdAuthenticationResult extends PropertyMapper
 {
   /**
    * @var string

@@ -1,7 +1,7 @@
 <?php
 namespace Sk\SmartId\Api\Data;
 
-class AuthenticationSessionResponse extends AbstractData
+class AuthenticationSessionResponse extends PropertyMapper
 {
   /**
    * @var string

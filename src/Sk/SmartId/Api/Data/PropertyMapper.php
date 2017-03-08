@@ -5,7 +5,7 @@ use Exception;
 use ReflectionMethod;
 use ReflectionProperty;
 
-abstract class AbstractData
+abstract class PropertyMapper
 {
   /**
    * @param array $data
@@ -156,19 +156,19 @@ abstract class AbstractData
    */
   public function toArray()
   {
-    $value = get_object_vars( $this );
+    $values = get_object_vars( $this );
 
-    foreach ( $value as $key => $value )
+    foreach ( $values as $key => $value )
     {
       $Property = new ReflectionProperty( $this, $key );
 
       if ( $Property->isProtected() )
       {
-        unset( $value[ $key ] );
+        unset( $values[ $key ] );
       }
     }
 
-    return $value;
+    return $values;
   }
 
   /**

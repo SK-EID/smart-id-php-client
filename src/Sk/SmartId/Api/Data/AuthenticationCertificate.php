@@ -1,7 +1,7 @@
 <?php
 namespace Sk\SmartId\Api\Data;
 
-class AuthenticationCertificate extends AbstractData
+class AuthenticationCertificate extends PropertyMapper
 {
   /**
    * @var string
