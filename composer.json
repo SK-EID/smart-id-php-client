@@ -1,15 +1,15 @@
 {
-  "name": "smart-id-php-client/smart-id-php-client",
+  "name": "sk-id-solutions/smart-id-php-client",
   "type": "library",
   "description": "Smart-ID Relying Party PHP Api v5 client",
-  "homepage": "https://github.com/jeserkin/smart-id-php-client",
+  "homepage": "https://github.com/SK-EID/smart-id-php-client",
   "keywords": [
     "smart-id",
     "relying",
     "party",
     "api"
   ],
-  "license": "MIT",
+  "license": "GPL-3.0",
   "authors": [
     {
       "name": "Eugene Serkin",
