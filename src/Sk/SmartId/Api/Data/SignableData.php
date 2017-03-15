@@ -61,6 +61,17 @@ class SignableData
    */
   public function areFieldsFilled()
   {
-    return isset( $this->hashType ) && isset( $this->dataToSign ) && strlen( $this->hashType ) > 0 && strlen( $this->dataToSign ) > 0;
+    return isset( $this->hashType )
+           && isset( $this->dataToSign )
+           && strlen( $this->hashType ) > 0
+           && strlen( $this->dataToSign ) > 0;
+  }
+
+  /**
+   * @return string
+   */
+  public function getDataToSign()
+  {
+    return $this->dataToSign;
   }
 }

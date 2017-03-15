@@ -51,6 +51,7 @@ class SessionStatusRequest
    */
   public function isSessionStatusResponseSocketOpenTimeoutSet()
   {
-    return isset( $this->sessionStatusResponseSocketOpenTimeoutMs ) && $this->sessionStatusResponseSocketOpenTimeoutMs > 0;
+    return isset( $this->sessionStatusResponseSocketOpenTimeoutMs )
+           && $this->sessionStatusResponseSocketOpenTimeoutMs > 0;
   }
 }

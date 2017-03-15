@@ -10,8 +10,7 @@ class SignableDataGenerator
   public static function generate( $hashType )
   {
     $dataToSign = new SignableData( self::getRandomBytes() );
-    $dataToSign
-        ->setHashType( $hashType );
+    $dataToSign->setHashType( $hashType );
     return $dataToSign;
   }
 

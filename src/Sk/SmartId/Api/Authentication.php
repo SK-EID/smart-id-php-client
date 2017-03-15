@@ -35,8 +35,7 @@ class Authentication extends AbstractApi
    */
   private function populateBuilderFields( SmartIdRequestBuilder $builder )
   {
-    $builder
-        ->withRelyingPartyUUID( $this->client->getRelyingPartyUUID() )
+    $builder->withRelyingPartyUUID( $this->client->getRelyingPartyUUID() )
         ->withRelyingPartyName( $this->client->getRelyingPartyName() );
   }
 

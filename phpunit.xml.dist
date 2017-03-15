@@ -17,6 +17,8 @@
     <var name="relying_party_uuid" value=""/>
     <var name="relying_party_name" value=""/>
     <var name="document_number" value=""/>
+    <var name="national_identity_number" value=""/>
+    <var name="country_code" value=""/>
     <var name="certificate_level" value=""/>
     <var name="data_to_sign" value=""/>
   </php>

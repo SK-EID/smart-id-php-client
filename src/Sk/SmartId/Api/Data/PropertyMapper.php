@@ -12,7 +12,7 @@ abstract class PropertyMapper
    */
   public function __construct( $data = array() )
   {
-    if ( ! empty( $data ) )
+    if ( !empty( $data ) )
     {
       $this->fromArray( $data );
     }

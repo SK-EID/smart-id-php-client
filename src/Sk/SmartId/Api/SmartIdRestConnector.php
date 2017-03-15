@@ -173,6 +173,11 @@ class SmartIdRestConnector implements SmartIdConnector
       throw new SmartIdException( 'Limit exceeded' );
     }
 
+    if ( 403 == $httpCode )
+    {
+      throw new SmartIdException( 'Forbidden!' );
+    }
+
     $response = $this->getResponse( $rawResponse, $responseType );
 
     if ( 404 == $httpCode )

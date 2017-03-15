@@ -72,7 +72,8 @@ class SessionStatusPoller
       {
         break;
       }
-      time_nanosleep( 0, $this->convertMsToNanos( $this->pollingSleepTimeoutMs ) );
+      $microseconds = $this->convertMsToMicros( $this->pollingSleepTimeoutMs );
+      usleep( $microseconds );
     }
     return $sessionStatus;
   }
@@ -154,9 +155,9 @@ class SessionStatusPoller
    * @param int $milliseconds
    * @return int
    */
-  private function convertMsToNanos( $milliseconds )
+  private function convertMsToMicros( $milliseconds )
   {
-    $conversionResult = $milliseconds * pow( 10, 6 );
+    $conversionResult = $milliseconds * pow( 10, 3 );
     return $conversionResult > PHP_INT_MAX ? PHP_INT_MAX : $conversionResult;
   }
 

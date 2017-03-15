@@ -6,7 +6,7 @@ use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\NationalIdentity;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SignableData;
-use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
+use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Exception\InvalidParametersException;
 use Sk\SmartId\Exception\TechnicalErrorException;
 
@@ -41,16 +41,6 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    * @var SignableData
    */
   private $dataToSign;
-
-  /**
-   * @var string
-   */
-  private $hashType;
-
-  /**
-   * @var string
-   */
-  private $hashInBase64;
 
   /**
    * @param SmartIdConnector $connector
@@ -112,26 +102,6 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   }
 
   /**
-   * @param string $hashType
-   * @return $this
-   */
-  public function withHashType( $hashType )
-  {
-    $this->hashType = $hashType;
-    return $this;
-  }
-
-  /**
-   * @param string $hashInBase64
-   * @return $this
-   */
-  public function withHashInBase64( $hashInBase64 )
-  {
-    $this->hashInBase64 = $hashInBase64;
-    return $this;
-  }
-
-  /**
    * @param string $certificateLevel
    * @return $this
    */
@@ -162,7 +132,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   }
 
   /**
-   * @return SmartIdAuthenticationResult
+   * @return SmartIdAuthenticationResponse
    */
   public function authenticate()
   {
@@ -181,8 +151,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   private function createAuthenticationSessionRequest()
   {
     $request = new AuthenticationSessionRequest();
-    $request
-        ->setRelyingPartyUUID( $this->getRelyingPartyUUID() )
+    $request->setRelyingPartyUUID( $this->getRelyingPartyUUID() )
         ->setRelyingPartyName( $this->getRelyingPartyName() )
         ->setCertificateLevel( $this->certificateLevel )
         ->setHashType( $this->getHashTypeString() )
@@ -207,10 +176,6 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    */
   private function getHashInBase64()
   {
-    if ( strlen( $this->hashInBase64 ) )
-    {
-      return $this->hashInBase64;
-    }
     return $this->dataToSign->calculateHashInBase64();
   }
 
@@ -257,7 +222,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     {
       throw new InvalidParametersException( 'Certificate level must be set' );
     }
-    if ( !$this->isHashSet() && !$this->isSignableDataSet() )
+    if ( !$this->isSignableDataSet() )
     {
       throw new InvalidParametersException( 'Signable data or hash with hash type must be set' );
     }
@@ -269,15 +234,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   private function hasNationalIdentity()
   {
     return isset( $this->nationalIdentity )
-        || ( strlen( $this->countryCode ) && strlen( $this->nationalIdentityNumber ) );
-  }
-
-  /**
-   * @return bool
-   */
-  private function isHashSet()
-  {
-    return strlen( $this->hashType ) && strlen( $this->hashInBase64 );
+           || ( strlen( $this->countryCode ) && strlen( $this->nationalIdentityNumber ) );
   }
 
   /**
@@ -306,20 +263,22 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
 
   /**
    * @param SessionStatus $sessionStatus
-   * @return SmartIdAuthenticationResult
+   * @return SmartIdAuthenticationResponse
    */
   private function createSmartIdAuthenticationResult( SessionStatus $sessionStatus )
   {
     $sessionResult = $sessionStatus->getResult();
     $sessionSignature = $sessionStatus->getSignature();
     $sessionCertificate = $sessionStatus->getCert();
-    $authenticationResult = new SmartIdAuthenticationResult();
-    $authenticationResult->setDocumentNumber( $sessionResult->getDocumentNumber() );
-    $authenticationResult->setEndResult( $sessionResult->getEndResult() );
-    $authenticationResult->setValueInBase64( $sessionSignature->getValue() );
-    $authenticationResult->setAlgorithmName( $sessionSignature->getAlgorithm() );
-    $authenticationResult->setCertificate( $sessionCertificate->getValue() );
-    $authenticationResult->setCertificateLevel( $sessionCertificate->getCertificateLevel() );
+
+    $authenticationResult = new SmartIdAuthenticationResponse();
+    $authenticationResult->setDocumentNumber( $sessionResult->getDocumentNumber() )
+        ->setEndResult( $sessionResult->getEndResult() )
+        ->setSignedData( $this->dataToSign->getDataToSign() )
+        ->setValueInBase64( $sessionSignature->getValue() )
+        ->setAlgorithmName( $sessionSignature->getAlgorithm() )
+        ->setCertificate( $sessionCertificate->getValue() )
+        ->setCertificateLevel( $sessionCertificate->getCertificateLevel() );
     return $authenticationResult;
   }
 }

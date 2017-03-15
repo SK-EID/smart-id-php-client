@@ -3,7 +3,7 @@ namespace Sk\SmartId\Tests\Api;
 
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\Data\CertificateParser;
-use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
+use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 
 class SmartIdAuthenticationResultTest extends TestCase
 {
@@ -12,9 +12,9 @@ class SmartIdAuthenticationResultTest extends TestCase
    */
   public function getSignatureValueInBase64()
   {
-    $authenticationResult = new SmartIdAuthenticationResult();
-    $authenticationResult->setValueInBase64( 'SGVsbG8gU21hcnQtSUQgc2lnbmF0dXJlIQ==' );
-    $this->assertEquals( 'SGVsbG8gU21hcnQtSUQgc2lnbmF0dXJlIQ==', $authenticationResult->getValueInBase64() );
+    $authenticationResponse = new SmartIdAuthenticationResponse();
+    $authenticationResponse->setValueInBase64( 'SGVsbG8gU21hcnQtSUQgc2lnbmF0dXJlIQ==' );
+    $this->assertEquals( 'SGVsbG8gU21hcnQtSUQgc2lnbmF0dXJlIQ==', $authenticationResponse->getValueInBase64() );
   }
 
   /**
@@ -22,9 +22,9 @@ class SmartIdAuthenticationResultTest extends TestCase
    */
   public function getSignatureValueInBytes()
   {
-    $authenticationResult = new SmartIdAuthenticationResult();
-    $authenticationResult->setValueInBase64( 'VGVyZSBhbGxraXJpIQ==' );
-    $this->assertEquals( 'Tere allkiri!', $authenticationResult->getValue() );
+    $authenticationResponse = new SmartIdAuthenticationResponse();
+    $authenticationResponse->setValueInBase64( 'VGVyZSBhbGxraXJpIQ==' );
+    $this->assertEquals( 'Tere allkiri!', $authenticationResponse->getValue() );
   }
 
   /**
@@ -33,9 +33,9 @@ class SmartIdAuthenticationResultTest extends TestCase
    */
   public function incorrectBase64StringShouldThrowException()
   {
-    $authenticationResult = new SmartIdAuthenticationResult();
-    $authenticationResult->setValueInBase64( '!IsNotValidBase64Character' );
-    $authenticationResult->getValue();
+    $authenticationResponse = new SmartIdAuthenticationResponse();
+    $authenticationResponse->setValueInBase64( '!IsNotValidBase64Character' );
+    $authenticationResponse->getValue();
   }
 
   /**
@@ -43,8 +43,9 @@ class SmartIdAuthenticationResultTest extends TestCase
    */
   public function getCertificate()
   {
-    $authenticationResult = new SmartIdAuthenticationResult();
-    $authenticationResult->setCertificate( DummyData::CERTIFICATE );
-    $this->assertEquals( CertificateParser::parseX509Certificate( DummyData::CERTIFICATE ), $authenticationResult->getParsedCertificate() );
+    $authenticationResponse = new SmartIdAuthenticationResponse();
+    $authenticationResponse->setCertificate( DummyData::CERTIFICATE );
+    $this->assertEquals( CertificateParser::parseX509Certificate( DummyData::CERTIFICATE ),
+        $authenticationResponse->getParsedCertificate() );
   }
 }
