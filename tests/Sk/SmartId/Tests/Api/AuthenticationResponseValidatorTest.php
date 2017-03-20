@@ -3,6 +3,7 @@ namespace Sk\SmartId\Tests\Api;
 
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\AuthenticationResponseValidator;
+use Sk\SmartId\Api\Data\CertificateLevelCode;
 use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResultError;
@@ -76,9 +77,21 @@ class AuthenticationResponseValidatorTest extends TestCase
   /**
    * @test
    */
-  public function validationReturnsInvalidAuthenticationResult_whenCertificateLevelMismatches()
+  public function validationReturnsValidAuthenticationResult_whenCertificateLevelHigherThanRequested()
   {
-    $response = $this->createValidationResponseWithMismatchingCertificateLevel();
+    $response = $this->createValidationResponseWithHigherCertificateLevelThanRequested();
+    $authenticationResult = $this->validator->validate( $response );
+
+    $this->assertTrue( $authenticationResult->isValid() );
+    $this->assertTrue( empty( $authenticationResult->getErrors() ) );
+  }
+
+  /**
+   * @test
+   */
+  public function validationReturnsInvalidAuthenticationResult_whenCertificateLevelLowerThanRequested()
+  {
+    $response = $this->createValidationResponseWithLowerCertificateLevelThanRequested();
     $authenticationResult = $this->validator->validate( $response );
 
     $this->assertFalse( $authenticationResult->isValid() );
@@ -124,7 +137,8 @@ class AuthenticationResponseValidatorTest extends TestCase
    */
   private function createValidValidationResponse()
   {
-    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64, 'QUALIFIED' );
+    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64,
+        CertificateLevelCode::QUALIFIED, CertificateLevelCode::QUALIFIED );
   }
 
   /**
@@ -132,7 +146,8 @@ class AuthenticationResponseValidatorTest extends TestCase
    */
   private function createValidationResponseWithInvalidEndResult()
   {
-    return $this->createValidationResponse( 'NOT OK', self::VALID_SIGNATURE_IN_BASE64, 'QUALIFIED' );
+    return $this->createValidationResponse( 'NOT OK', self::VALID_SIGNATURE_IN_BASE64, CertificateLevelCode::QUALIFIED,
+        CertificateLevelCode::QUALIFIED );
   }
 
   /**
@@ -140,32 +155,41 @@ class AuthenticationResponseValidatorTest extends TestCase
    */
   private function createValidationResponseWithInvalidSignature()
   {
-    return $this->createValidationResponse( SessionEndResultCode::OK, self::INVALID_SIGNATURE_IN_BASE64, 'QUALIFIED' );
+    return $this->createValidationResponse( SessionEndResultCode::OK, self::INVALID_SIGNATURE_IN_BASE64,
+        CertificateLevelCode::QUALIFIED, CertificateLevelCode::QUALIFIED );
+  }
+
+  private function createValidationResponseWithLowerCertificateLevelThanRequested()
+  {
+    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64,
+        CertificateLevelCode::ADVANCED, CertificateLevelCode::QUALIFIED );
   }
 
   /**
    * @return SmartIdAuthenticationResponse
    */
-  private function createValidationResponseWithMismatchingCertificateLevel()
+  private function createValidationResponseWithHigherCertificateLevelThanRequested()
   {
-    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64, 'ADVANCED' );
+    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64,
+        CertificateLevelCode::QUALIFIED, CertificateLevelCode::ADVANCED );
   }
 
   /**
    * @param string $endResult
    * @param string $signatureInBase64
    * @param string $certificateLevel
+   * @param string $requestedCertificateLevel
    * @return SmartIdAuthenticationResponse
    */
-  private function createValidationResponse( $endResult, $signatureInBase64, $certificateLevel )
+  private function createValidationResponse( $endResult, $signatureInBase64, $certificateLevel, $requestedCertificateLevel )
   {
     $authenticationResponse = new SmartIdAuthenticationResponse();
     $authenticationResponse->setEndResult( $endResult )
         ->setValueInBase64( $signatureInBase64 )
         ->setCertificate( DummyData::CERTIFICATE )
         ->setSignedData( 'Hello World!' )
-        ->setRequestedCertificateLevel( 'QUALIFIED' )
-        ->setCertificateLevel( $certificateLevel );
+        ->setCertificateLevel( $certificateLevel )
+        ->setRequestedCertificateLevel( $requestedCertificateLevel );
     return $authenticationResponse;
   }
 }

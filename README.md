@@ -1,4 +1,4 @@
-Smart-ID Relying Party PHP Api v5
+Smart-ID Relying Party PHP Api
 ------------------
 
 Available services:

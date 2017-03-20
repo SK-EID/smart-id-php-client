@@ -107,7 +107,7 @@ class AuthenticationResponseValidator
    */
   private function verifyCertificateLevel( SmartIdAuthenticationResponse $authenticationResponse )
   {
-    return strcasecmp( $authenticationResponse->getRequestedCertificateLevel(),
-        $authenticationResponse->getCertificateLevel() ) === 0;
+    $certLevel = new CertificateLevel( $authenticationResponse->getCertificateLevel() );
+    return $certLevel->isEqualOrAbove( $authenticationResponse->getRequestedCertificateLevel() );
   }
 }

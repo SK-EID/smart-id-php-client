@@ -26,7 +26,7 @@ class SmartIdClientIntegrationTest extends Setup
         ->withCertificateLevel( $GLOBALS['certificate_level'] )
         ->authenticate();
 
-    $this->assertAuthenticationResultCreated( $authenticationResult );
+    $this->assertAuthenticationResponseCreated( $authenticationResult );
   }
 
   /**
@@ -47,13 +47,13 @@ class SmartIdClientIntegrationTest extends Setup
         ->withCertificateLevel( $GLOBALS['certificate_level'] )
         ->authenticate();
 
-    $this->assertAuthenticationResultCreated( $authenticationResult );
+    $this->assertAuthenticationResponseCreated( $authenticationResult );
   }
 
   /**
    * @param SmartIdAuthenticationResponse $authenticationResponse
    */
-  private function assertAuthenticationResultCreated( SmartIdAuthenticationResponse $authenticationResponse )
+  private function assertAuthenticationResponseCreated( SmartIdAuthenticationResponse $authenticationResponse )
   {
     $this->assertNotNull( $authenticationResponse );
     $this->assertNotEmpty( $authenticationResponse->getEndResult() );
