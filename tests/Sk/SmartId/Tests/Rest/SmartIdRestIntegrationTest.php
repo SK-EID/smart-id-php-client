@@ -25,6 +25,14 @@ class SmartIdRestIntegrationTest extends TestCase
   }
 
   /**
+   * @after
+   */
+  public function waitForMobileAppToFinish()
+  {
+    sleep(10);
+  }
+
+  /**
    * @test
    */
   public function authenticate()

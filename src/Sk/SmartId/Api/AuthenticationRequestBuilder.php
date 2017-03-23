@@ -1,6 +1,7 @@
 <?php
 namespace Sk\SmartId\Api;
 
+use Sk\SmartId\Api\Data\AuthenticationHash;
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\NationalIdentity;
@@ -41,6 +42,11 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    * @var SignableData
    */
   private $dataToSign;
+
+  /**
+   * @var AuthenticationHash
+   */
+  private $authenticationHash;
 
   /**
    * @param SmartIdConnector $connector
@@ -98,6 +104,16 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   public function withSignableData( SignableData $dataToSign )
   {
     $this->dataToSign = $dataToSign;
+    return $this;
+  }
+
+  /**
+   * @param AuthenticationHash $authenticationHash
+   * @return $this
+   */
+  public function withAuthenticationHash( AuthenticationHash $authenticationHash )
+  {
+    $this->authenticationHash = $authenticationHash;
     return $this;
   }
 
@@ -168,6 +184,10 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     {
       return $this->hashType;
     }
+    else if ( isset( $this->authenticationHash ) )
+    {
+      return $this->authenticationHash->getHashType();
+    }
     return $this->dataToSign->getHashType();
   }
 
@@ -176,6 +196,10 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    */
   private function getHashInBase64()
   {
+    if ( isset( $this->authenticationHash ) )
+    {
+      return $this->authenticationHash->calculateHashInBase64();
+    }
     return $this->dataToSign->calculateHashInBase64();
   }
 
@@ -222,7 +246,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     {
       throw new InvalidParametersException( 'Certificate level must be set' );
     }
-    if ( !$this->isSignableDataSet() )
+    if ( !$this->isSignableDataSet() && !$this->isAuthenticationHashSet())
     {
       throw new InvalidParametersException( 'Signable data or hash with hash type must be set' );
     }
@@ -243,6 +267,14 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   private function isSignableDataSet()
   {
     return isset( $this->dataToSign );
+  }
+
+  /**
+   * @return bool
+   */
+  private function isAuthenticationHashSet()
+  {
+    return isset( $this->authenticationHash );
   }
 
   /**
@@ -274,11 +306,23 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     $authenticationResult = new SmartIdAuthenticationResponse();
     $authenticationResult->setDocumentNumber( $sessionResult->getDocumentNumber() )
         ->setEndResult( $sessionResult->getEndResult() )
-        ->setSignedData( $this->dataToSign->getDataToSign() )
+        ->setSignedData( $this->getDataToSign() )
         ->setValueInBase64( $sessionSignature->getValue() )
         ->setAlgorithmName( $sessionSignature->getAlgorithm() )
         ->setCertificate( $sessionCertificate->getValue() )
         ->setCertificateLevel( $sessionCertificate->getCertificateLevel() );
     return $authenticationResult;
+  }
+
+  /**
+   * @return string
+   */
+  private function getDataToSign()
+  {
+    if ( isset( $this->authenticationHash ) )
+    {
+      return $this->authenticationHash->getDataToSign();
+    }
+    return $this->dataToSign->getDataToSign();
   }
 }

@@ -1,14 +1,21 @@
 <?php
 namespace Sk\SmartId\Tests\Api;
 
-use Sk\SmartId\Api\Data\HashType;
+use Sk\SmartId\Api\Data\AuthenticationHash;
 use Sk\SmartId\Api\Data\SignableData;
-use Sk\SmartId\Api\Data\SignableDataGenerator;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Tests\Setup;
 
 class SmartIdClientIntegrationTest extends Setup
 {
+  /**
+   * @after
+   */
+  public function waitForMobileAppToFinish()
+  {
+    sleep(10);
+  }
+
   /**
    * @test
    */
@@ -34,7 +41,7 @@ class SmartIdClientIntegrationTest extends Setup
    */
   public function authenticate_withNationalIdentityNumberAndCountryCode()
   {
-    $dataToSign = SignableDataGenerator::generate( HashType::SHA512 );
+    $dataToSign = AuthenticationHash::generate();
     $this->assertNotNull( $dataToSign );
 
     $authenticationResult = $this->client->authentication()
