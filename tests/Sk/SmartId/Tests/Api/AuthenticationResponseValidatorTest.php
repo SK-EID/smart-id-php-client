@@ -101,6 +101,32 @@ class AuthenticationResponseValidatorTest extends TestCase
 
   /**
    * @test
+   */
+  public function withEmptyRequestedCertificateLevel_shouldPass()
+  {
+    $response = $this->createValidValidationResponse();
+    $response->setRequestedCertificateLevel( '' );
+    $authenticationResult = $this->validator->validate( $response );
+
+    $this->assertTrue( $authenticationResult->isValid() );
+    $this->assertTrue( empty( $authenticationResult->getErrors() ) );
+  }
+
+  /**
+   * @test
+   */
+  public function withNullRequestedCertificateLevel_shouldPass()
+  {
+    $response = $this->createValidValidationResponse();
+    $response->setRequestedCertificateLevel( null );
+    $authenticationResult = $this->validator->validate( $response );
+
+    $this->assertTrue( $authenticationResult->isValid() );
+    $this->assertTrue( empty( $authenticationResult->getErrors() ) );
+  }
+
+  /**
+   * @test
    * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
    */
   public function whenCertificateIsNull_ThenThrowException()
@@ -118,17 +144,6 @@ class AuthenticationResponseValidatorTest extends TestCase
   {
     $response = $this->createValidValidationResponse();
     $response->setValueInBase64( '' );
-    $this->validator->validate( $response );
-  }
-
-  /**
-   * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
-   */
-  public function whenRequestedCertificateLevelIsNullEmpty_ThenThrowException()
-  {
-    $response = $this->createValidValidationResponse();
-    $response->setRequestedCertificateLevel( '' );
     $this->validator->validate( $response );
   }
 

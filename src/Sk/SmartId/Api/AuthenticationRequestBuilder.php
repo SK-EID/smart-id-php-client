@@ -242,11 +242,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     {
       throw new InvalidParametersException( 'Either document number or national identity must be set' );
     }
-    if ( !isset( $this->certificateLevel ) )
-    {
-      throw new InvalidParametersException( 'Certificate level must be set' );
-    }
-    if ( !$this->isSignableDataSet() && !$this->isAuthenticationHashSet())
+    if ( !$this->isSignableDataSet() && !$this->isAuthenticationHashSet() )
     {
       throw new InvalidParametersException( 'Signable data or hash with hash type must be set' );
     }

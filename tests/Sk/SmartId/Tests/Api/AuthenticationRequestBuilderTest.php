@@ -4,6 +4,7 @@ namespace Sk\SmartId\Tests\Api;
 use Sk\SmartId\Api\AuthenticationRequestBuilder;
 use Sk\SmartId\Api\Data\AuthenticationHash;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
+use Sk\SmartId\Api\Data\CertificateLevelCode;
 use Sk\SmartId\Api\Data\HashType;
 use Sk\SmartId\Api\Data\NationalIdentity;
 use Sk\SmartId\Api\Data\SessionCertificate;
@@ -51,11 +52,12 @@ class AuthenticationRequestBuilderTest extends Setup
     $dataToSign = new SignableData( $GLOBALS['data_to_sign'] );
     $authenticationResponse = $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
+        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->withSignableData( $dataToSign )
         ->authenticate();
-    $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber( $dataToSign->calculateHashInBase64() );
+    $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber( $dataToSign->calculateHashInBase64(),
+        CertificateLevelCode::QUALIFIED );
     $this->assertGeneratedHash( $dataToSign );
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResponseCorrect( $authenticationResponse );
@@ -69,11 +71,12 @@ class AuthenticationRequestBuilderTest extends Setup
     $authenticationHash = AuthenticationHash::generate();
     $authenticationResponse = $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
+        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->withAuthenticationHash( $authenticationHash )
         ->authenticate();
-    $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber( $authenticationHash->calculateHashInBase64() );
+    $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber( $authenticationHash->calculateHashInBase64(),
+        CertificateLevelCode::QUALIFIED );
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResponseCorrect( $authenticationResponse );
   }
@@ -87,12 +90,12 @@ class AuthenticationRequestBuilderTest extends Setup
     $dataToSign->setHashType( HashType::SHA512 );
     $authenticationResponse = $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
+        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withSignableData( $dataToSign )
         ->withNationalIdentityNumber( '31111111111' )
         ->withCountryCode( 'EE' )
         ->authenticate();
-    $this->assertCorrectAuthenticationRequestMadeWithNationalIdentity();
+    $this->assertCorrectAuthenticationRequestMadeWithNationalIdentity( CertificateLevelCode::QUALIFIED );
     $this->assertFixedHash();
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResponseCorrect( $authenticationResponse );
@@ -107,12 +110,29 @@ class AuthenticationRequestBuilderTest extends Setup
     $identity = new NationalIdentity( 'EE', '31111111111' );
     $authenticationResponse = $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
+        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withSignableData( $dataToSign )
         ->withNationalIdentity( $identity )
         ->authenticate();
-    $this->assertCorrectAuthenticationRequestMadeWithNationalIdentity();
+    $this->assertCorrectAuthenticationRequestMadeWithNationalIdentity( CertificateLevelCode::QUALIFIED );
     $this->assertFixedHash();
+    $this->assertCorrectSessionRequestMade();
+    $this->assertAuthenticationResponseCorrect( $authenticationResponse );
+  }
+
+  /**
+   * @test
+   */
+  public function authenticateWithoutCertificateLevel_shouldPass()
+  {
+    $authenticationHash = AuthenticationHash::generate();
+    $authenticationResponse = $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
+        ->withRelyingPartyName( 'relying-party-name' )
+        ->withDocumentNumber( 'PNOEE-31111111111' )
+        ->withAuthenticationHash( $authenticationHash )
+        ->authenticate();
+    $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber( $authenticationHash->calculateHashInBase64(),
+        null );
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResponseCorrect( $authenticationResponse );
   }
@@ -126,22 +146,8 @@ class AuthenticationRequestBuilderTest extends Setup
     $authenticationHash = AuthenticationHash::generate();
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
+        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withAuthenticationHash( $authenticationHash )
-        ->authenticate();
-  }
-
-  /**
-   * @test
-   * @expectedException \Sk\SmartId\Exception\InvalidParametersException
-   */
-  public function authenticateWithoutCertificateLevel_shouldThrowException()
-  {
-    $authenticationHash = AuthenticationHash::generate();
-    $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
-        ->withRelyingPartyName( 'relying-party-name' )
-        ->withAuthenticationHash( $authenticationHash )
-        ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
   }
 
@@ -153,7 +159,7 @@ class AuthenticationRequestBuilderTest extends Setup
   {
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
+        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
   }
@@ -166,7 +172,7 @@ class AuthenticationRequestBuilderTest extends Setup
   {
     $authenticationHash = AuthenticationHash::generate();
     $this->builder->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
+        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withAuthenticationHash( $authenticationHash )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
@@ -180,7 +186,7 @@ class AuthenticationRequestBuilderTest extends Setup
   {
     $authenticationHash = AuthenticationHash::generate();
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
-        ->withCertificateLevel( 'ADVANCED' )
+        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withAuthenticationHash( $authenticationHash )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();
@@ -228,20 +234,23 @@ class AuthenticationRequestBuilderTest extends Setup
 
   /**
    * @param string $expectedHashToSignInBase64
+   * @param string $expectedCertificateLevel
    */
-  private function assertCorrectAuthenticationRequestMadeWithDocumentNumber( $expectedHashToSignInBase64 )
+  private function assertCorrectAuthenticationRequestMadeWithDocumentNumber( $expectedHashToSignInBase64,
+      $expectedCertificateLevel )
   {
     $this->assertEquals( 'PNOEE-31111111111', $this->connector->documentNumberUsed );
     $this->assertEquals( 'relying-party-uuid',
         $this->connector->authenticationSessionRequestUsed->getRelyingPartyUUID() );
     $this->assertEquals( 'relying-party-name',
         $this->connector->authenticationSessionRequestUsed->getRelyingPartyName() );
-    $this->assertEquals( 'ADVANCED', $this->connector->authenticationSessionRequestUsed->getCertificateLevel() );
+    $this->assertEquals( $expectedCertificateLevel,
+        $this->connector->authenticationSessionRequestUsed->getCertificateLevel() );
     $this->assertEquals( HashType::SHA512, $this->connector->authenticationSessionRequestUsed->getHashType() );
     $this->assertEquals( $expectedHashToSignInBase64, $this->connector->authenticationSessionRequestUsed->getHash() );
   }
 
-  private function assertCorrectAuthenticationRequestMadeWithNationalIdentity()
+  private function assertCorrectAuthenticationRequestMadeWithNationalIdentity( $expectedCertificateLevel )
   {
     $this->assertEquals( '31111111111', $this->connector->identityUsed->getNationalIdentityNumber() );
     $this->assertEquals( 'EE', $this->connector->identityUsed->getCountryCode() );
@@ -249,7 +258,8 @@ class AuthenticationRequestBuilderTest extends Setup
         $this->connector->authenticationSessionRequestUsed->getRelyingPartyUUID() );
     $this->assertEquals( 'relying-party-name',
         $this->connector->authenticationSessionRequestUsed->getRelyingPartyName() );
-    $this->assertEquals( 'ADVANCED', $this->connector->authenticationSessionRequestUsed->getCertificateLevel() );
+    $this->assertEquals( $expectedCertificateLevel,
+        $this->connector->authenticationSessionRequestUsed->getCertificateLevel() );
   }
 
   private function assertCorrectSessionRequestMade()
@@ -268,7 +278,7 @@ class AuthenticationRequestBuilderTest extends Setup
     $this->assertEquals( 'sha512WithRSAEncryption', $authenticationResult->getAlgorithmName() );
     $this->assertEquals( 'PNOEE-31111111111', $authenticationResult->getDocumentNumber() );
     $this->assertEquals( DummyData::CERTIFICATE, $authenticationResult->getCertificate() );
-    $this->assertEquals( 'QUALIFIED', $authenticationResult->getCertificateLevel() );
+    $this->assertEquals( CertificateLevelCode::QUALIFIED, $authenticationResult->getCertificateLevel() );
   }
 
   /**
@@ -281,7 +291,7 @@ class AuthenticationRequestBuilderTest extends Setup
     $signature->setAlgorithm( 'sha512WithRSAEncryption' );
 
     $certificate = new SessionCertificate();
-    $certificate->setCertificateLevel( 'QUALIFIED' );
+    $certificate->setCertificateLevel( CertificateLevelCode::QUALIFIED );
     $certificate->setValue( DummyData::CERTIFICATE );
 
     $status = new SessionStatus();
@@ -307,7 +317,7 @@ class AuthenticationRequestBuilderTest extends Setup
     $authenticationHash = AuthenticationHash::generateRandomHash( HashType::SHA256 );
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( 'ADVANCED' )
+        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withAuthenticationHash( $authenticationHash )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->authenticate();

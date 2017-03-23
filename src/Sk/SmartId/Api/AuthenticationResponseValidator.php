@@ -60,10 +60,6 @@ class AuthenticationResponseValidator
     {
       throw new TechnicalErrorException( 'Signable data is not present in the authentication response' );
     }
-    if ( empty( $authenticationResponse->getRequestedCertificateLevel() ) )
-    {
-      throw new TechnicalErrorException( 'Requested certificate level is not present in the authentication response' );
-    }
   }
 
   /**
@@ -108,6 +104,7 @@ class AuthenticationResponseValidator
   private function verifyCertificateLevel( SmartIdAuthenticationResponse $authenticationResponse )
   {
     $certLevel = new CertificateLevel( $authenticationResponse->getCertificateLevel() );
-    return $certLevel->isEqualOrAbove( $authenticationResponse->getRequestedCertificateLevel() );
+    $requestedCertificateLevel = $authenticationResponse->getRequestedCertificateLevel();
+    return ( empty( $requestedCertificateLevel ) ? true : $certLevel->isEqualOrAbove( $requestedCertificateLevel ) );
   }
 }
