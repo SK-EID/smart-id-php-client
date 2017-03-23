@@ -15,8 +15,8 @@ class AuthenticationHash extends SignableData
   public static function generateRandomHash( $hashType )
   {
     $authenticationHash = new AuthenticationHash( self::getRandomBytes() );
-    $authenticationHash->setHash( $authenticationHash->calculateHash() );
     $authenticationHash->setHashType( $hashType );
+    $authenticationHash->setHash( $authenticationHash->calculateHash() );
     return $authenticationHash;
   }
 

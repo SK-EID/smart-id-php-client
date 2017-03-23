@@ -15,7 +15,7 @@ class AuthenticationHashTest extends TestCase
     $authenticationHash = AuthenticationHash::generateRandomHash( HashType::SHA512 );
     $this->assertEquals( HashType::SHA512, $authenticationHash->getHashType() );
     $this->assertEquals( base64_decode( $authenticationHash->calculateHashInBase64() ),
-        $authenticationHash->calculateHash() );
+        $authenticationHash->getHash() );
   }
 
   /**
@@ -26,7 +26,7 @@ class AuthenticationHashTest extends TestCase
     $authenticationHash = AuthenticationHash::generateRandomHash( HashType::SHA384 );
     $this->assertEquals( HashType::SHA384, $authenticationHash->getHashType() );
     $this->assertEquals( base64_decode( $authenticationHash->calculateHashInBase64() ),
-        $authenticationHash->calculateHash() );
+        $authenticationHash->getHash() );
   }
 
   /**
@@ -37,6 +37,6 @@ class AuthenticationHashTest extends TestCase
     $authenticationHash = AuthenticationHash::generateRandomHash( HashType::SHA256 );
     $this->assertEquals( HashType::SHA256, $authenticationHash->getHashType() );
     $this->assertEquals( base64_decode( $authenticationHash->calculateHashInBase64() ),
-        $authenticationHash->calculateHash() );
+        $authenticationHash->getHash() );
   }
 }
