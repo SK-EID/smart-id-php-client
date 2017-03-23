@@ -1,0 +1,10 @@
+language: php
+
+php:
+- 5.6
+
+before_script:
+  - composer install
+
+# bacause used in composer
+script: vendor/bin/phpunit --testsuite UnitTest
