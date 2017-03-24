@@ -8,11 +8,6 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @var string
    */
-  private $documentNumber;
-
-  /**
-   * @var string
-   */
   private $endResult;
 
   /**
@@ -39,29 +34,11 @@ class SmartIdAuthenticationResponse extends PropertyMapper
    * @var string
    */
   private $requestedCertificateLevel;
-  
+
   /**
    * @var string
    */
   private $certificateLevel;
-
-  /**
-   * @return string
-   */
-  public function getDocumentNumber()
-  {
-    return $this->documentNumber;
-  }
-
-  /**
-   * @param string $documentNumber
-   * @return $this
-   */
-  public function setDocumentNumber( $documentNumber )
-  {
-    $this->documentNumber = $documentNumber;
-    return $this;
-  }
 
   /**
    * @return string

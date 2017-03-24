@@ -4,6 +4,11 @@ namespace Sk\SmartId\Api\Data;
 class SmartIdAuthenticationResult
 {
   /**
+   * @var AuthenticationIdentity
+   */
+  private $authenticationIdentity;
+
+  /**
    * @var boolean
    */
   private $valid;
@@ -17,6 +22,24 @@ class SmartIdAuthenticationResult
   {
     $this->valid = true;
     $this->errors = array();
+  }
+
+  /**
+   * @return AuthenticationIdentity
+   */
+  public function getAuthenticationIdentity()
+  {
+    return $this->authenticationIdentity;
+  }
+
+  /**
+   * @param AuthenticationIdentity $authenticationIdentity
+   * @return $this
+   */
+  public function setAuthenticationIdentity( AuthenticationIdentity $authenticationIdentity )
+  {
+    $this->authenticationIdentity = $authenticationIdentity;
+    return $this;
   }
 
   /**

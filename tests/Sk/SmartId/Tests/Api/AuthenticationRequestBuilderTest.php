@@ -276,7 +276,6 @@ class AuthenticationRequestBuilderTest extends Setup
     $this->assertEquals( SessionEndResultCode::OK, $authenticationResult->getEndResult() );
     $this->assertEquals( 'c2FtcGxlIHNpZ25hdHVyZQ0K', $authenticationResult->getValueInBase64() );
     $this->assertEquals( 'sha512WithRSAEncryption', $authenticationResult->getAlgorithmName() );
-    $this->assertEquals( 'PNOEE-31111111111', $authenticationResult->getDocumentNumber() );
     $this->assertEquals( DummyData::CERTIFICATE, $authenticationResult->getCertificate() );
     $this->assertEquals( CertificateLevelCode::QUALIFIED, $authenticationResult->getCertificateLevel() );
   }

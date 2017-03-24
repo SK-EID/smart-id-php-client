@@ -53,4 +53,12 @@ class AuthenticationHash extends SignableData
   {
     return $this->hash;
   }
+
+  /**
+   * @return string
+   */
+  public function calculateVerificationCode()
+  {
+    return VerificationCodeCalculator::calculate( $this->hash );
+  }
 }

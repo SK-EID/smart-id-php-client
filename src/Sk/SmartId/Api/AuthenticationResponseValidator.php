@@ -1,7 +1,9 @@
 <?php
 namespace Sk\SmartId\Api;
 
+use ReflectionClass;
 use Sk\SmartId\Api\Data\AuthenticationCertificate;
+use Sk\SmartId\Api\Data\AuthenticationIdentity;
 use Sk\SmartId\Api\Data\CertificateParser;
 use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
@@ -19,6 +21,8 @@ class AuthenticationResponseValidator
   {
     $this->validateAuthenticationResponse( $authenticationResponse );
     $authenticationResult = new SmartIdAuthenticationResult();
+    $identity = $this->constructAuthenticationIdentity( $authenticationResponse->getCertificateInstance() );
+    $authenticationResult->setAuthenticationIdentity( $identity );
     if ( !$this->verifyResponseEndResult( $authenticationResponse ) )
     {
       $authenticationResult->setValid( false );
@@ -106,5 +110,39 @@ class AuthenticationResponseValidator
     $certLevel = new CertificateLevel( $authenticationResponse->getCertificateLevel() );
     $requestedCertificateLevel = $authenticationResponse->getRequestedCertificateLevel();
     return ( empty( $requestedCertificateLevel ) ? true : $certLevel->isEqualOrAbove( $requestedCertificateLevel ) );
+  }
+
+  /**
+   * @param AuthenticationCertificate $certificate
+   * @return AuthenticationIdentity
+   */
+  private function constructAuthenticationIdentity( AuthenticationCertificate $certificate )
+  {
+    $identity = new AuthenticationIdentity();
+    $subject = $certificate->getSubject();
+    $subjectReflection = new ReflectionClass( $subject );
+
+    foreach ( $subjectReflection->getProperties() as $property )
+    {
+      $property->setAccessible( true );
+      if ( strcasecmp( $property->getName(), 'GN' ) === 0 )
+      {
+        $identity->setGivenName( $property->getValue( $subject ) );
+      }
+      elseif ( strcasecmp( $property->getName(), 'SN' ) === 0 )
+      {
+        $identity->setSurName( $property->getValue( $subject ) );
+      }
+      elseif ( strcasecmp( $property->getName(), 'SERIALNUMBER' ) === 0 )
+      {
+        $identity->setIdentityCode( $property->getValue( $subject ) );
+      }
+      elseif ( strcasecmp( $property->getName(), 'C' ) === 0 )
+      {
+        $identity->setCountry( $property->getValue( $subject ) );
+      }
+    }
+
+    return $identity;
   }
 }

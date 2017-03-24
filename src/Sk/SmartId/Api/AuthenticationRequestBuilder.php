@@ -156,9 +156,9 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     $request = $this->createAuthenticationSessionRequest();
     $response = $this->getAuthenticationResponse( $request );
     $sessionStatus = $this->getSessionStatusPoller()->fetchFinalSessionStatus( $response->getSessionID() );
-    $this->validateResponse( $sessionStatus );
-    $authenticationResult = $this->createSmartIdAuthenticationResult( $sessionStatus );
-    return $authenticationResult;
+    $this->validateSessionStatus( $sessionStatus );
+    $authenticationResponse = $this->createSmartIdAuthenticationResponse( $sessionStatus );
+    return $authenticationResponse;
   }
 
   /**
@@ -277,7 +277,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    * @param SessionStatus $sessionStatus
    * @throws TechnicalErrorException
    */
-  private function validateResponse( SessionStatus $sessionStatus )
+  private function validateSessionStatus( SessionStatus $sessionStatus )
   {
     if ( $sessionStatus->getSignature() === null )
     {
@@ -293,21 +293,20 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    * @param SessionStatus $sessionStatus
    * @return SmartIdAuthenticationResponse
    */
-  private function createSmartIdAuthenticationResult( SessionStatus $sessionStatus )
+  private function createSmartIdAuthenticationResponse( SessionStatus $sessionStatus )
   {
     $sessionResult = $sessionStatus->getResult();
     $sessionSignature = $sessionStatus->getSignature();
     $sessionCertificate = $sessionStatus->getCert();
 
-    $authenticationResult = new SmartIdAuthenticationResponse();
-    $authenticationResult->setDocumentNumber( $sessionResult->getDocumentNumber() )
-        ->setEndResult( $sessionResult->getEndResult() )
+    $authenticationResponse = new SmartIdAuthenticationResponse();
+    $authenticationResponse->setEndResult( $sessionResult->getEndResult() )
         ->setSignedData( $this->getDataToSign() )
         ->setValueInBase64( $sessionSignature->getValue() )
         ->setAlgorithmName( $sessionSignature->getAlgorithm() )
         ->setCertificate( $sessionCertificate->getValue() )
         ->setCertificateLevel( $sessionCertificate->getCertificateLevel() );
-    return $authenticationResult;
+    return $authenticationResponse;
   }
 
   /**

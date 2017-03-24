@@ -2,7 +2,10 @@
 namespace Sk\SmartId\Tests\Api;
 
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use Sk\SmartId\Api\AuthenticationResponseValidator;
+use Sk\SmartId\Api\Data\AuthenticationCertificate;
+use Sk\SmartId\Api\Data\AuthenticationIdentity;
 use Sk\SmartId\Api\Data\CertificateLevelCode;
 use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
@@ -33,6 +36,8 @@ class AuthenticationResponseValidatorTest extends TestCase
 
     $this->assertTrue( $authenticationResult->isValid() );
     $this->assertTrue( empty( $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
+        $response->getCertificateInstance() );
   }
 
   /**
@@ -46,6 +51,8 @@ class AuthenticationResponseValidatorTest extends TestCase
 
     $this->assertTrue( $authenticationResult->isValid() );
     $this->assertTrue( empty( $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
+        $response->getCertificateInstance() );
   }
 
   /**
@@ -59,6 +66,8 @@ class AuthenticationResponseValidatorTest extends TestCase
     $this->assertFalse( $authenticationResult->isValid() );
     $this->assertTrue( in_array( SmartIdAuthenticationResultError::INVALID_END_RESULT,
         $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
+        $response->getCertificateInstance() );
   }
 
   /**
@@ -72,6 +81,8 @@ class AuthenticationResponseValidatorTest extends TestCase
     $this->assertFalse( $authenticationResult->isValid() );
     $this->assertTrue( in_array( SmartIdAuthenticationResultError::SIGNATURE_VERIFICATION_FAILURE,
         $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
+        $response->getCertificateInstance() );
   }
 
   /**
@@ -84,6 +95,8 @@ class AuthenticationResponseValidatorTest extends TestCase
 
     $this->assertTrue( $authenticationResult->isValid() );
     $this->assertTrue( empty( $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
+        $response->getCertificateInstance() );
   }
 
   /**
@@ -97,6 +110,8 @@ class AuthenticationResponseValidatorTest extends TestCase
     $this->assertFalse( $authenticationResult->isValid() );
     $this->assertTrue( in_array( SmartIdAuthenticationResultError::CERTIFICATE_LEVEL_MISMATCH,
         $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
+        $response->getCertificateInstance() );
   }
 
   /**
@@ -196,7 +211,8 @@ class AuthenticationResponseValidatorTest extends TestCase
    * @param string $requestedCertificateLevel
    * @return SmartIdAuthenticationResponse
    */
-  private function createValidationResponse( $endResult, $signatureInBase64, $certificateLevel, $requestedCertificateLevel )
+  private function createValidationResponse( $endResult, $signatureInBase64, $certificateLevel,
+      $requestedCertificateLevel )
   {
     $authenticationResponse = new SmartIdAuthenticationResponse();
     $authenticationResponse->setEndResult( $endResult )
@@ -206,5 +222,32 @@ class AuthenticationResponseValidatorTest extends TestCase
         ->setCertificateLevel( $certificateLevel )
         ->setRequestedCertificateLevel( $requestedCertificateLevel );
     return $authenticationResponse;
+  }
+
+  private function assertAuthenticationIdentityValid( AuthenticationIdentity $authenticationIdentity,
+      AuthenticationCertificate $certificate )
+  {
+    $subject = $certificate->getSubject();
+    $subjectReflection = new ReflectionClass( $subject );
+    foreach ( $subjectReflection->getProperties() as $property )
+    {
+      $property->setAccessible( true );
+      if ( strcasecmp( $property->getName(), 'GN' ) === 0 )
+      {
+        $this->assertEquals( $property->getValue( $subject ), $authenticationIdentity->getGivenName() );
+      }
+      elseif ( strcasecmp( $property->getName(), 'SN' ) === 0 )
+      {
+        $this->assertEquals( $property->getValue( $subject ), $authenticationIdentity->getSurName() );
+      }
+      elseif ( strcasecmp( $property->getName(), 'SERIALNUMBER' ) === 0 )
+      {
+        $this->assertEquals( $property->getValue( $subject ), $authenticationIdentity->getIdentityCode() );
+      }
+      elseif ( strcasecmp( $property->getName(), 'C' ) === 0 )
+      {
+        $this->assertEquals( $property->getValue( $subject ), $authenticationIdentity->getCountry() );
+      }
+    }
   }
 }
