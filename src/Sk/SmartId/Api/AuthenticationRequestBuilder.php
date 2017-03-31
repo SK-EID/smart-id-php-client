@@ -49,6 +49,16 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   private $authenticationHash;
 
   /**
+   * @var string
+   */
+  private $displayText;
+
+  /**
+   * @var string
+   */
+  private $nonce;
+
+  /**
    * @param SmartIdConnector $connector
    * @param SessionStatusPoller $sessionStatusPoller
    */
@@ -128,6 +138,26 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   }
 
   /**
+   * @param string $displayText
+   * @return $this
+   */
+  public function withDisplayText( $displayText )
+  {
+    $this->displayText = $displayText;
+    return $this;
+  }
+
+  /**
+   * @param string $nonce
+   * @return $this
+   */
+  public function withNonce( $nonce )
+  {
+    $this->nonce = $nonce;
+    return $this;
+  }
+
+  /**
    * @param string $relyingPartyUUID
    * @return $this
    */
@@ -171,7 +201,9 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
         ->setRelyingPartyName( $this->getRelyingPartyName() )
         ->setCertificateLevel( $this->certificateLevel )
         ->setHashType( $this->getHashTypeString() )
-        ->setHash( $this->getHashInBase64() );
+        ->setHash( $this->getHashInBase64() )
+        ->setDisplayText( $this->displayText )
+        ->setNonce( $this->nonce );
     return $request;
   }
 

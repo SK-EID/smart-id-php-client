@@ -169,14 +169,28 @@ class AuthenticationSessionRequest
    */
   public function toArray()
   {
-    return array(
+    $requiredArray = array(
         'relyingPartyUUID' => $this->relyingPartyUUID,
         'relyingPartyName' => $this->relyingPartyName,
-        'certificateLevel' => $this->certificateLevel,
         'hash'             => $this->hash,
         'hashType'         => strtoupper( $this->hashType ),
-        'displayText'      => $this->displayText,
-        'nonce'            => $this->nonce,
     );
+
+    if ( isset( $this->certificateLevel ) )
+    {
+      $requiredArray['certificateLevel'] = $this->certificateLevel;
+    }
+
+    if ( isset( $this->displayText ) )
+    {
+      $requiredArray['displayText'] = $this->displayText;
+    }
+
+    if ( isset( $this->nonce ) )
+    {
+      $requiredArray['nonce'] = $this->nonce;
+    }
+
+    return $requiredArray;
   }
 }

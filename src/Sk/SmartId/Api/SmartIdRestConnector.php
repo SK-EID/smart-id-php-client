@@ -178,12 +178,12 @@ class SmartIdRestConnector implements SmartIdConnector
       throw new SmartIdException( 'Forbidden!' );
     }
 
-    $response = $this->getResponse( $rawResponse, $responseType );
-
     if ( 404 == $httpCode )
     {
       throw new NotFoundException( 'User account not found for URI ' . $url );
     }
+
+    $response = $this->getResponse( $rawResponse, $responseType );
 
     return $response;
   }
