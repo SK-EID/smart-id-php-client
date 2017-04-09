@@ -37,7 +37,7 @@ class SmartIdClientIntegrationTest extends Setup
 
     $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
 
-    $authenticationResponseValidator = new AuthenticationResponseValidator();
+    $authenticationResponseValidator = new AuthenticationResponseValidator( self::RESOURCES );
     $authenticationResult = $authenticationResponseValidator->validate( $authenticationResponse );
     $this->assertAuthenticationResultValid( $authenticationResult );
   }
@@ -62,7 +62,7 @@ class SmartIdClientIntegrationTest extends Setup
 
     $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
 
-    $authenticationResponseValidator = new AuthenticationResponseValidator();
+    $authenticationResponseValidator = new AuthenticationResponseValidator( self::RESOURCES );
     $authenticationResult = $authenticationResponseValidator->validate( $authenticationResponse );
     $this->assertAuthenticationResultValid( $authenticationResult );
   }

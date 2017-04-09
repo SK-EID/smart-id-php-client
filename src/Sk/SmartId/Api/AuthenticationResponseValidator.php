@@ -1,6 +1,7 @@
 <?php
 namespace Sk\SmartId\Api;
 
+use DirectoryIterator;
 use ReflectionClass;
 use Sk\SmartId\Api\Data\AuthenticationCertificate;
 use Sk\SmartId\Api\Data\AuthenticationIdentity;
@@ -13,6 +14,20 @@ use Sk\SmartId\Exception\TechnicalErrorException;
 
 class AuthenticationResponseValidator
 {
+  /**
+   * @var array
+   */
+  private $trustedCACertificates;
+
+  /**
+   * @param string $resourcesLocation
+   */
+  public function __construct( $resourcesLocation )
+  {
+    $this->trustedCACertificates = array();
+    $this->initializeTrustedCACertificatesFromResources( $resourcesLocation );
+  }
+
   /**
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @return SmartIdAuthenticationResult
@@ -34,6 +49,11 @@ class AuthenticationResponseValidator
       $authenticationResult->addError( SmartIdAuthenticationResultError::SIGNATURE_VERIFICATION_FAILURE );
     }
     if ( !$this->verifyCertificateExpiry( $authenticationResponse->getCertificateInstance() ) )
+    {
+      $authenticationResult->setValid( false );
+      $authenticationResult->addError( SmartIdAuthenticationResultError::CERTIFICATE_EXPIRED );
+    }
+    if ( !$this->isCertificateTrusted( $authenticationResponse->getCertificate() ) )
     {
       $authenticationResult->setValid( false );
       $authenticationResult->addError( SmartIdAuthenticationResultError::CERTIFICATE_EXPIRED );
@@ -144,5 +164,79 @@ class AuthenticationResponseValidator
     }
 
     return $identity;
+  }
+
+  /**
+   * @param string $resourcesLocation
+   */
+  private function initializeTrustedCACertificatesFromResources( $resourcesLocation )
+  {
+    foreach ( new DirectoryIterator( $resourcesLocation . '/trusted_certificates' ) as $certificateFile )
+    {
+      if ( !$certificateFile->isDir() || !$certificateFile->isDot() )
+      {
+        $this->addTrustedCACertificateLocation( $certificateFile->getPathname() );
+      }
+    }
+  }
+
+  /**
+   * @param string $certificateFileLocation
+   * @return $this
+   */
+  public function addTrustedCACertificateLocation( $certificateFileLocation )
+  {
+    $this->trustedCACertificates[] = $certificateFileLocation;
+    return $this;
+  }
+
+  /**
+   * @return array
+   */
+  public function getTrustedCACertificates()
+  {
+    return $this->trustedCACertificates;
+  }
+
+  /**
+   * @return $this
+   */
+  public function clearTrustedCACertificates()
+  {
+    $this->trustedCACertificates = array();
+    return $this;
+  }
+
+  /**
+   * @param string $certificate
+   * @return bool
+   */
+  private function isCertificateTrusted( $certificate )
+  {
+    $certificateAsResource = openssl_x509_read( CertificateParser::getPemCertificate( $certificate ) );
+
+    if ( $certificateAsResource === false )
+    {
+      return false;
+    }
+
+    foreach ( $this->trustedCACertificates as $trustedCACertificate )
+    {
+      if ( $this->verifyTrustedCACertificate( $certificateAsResource, $trustedCACertificate ) === true )
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * @param resource $certificateAsResource
+   * @param string $trustedCACertificate
+   * @return int
+   */
+  private function verifyTrustedCACertificate( $certificateAsResource, $trustedCACertificate )
+  {
+    return openssl_x509_checkpurpose( $certificateAsResource, X509_PURPOSE_ANY, array( $trustedCACertificate ) );
   }
 }

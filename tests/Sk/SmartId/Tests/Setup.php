@@ -6,6 +6,8 @@ use Sk\SmartId\Client;
 
 class Setup extends TestCase
 {
+  const RESOURCES = __DIR__ . '/../../../resources';
+  
   /**
    * @var Client
    */

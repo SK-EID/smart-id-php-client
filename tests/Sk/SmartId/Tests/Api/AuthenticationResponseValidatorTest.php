@@ -7,9 +7,11 @@ use Sk\SmartId\Api\AuthenticationResponseValidator;
 use Sk\SmartId\Api\Data\AuthenticationCertificate;
 use Sk\SmartId\Api\Data\AuthenticationIdentity;
 use Sk\SmartId\Api\Data\CertificateLevelCode;
+use Sk\SmartId\Api\Data\CertificateParser;
 use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResultError;
+use Sk\SmartId\Tests\Setup;
 
 class AuthenticationResponseValidatorTest extends TestCase
 {
@@ -23,7 +25,7 @@ class AuthenticationResponseValidatorTest extends TestCase
 
   protected function setUp()
   {
-    $this->validator = new AuthenticationResponseValidator();
+    $this->validator = new AuthenticationResponseValidator( Setup::RESOURCES );
   }
 
   /**
@@ -80,6 +82,29 @@ class AuthenticationResponseValidatorTest extends TestCase
 
     $this->assertFalse( $authenticationResult->isValid() );
     $this->assertTrue( in_array( SmartIdAuthenticationResultError::SIGNATURE_VERIFICATION_FAILURE,
+        $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
+        $response->getCertificateInstance() );
+  }
+
+  /**
+   * @test
+   */
+  public function validationReturnsInvalidAuthenticationResult_whenSignersCertNotTrusted()
+  {
+    $response = $this->createValidValidationResponse();
+
+    $validator = new AuthenticationResponseValidator( Setup::RESOURCES );
+    $validator->clearTrustedCACertificates();
+    $tmpHandle = tmpfile();
+    fwrite( $tmpHandle, CertificateParser::getPemCertificate( DummyData::CERTIFICATE ) );
+    $tmpFileMetadata = stream_get_meta_data( $tmpHandle );
+    $validator->addTrustedCACertificateLocation( $tmpFileMetadata['uri'] );
+    $authenticationResult = $validator->validate( $response );
+    fclose( $tmpHandle );
+
+    $this->assertFalse( $authenticationResult->isValid() );
+    $this->assertFalse( in_array( SmartIdAuthenticationResultError::CERTIFICATE_NOT_TRUSTED,
         $authenticationResult->getErrors() ) );
     $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
         $response->getCertificateInstance() );
