@@ -20,10 +20,15 @@ class AuthenticationResponseValidator
   private $trustedCACertificates;
 
   /**
-   * @param string $resourcesLocation
+   * @param string|null $resourcesLocation
    */
-  public function __construct( $resourcesLocation )
+  public function __construct( $resourcesLocation = null )
   {
+    if ( $resourcesLocation === null )
+    {
+      $resourcesLocation = __DIR__ . '/../../../resources';
+    }
+
     $this->trustedCACertificates = array();
     $this->initializeTrustedCACertificatesFromResources( $resourcesLocation );
   }
