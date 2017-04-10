@@ -61,7 +61,7 @@ class AuthenticationResponseValidator
     if ( !$this->isCertificateTrusted( $authenticationResponse->getCertificate() ) )
     {
       $authenticationResult->setValid( false );
-      $authenticationResult->addError( SmartIdAuthenticationResultError::CERTIFICATE_EXPIRED );
+      $authenticationResult->addError( SmartIdAuthenticationResultError::CERTIFICATE_NOT_TRUSTED );
     }
     if ( !$this->verifyCertificateLevel( $authenticationResponse ) )
     {

@@ -104,7 +104,7 @@ class AuthenticationResponseValidatorTest extends TestCase
     fclose( $tmpHandle );
 
     $this->assertFalse( $authenticationResult->isValid() );
-    $this->assertFalse( in_array( SmartIdAuthenticationResultError::CERTIFICATE_NOT_TRUSTED,
+    $this->assertTrue( in_array( SmartIdAuthenticationResultError::CERTIFICATE_NOT_TRUSTED,
         $authenticationResult->getErrors() ) );
     $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
         $response->getCertificateInstance() );
