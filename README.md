@@ -9,5 +9,14 @@ The Smart-ID PHP client can be used for easy integration of the Smart-ID solutio
 ## Features
 * Simple interface for user authentication
 
+## Installation
+The recommended way to install Smart-ID PHP Client is through [Composer]:
+
+```
+composer require sk-id-solutions/smart-id-php-client "~1.0"
+```
+
 ## How to use it
 Take a look at the [examples](https://github.com/SK-EID/smart-id-php-client/wiki/Examples-of-using-it)
+
+[Composer]: http://getcomposer.org
