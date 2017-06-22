@@ -9,6 +9,8 @@ The Smart-ID PHP client can be used for easy integration of the Smart-ID solutio
 ## Features
 * Simple interface for user authentication
 
+Smart-ID PHP client works with PHP 5.6 or later.
+
 ## Installation
 The recommended way to install Smart-ID PHP Client is through [Composer]:
 

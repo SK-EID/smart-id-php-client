@@ -36,6 +36,11 @@ class AuthenticationCertificate extends PropertyMapper
   /**
    * @var string
    */
+  private $serialNumberHex;
+
+  /**
+   * @var string
+   */
   private $validFrom;
 
   /**
@@ -183,6 +188,24 @@ class AuthenticationCertificate extends PropertyMapper
   public function setSerialNumber( $serialNumber )
   {
     $this->serialNumber = $serialNumber;
+    return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function getSerialNumberHex()
+  {
+    return $this->serialNumberHex;
+  }
+
+  /**
+   * @param string $serialNumberHex
+   * @return $this
+   */
+  public function setSerialNumberHex( $serialNumberHex )
+  {
+    $this->serialNumberHex = $serialNumberHex;
     return $this;
   }
 
