@@ -69,7 +69,6 @@ abstract class PropertyMapper
   /**
    * @param string $key
    * @param mixed $value
-   * @throws Exception
    * @return $this
    */
   public function __set( $key, $value )
@@ -92,10 +91,6 @@ abstract class PropertyMapper
       {
         $this->{$resultingKey} = $value;
       }
-    }
-    else
-    {
-      throw new Exception( 'Undefined property (' . $key . ')!' );
     }
 
     return $this;
