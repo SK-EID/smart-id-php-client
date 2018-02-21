@@ -21,6 +21,9 @@ class Curl
       $includeHeaders = false,
       $curlTimeout = 600;
 
+  /**
+   * @throws Exception
+   */
   public function __construct()
   {
     if ( !function_exists( 'curl_init' ) )
@@ -178,7 +181,8 @@ class Curl
     {
       // Send PUT request
       curl_setopt( $this->curl, CURLOPT_CUSTOMREQUEST, 'PUT' );
-      curl_setopt( $this->curl, CURLOPT_HTTPHEADER, array( 'Content-Length: ' . strlen( $this->getPostFieldsString() ) ) );
+      curl_setopt( $this->curl, CURLOPT_HTTPHEADER,
+          array('Content-Length: ' . strlen( $this->getPostFieldsString() )) );
       curl_setopt( $this->curl, CURLOPT_POSTFIELDS, $this->getPostFieldsString() );
     }
 
@@ -246,9 +250,9 @@ class Curl
 
     if ( preg_match_all( '#Set-Cookie:\s*([^=]+)=([^;]+)#i', $source, $matches ) )
     {
-      for ( $i = 0, $cnt = count( $matches[1] ); $i < $cnt; ++$i )
+      for ( $i = 0, $cnt = count( $matches[ 1 ] ); $i < $cnt; ++$i )
       {
-        $cookies[ trim( $matches[1][ $i ] ) ] = trim( $matches[2][ $i ] );
+        $cookies[ trim( $matches[ 1 ][ $i ] ) ] = trim( $matches[ 2 ][ $i ] );
       }
     }
 

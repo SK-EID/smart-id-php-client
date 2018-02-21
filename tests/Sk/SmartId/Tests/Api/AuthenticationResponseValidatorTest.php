@@ -99,7 +99,7 @@ class AuthenticationResponseValidatorTest extends TestCase
     $tmpHandle = tmpfile();
     fwrite( $tmpHandle, CertificateParser::getPemCertificate( DummyData::CERTIFICATE ) );
     $tmpFileMetadata = stream_get_meta_data( $tmpHandle );
-    $validator->addTrustedCACertificateLocation( $tmpFileMetadata['uri'] );
+    $validator->addTrustedCACertificateLocation( $tmpFileMetadata[ 'uri' ] );
     $authenticationResult = $validator->validate( $response );
     fclose( $tmpHandle );
 

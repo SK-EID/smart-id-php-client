@@ -68,14 +68,14 @@ class SessionStatusPollerTest extends TestCase
   /**
    * @test
    */
-  public function setResponseSocketOpenTime()
+  public function setResponseSocketTimeout()
   {
-    $this->poller->setSessionStatusResponseSocketOpenTimeoutMs( 2 * 60 * 1000 ); // 2 min
+    $this->poller->setSessionStatusResponseSocketTimeoutMs( 2 * 60 * 1000 ); // 2 min
     $this->connector->responses[] = $this->createCompleteSessionStatus();
     $status = $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
     $this->assertCompleteStateReceived( $status );
-    $this->assertTrue( $this->connector->requestUsed->isSessionStatusResponseSocketOpenTimeoutSet() );
-    $this->assertEquals( 2 * 60 * 1000, $this->connector->requestUsed->getSessionStatusResponseSocketOpenTimeoutMs() );
+    $this->assertTrue( $this->connector->requestUsed->isSessionStatusResponseSocketTimeoutSet() );
+    $this->assertEquals( 2 * 60 * 1000, $this->connector->requestUsed->getSessionStatusResponseSocketTimeoutMs() );
   }
 
   /**
@@ -86,7 +86,7 @@ class SessionStatusPollerTest extends TestCase
     $this->connector->responses[] = $this->createCompleteSessionStatus();
     $status = $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
     $this->assertCompleteStateReceived( $status );
-    $this->assertFalse( $this->connector->requestUsed->isSessionStatusResponseSocketOpenTimeoutSet() );
+    $this->assertFalse( $this->connector->requestUsed->isSessionStatusResponseSocketTimeoutSet() );
   }
 
   /**

@@ -15,7 +15,7 @@ class Authentication extends AbstractApi
    * In milliseconds
    * @var int
    */
-  private $sessionStatusResponseSocketOpenTimeoutMs;
+  private $sessionStatusResponseSocketTimeoutMs;
 
   /**
    * @return AuthenticationRequestBuilder
@@ -28,6 +28,16 @@ class Authentication extends AbstractApi
     $this->populateBuilderFields( $builder );
 
     return $builder;
+  }
+
+  /**
+   * @return SessionStatusFetcherBuilder
+   */
+  public function createSessionStatusFetcher()
+  {
+    $connector = new SmartIdRestConnector( $this->client->getHostUrl() );
+    $builder = new SessionStatusFetcherBuilder( $connector );
+    return $builder->withSessionStatusResponseSocketTimeoutMs( $this->sessionStatusResponseSocketTimeoutMs );
   }
 
   /**
@@ -47,7 +57,7 @@ class Authentication extends AbstractApi
   {
     $sessionStatusPoller = new SessionStatusPoller( $connector );
     $sessionStatusPoller->setPollingSleepTimeoutMs( $this->pollingSleepTimeoutMs );
-    $sessionStatusPoller->setSessionStatusResponseSocketOpenTimeoutMs( $this->sessionStatusResponseSocketOpenTimeoutMs );
+    $sessionStatusPoller->setSessionStatusResponseSocketTimeoutMs( $this->sessionStatusResponseSocketTimeoutMs );
     return $sessionStatusPoller;
   }
 
@@ -68,17 +78,17 @@ class Authentication extends AbstractApi
   }
 
   /**
-   * @param int $sessionStatusResponseSocketOpenTimeoutMs
+   * @param int $sessionStatusResponseSocketTimeoutMs
    * @throws TechnicalErrorException
    * @return $this
    */
-  public function setSessionStatusResponseSocketOpenTimeoutMs( $sessionStatusResponseSocketOpenTimeoutMs )
+  public function setSessionStatusResponseSocketTimeoutMs( $sessionStatusResponseSocketTimeoutMs )
   {
-    if ( $sessionStatusResponseSocketOpenTimeoutMs < 0 )
+    if ( $sessionStatusResponseSocketTimeoutMs < 0 )
     {
       throw new TechnicalErrorException( 'Timeout can not be negative' );
     }
-    $this->sessionStatusResponseSocketOpenTimeoutMs = $sessionStatusResponseSocketOpenTimeoutMs;
+    $this->sessionStatusResponseSocketTimeoutMs = $sessionStatusResponseSocketTimeoutMs;
     return $this;
   }
 }

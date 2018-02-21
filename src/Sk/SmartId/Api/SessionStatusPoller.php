@@ -28,7 +28,7 @@ class SessionStatusPoller
    * In milliseconds
    * @var int
    */
-  private $sessionStatusResponseSocketOpenTimeoutMs;
+  private $sessionStatusResponseSocketTimeoutMs;
 
   /**
    * @param SmartIdConnector $connector
@@ -65,10 +65,11 @@ class SessionStatusPoller
   {
     /** @var SessionStatus $sessionStatus */
     $sessionStatus = null;
-    while ( $sessionStatus === null || strcasecmp( SessionStatusCode::RUNNING, $sessionStatus->getState() ) == 0 )
+    $sessionStatusFetcher = $this->createSessionStatusFetcher( $sessionId );
+    while ( $sessionStatus === null || ( $sessionStatus && $sessionStatus->isRunningState() ) )
     {
-      $sessionStatus = $this->pollSessionStatus( $sessionId );
-      if ( $sessionStatus && strcasecmp( SessionStatusCode::COMPLETE, $sessionStatus->getState() ) == 0 )
+      $sessionStatus = $sessionStatusFetcher->getSessionStatus();
+      if ( $sessionStatus && !$sessionStatus->isRunningState() )
       {
         break;
       }
@@ -76,30 +77,6 @@ class SessionStatusPoller
       usleep( $microseconds );
     }
     return $sessionStatus;
-  }
-
-  /**
-   * @param string $sessionId
-   * @return SessionStatus
-   */
-  private function pollSessionStatus( $sessionId )
-  {
-    $request = $this->createSessionStatusRequest( $sessionId );
-    return $this->connector->getSessionStatus( $request );
-  }
-
-  /**
-   * @param string $sessionId
-   * @return SessionStatusRequest
-   */
-  private function createSessionStatusRequest( $sessionId )
-  {
-    $request = new SessionStatusRequest( $sessionId );
-    if ( $this->sessionStatusResponseSocketOpenTimeoutMs )
-    {
-      $request->setSessionStatusResponseSocketOpenTimeoutMs( $this->sessionStatusResponseSocketOpenTimeoutMs );
-    }
-    return $request;
   }
 
   /**
@@ -162,17 +139,29 @@ class SessionStatusPoller
   }
 
   /**
-   * @param int $sessionStatusResponseSocketOpenTimeoutMs
+   * @param int $sessionStatusResponseSocketTimeoutMs
    * @throws TechnicalErrorException
    * @return $this
    */
-  public function setSessionStatusResponseSocketOpenTimeoutMs( $sessionStatusResponseSocketOpenTimeoutMs )
+  public function setSessionStatusResponseSocketTimeoutMs( $sessionStatusResponseSocketTimeoutMs )
   {
-    if ( $sessionStatusResponseSocketOpenTimeoutMs < 0 )
+    if ( $sessionStatusResponseSocketTimeoutMs < 0 )
     {
       throw new TechnicalErrorException( 'Timeout can not be negative' );
     }
-    $this->sessionStatusResponseSocketOpenTimeoutMs = $sessionStatusResponseSocketOpenTimeoutMs;
+    $this->sessionStatusResponseSocketTimeoutMs = $sessionStatusResponseSocketTimeoutMs;
     return $this;
+  }
+
+  /**
+   * @param string $sessionId
+   * @return SessionStatusFetcher
+   */
+  private function createSessionStatusFetcher( $sessionId )
+  {
+    $sessionStatusFetcherBuilder = new SessionStatusFetcherBuilder( $this->connector );
+    return $sessionStatusFetcherBuilder->withSessionId( $sessionId )
+        ->withSessionStatusResponseSocketTimeoutMs( $this->sessionStatusResponseSocketTimeoutMs )
+        ->build();
   }
 }

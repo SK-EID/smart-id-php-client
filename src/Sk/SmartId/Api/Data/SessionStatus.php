@@ -94,4 +94,12 @@ class SessionStatus extends PropertyMapper
     $this->cert = $cert;
     return $this;
   }
+
+  /**
+   * @return bool
+   */
+  public function isRunningState()
+  {
+    return strcasecmp( SessionStatusCode::RUNNING, $this->state ) == 0;
+  }
 }

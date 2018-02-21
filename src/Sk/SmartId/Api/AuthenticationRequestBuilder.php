@@ -182,13 +182,21 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    */
   public function authenticate()
   {
-    $this->validateParameters();
-    $request = $this->createAuthenticationSessionRequest();
-    $response = $this->getAuthenticationResponse( $request );
-    $sessionStatus = $this->getSessionStatusPoller()->fetchFinalSessionStatus( $response->getSessionID() );
+    $response = $this->getAuthenticationResponse();
+    $sessionStatus = $this->getSessionStatusPoller()
+        ->fetchFinalSessionStatus( $response->getSessionID() );
     $this->validateSessionStatus( $sessionStatus );
     $authenticationResponse = $this->createSmartIdAuthenticationResponse( $sessionStatus );
     return $authenticationResponse;
+  }
+
+  /**
+   * @return string
+   */
+  public function startAuthenticationAndReturnSessionId()
+  {
+    $response = $this->getAuthenticationResponse();
+    return $response->getSessionID();
   }
 
   /**
@@ -236,19 +244,23 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   }
 
   /**
-   * @param AuthenticationSessionRequest $request
    * @return AuthenticationSessionResponse
    */
-  private function getAuthenticationResponse( AuthenticationSessionRequest $request )
+  private function getAuthenticationResponse()
   {
+    $this->validateParameters();
+    $request = $this->createAuthenticationSessionRequest();
+
     if ( strlen( $this->documentNumber ) )
     {
-      return $this->getConnector()->authenticate( $this->documentNumber, $request );
+      return $this->getConnector()
+          ->authenticate( $this->documentNumber, $request );
     }
     else
     {
       $identity = $this->getNationalIdentity();
-      return $this->getConnector()->authenticateWithIdentity( $identity, $request );
+      return $this->getConnector()
+          ->authenticateWithIdentity( $identity, $request );
     }
   }
 
@@ -285,8 +297,8 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    */
   private function hasNationalIdentity()
   {
-    return isset( $this->nationalIdentity )
-           || ( strlen( $this->countryCode ) && strlen( $this->nationalIdentityNumber ) );
+    return isset( $this->nationalIdentity ) ||
+        ( strlen( $this->countryCode ) && strlen( $this->nationalIdentityNumber ) );
   }
 
   /**
