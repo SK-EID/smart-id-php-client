@@ -49,7 +49,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticateWithDocumentNumberAndGeneratedSignableData()
   {
-    $dataToSign = new SignableData( $GLOBALS['data_to_sign'] );
+    $dataToSign = new SignableData( $GLOBALS[ 'data_to_sign' ] );
     $authenticationResponse = $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
@@ -237,7 +237,7 @@ class AuthenticationRequestBuilderTest extends Setup
    * @param string $expectedCertificateLevel
    */
   private function assertCorrectAuthenticationRequestMadeWithDocumentNumber( $expectedHashToSignInBase64,
-      $expectedCertificateLevel )
+                                                                             $expectedCertificateLevel )
   {
     $this->assertEquals( 'PNOEE-31111111111', $this->connector->documentNumberUsed );
     $this->assertEquals( 'relying-party-uuid',

@@ -26,7 +26,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   private $algorithmName;
 
   /**
-   * @var array
+   * @var string
    */
   private $certificate;
 
@@ -39,6 +39,11 @@ class SmartIdAuthenticationResponse extends PropertyMapper
    * @var string
    */
   private $certificateLevel;
+
+  /**
+   * @var string
+   */
+  private $state;
 
   /**
    * @return string
@@ -195,5 +200,31 @@ class SmartIdAuthenticationResponse extends PropertyMapper
                 encoded base64 string: ' . $this->valueInBase64 );
     }
     return base64_decode( $this->valueInBase64, true );
+  }
+
+  /**
+   * @param string $state
+   * @return $this
+   */
+  public function setState( $state )
+  {
+    $this->state = $state;
+    return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function getState()
+  {
+    return $this->state;
+  }
+
+  /**
+   * @return bool
+   */
+  public function isRunningState()
+  {
+    return strcasecmp( SessionStatusCode::RUNNING, $this->state ) == 0;
   }
 }

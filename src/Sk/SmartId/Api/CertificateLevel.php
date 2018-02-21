@@ -39,8 +39,6 @@ class CertificateLevel
     }
     elseif ( isset( self::$certificateLevels[ $certificateLevel ], self::$certificateLevels[ $this->certificateLevel ] ) )
     {
-
-
       return self::$certificateLevels[ $certificateLevel ] <= self::$certificateLevels[ $this->certificateLevel ];
     }
 

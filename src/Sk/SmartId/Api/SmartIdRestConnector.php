@@ -75,7 +75,7 @@ class SmartIdRestConnector implements SmartIdConnector
   {
     $url = rtrim( $this->endpointUrl, '/' ) . self::SESSION_STATUS_URI;
     $url = str_replace( '{sessionId}', $request->getSessionId(), $url );
-    $params = $this->getResponseSocketOpenTimeUrlParameter( $request );
+    $params = $this->getResponseSocketTimeoutUrlParameter( $request );
     try
     {
       $sessionStatus = $this->getRequest( $url, $params, 'Sk\SmartId\Api\Data\SessionStatus' );
@@ -109,12 +109,12 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param SessionStatusRequest $request
    * @return array
    */
-  private function getResponseSocketOpenTimeUrlParameter( SessionStatusRequest $request )
+  private function getResponseSocketTimeoutUrlParameter( SessionStatusRequest $request )
   {
     $params = array();
-    if ( $request->isSessionStatusResponseSocketOpenTimeoutSet() )
+    if ( $request->isSessionStatusResponseSocketTimeoutSet() )
     {
-      $params['timeoutMs'] = $request->getSessionStatusResponseSocketOpenTimeoutMs();
+      $params[ 'timeoutMs' ] = $request->getSessionStatusResponseSocketTimeoutMs();
     }
     return $params;
   }

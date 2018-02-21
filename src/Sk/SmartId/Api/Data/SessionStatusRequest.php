@@ -12,7 +12,7 @@ class SessionStatusRequest
    * In milliseconds
    * @var int
    */
-  private $sessionStatusResponseSocketOpenTimeoutMs;
+  private $sessionStatusResponseSocketTimeoutMs;
 
   /**
    * @param string $sessionId
@@ -33,25 +33,25 @@ class SessionStatusRequest
   /**
    * @return int
    */
-  public function getSessionStatusResponseSocketOpenTimeoutMs()
+  public function getSessionStatusResponseSocketTimeoutMs()
   {
-    return $this->sessionStatusResponseSocketOpenTimeoutMs;
+    return $this->sessionStatusResponseSocketTimeoutMs;
   }
 
   /**
-   * @param int $sessionStatusResponseSocketOpenTimeoutMs
+   * @param int $sessionStatusResponseSocketTimeoutMs
    */
-  public function setSessionStatusResponseSocketOpenTimeoutMs( $sessionStatusResponseSocketOpenTimeoutMs )
+  public function setSessionStatusResponseSocketTimeoutMs( $sessionStatusResponseSocketTimeoutMs )
   {
-    $this->sessionStatusResponseSocketOpenTimeoutMs = $sessionStatusResponseSocketOpenTimeoutMs;
+    $this->sessionStatusResponseSocketTimeoutMs = $sessionStatusResponseSocketTimeoutMs;
   }
 
   /**
    * @return bool
    */
-  public function isSessionStatusResponseSocketOpenTimeoutSet()
+  public function isSessionStatusResponseSocketTimeoutSet()
   {
-    return isset( $this->sessionStatusResponseSocketOpenTimeoutMs )
-           && $this->sessionStatusResponseSocketOpenTimeoutMs > 0;
+    return isset( $this->sessionStatusResponseSocketTimeoutMs ) &&
+        $this->sessionStatusResponseSocketTimeoutMs > 0;
   }
 }
