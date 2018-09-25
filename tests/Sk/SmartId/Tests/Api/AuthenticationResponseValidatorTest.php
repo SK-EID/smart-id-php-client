@@ -30,6 +30,7 @@ class AuthenticationResponseValidatorTest extends TestCase
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function validationReturnsValidAuthenticationResult()
   {
@@ -38,12 +39,12 @@ class AuthenticationResponseValidatorTest extends TestCase
 
     $this->assertTrue( $authenticationResult->isValid() );
     $this->assertTrue( empty( $authenticationResult->getErrors() ) );
-    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
-        $response->getCertificateInstance() );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(), $response->getCertificateInstance() );
   }
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function validationReturnsValidAuthenticationResult_whenEndResultLowerCase()
   {
@@ -53,12 +54,12 @@ class AuthenticationResponseValidatorTest extends TestCase
 
     $this->assertTrue( $authenticationResult->isValid() );
     $this->assertTrue( empty( $authenticationResult->getErrors() ) );
-    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
-        $response->getCertificateInstance() );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(), $response->getCertificateInstance() );
   }
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function validationReturnsInvalidAuthenticationResult_whenEndResultNotOk()
   {
@@ -66,14 +67,13 @@ class AuthenticationResponseValidatorTest extends TestCase
     $authenticationResult = $this->validator->validate( $response );
 
     $this->assertFalse( $authenticationResult->isValid() );
-    $this->assertTrue( in_array( SmartIdAuthenticationResultError::INVALID_END_RESULT,
-        $authenticationResult->getErrors() ) );
-    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
-        $response->getCertificateInstance() );
+    $this->assertTrue( in_array( SmartIdAuthenticationResultError::INVALID_END_RESULT, $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(), $response->getCertificateInstance() );
   }
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function validationReturnsInvalidAuthenticationResult_whenSignatureVerificationFails()
   {
@@ -81,14 +81,13 @@ class AuthenticationResponseValidatorTest extends TestCase
     $authenticationResult = $this->validator->validate( $response );
 
     $this->assertFalse( $authenticationResult->isValid() );
-    $this->assertTrue( in_array( SmartIdAuthenticationResultError::SIGNATURE_VERIFICATION_FAILURE,
-        $authenticationResult->getErrors() ) );
-    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
-        $response->getCertificateInstance() );
+    $this->assertTrue( in_array( SmartIdAuthenticationResultError::SIGNATURE_VERIFICATION_FAILURE, $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(), $response->getCertificateInstance() );
   }
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function validationReturnsInvalidAuthenticationResult_whenSignersCertNotTrusted()
   {
@@ -104,14 +103,13 @@ class AuthenticationResponseValidatorTest extends TestCase
     fclose( $tmpHandle );
 
     $this->assertFalse( $authenticationResult->isValid() );
-    $this->assertTrue( in_array( SmartIdAuthenticationResultError::CERTIFICATE_NOT_TRUSTED,
-        $authenticationResult->getErrors() ) );
-    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
-        $response->getCertificateInstance() );
+    $this->assertTrue( in_array( SmartIdAuthenticationResultError::CERTIFICATE_NOT_TRUSTED, $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(), $response->getCertificateInstance() );
   }
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function validationReturnsValidAuthenticationResult_whenCertificateLevelHigherThanRequested()
   {
@@ -120,12 +118,12 @@ class AuthenticationResponseValidatorTest extends TestCase
 
     $this->assertTrue( $authenticationResult->isValid() );
     $this->assertTrue( empty( $authenticationResult->getErrors() ) );
-    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
-        $response->getCertificateInstance() );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(), $response->getCertificateInstance() );
   }
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function validationReturnsInvalidAuthenticationResult_whenCertificateLevelLowerThanRequested()
   {
@@ -133,14 +131,13 @@ class AuthenticationResponseValidatorTest extends TestCase
     $authenticationResult = $this->validator->validate( $response );
 
     $this->assertFalse( $authenticationResult->isValid() );
-    $this->assertTrue( in_array( SmartIdAuthenticationResultError::CERTIFICATE_LEVEL_MISMATCH,
-        $authenticationResult->getErrors() ) );
-    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(),
-        $response->getCertificateInstance() );
+    $this->assertTrue( in_array( SmartIdAuthenticationResultError::CERTIFICATE_LEVEL_MISMATCH, $authenticationResult->getErrors() ) );
+    $this->assertAuthenticationIdentityValid( $authenticationResult->getAuthenticationIdentity(), $response->getCertificateInstance() );
   }
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function withEmptyRequestedCertificateLevel_shouldPass()
   {
@@ -154,6 +151,7 @@ class AuthenticationResponseValidatorTest extends TestCase
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function withNullRequestedCertificateLevel_shouldPass()
   {
@@ -168,6 +166,7 @@ class AuthenticationResponseValidatorTest extends TestCase
   /**
    * @test
    * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
+   * @throws \ReflectionException
    */
   public function whenCertificateIsNull_ThenThrowException()
   {
@@ -179,6 +178,7 @@ class AuthenticationResponseValidatorTest extends TestCase
   /**
    * @test
    * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
+   * @throws \ReflectionException
    */
   public function whenSignatureIsEmpty_ThenThrowException()
   {
@@ -192,8 +192,7 @@ class AuthenticationResponseValidatorTest extends TestCase
    */
   private function createValidValidationResponse()
   {
-    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64,
-        CertificateLevelCode::QUALIFIED, CertificateLevelCode::QUALIFIED );
+    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64, CertificateLevelCode::QUALIFIED, CertificateLevelCode::QUALIFIED );
   }
 
   /**
@@ -201,8 +200,7 @@ class AuthenticationResponseValidatorTest extends TestCase
    */
   private function createValidationResponseWithInvalidEndResult()
   {
-    return $this->createValidationResponse( 'NOT OK', self::VALID_SIGNATURE_IN_BASE64, CertificateLevelCode::QUALIFIED,
-        CertificateLevelCode::QUALIFIED );
+    return $this->createValidationResponse( 'NOT OK', self::VALID_SIGNATURE_IN_BASE64, CertificateLevelCode::QUALIFIED, CertificateLevelCode::QUALIFIED );
   }
 
   /**
@@ -210,14 +208,12 @@ class AuthenticationResponseValidatorTest extends TestCase
    */
   private function createValidationResponseWithInvalidSignature()
   {
-    return $this->createValidationResponse( SessionEndResultCode::OK, self::INVALID_SIGNATURE_IN_BASE64,
-        CertificateLevelCode::QUALIFIED, CertificateLevelCode::QUALIFIED );
+    return $this->createValidationResponse( SessionEndResultCode::OK, self::INVALID_SIGNATURE_IN_BASE64, CertificateLevelCode::QUALIFIED, CertificateLevelCode::QUALIFIED );
   }
 
   private function createValidationResponseWithLowerCertificateLevelThanRequested()
   {
-    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64,
-        CertificateLevelCode::ADVANCED, CertificateLevelCode::QUALIFIED );
+    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64, CertificateLevelCode::ADVANCED, CertificateLevelCode::QUALIFIED );
   }
 
   /**
@@ -225,8 +221,7 @@ class AuthenticationResponseValidatorTest extends TestCase
    */
   private function createValidationResponseWithHigherCertificateLevelThanRequested()
   {
-    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64,
-        CertificateLevelCode::QUALIFIED, CertificateLevelCode::ADVANCED );
+    return $this->createValidationResponse( SessionEndResultCode::OK, self::VALID_SIGNATURE_IN_BASE64, CertificateLevelCode::QUALIFIED, CertificateLevelCode::ADVANCED );
   }
 
   /**
@@ -237,7 +232,7 @@ class AuthenticationResponseValidatorTest extends TestCase
    * @return SmartIdAuthenticationResponse
    */
   private function createValidationResponse( $endResult, $signatureInBase64, $certificateLevel,
-      $requestedCertificateLevel )
+                                             $requestedCertificateLevel )
   {
     $authenticationResponse = new SmartIdAuthenticationResponse();
     $authenticationResponse->setEndResult( $endResult )
@@ -249,8 +244,13 @@ class AuthenticationResponseValidatorTest extends TestCase
     return $authenticationResponse;
   }
 
+  /**
+   * @param AuthenticationIdentity $authenticationIdentity
+   * @param AuthenticationCertificate $certificate
+   * @throws \ReflectionException
+   */
   private function assertAuthenticationIdentityValid( AuthenticationIdentity $authenticationIdentity,
-      AuthenticationCertificate $certificate )
+                                                      AuthenticationCertificate $certificate )
   {
     $subject = $certificate->getSubject();
     $subjectReflection = new ReflectionClass( $subject );
