@@ -16,6 +16,11 @@ class AuthenticationSessionRequest
   /**
    * @var string
    */
+  private $networkInterface;
+
+  /**
+   * @var string
+   */
   private $certificateLevel;
 
   /**
@@ -71,6 +76,24 @@ class AuthenticationSessionRequest
   public function setRelyingPartyName( $relyingPartyName )
   {
     $this->relyingPartyName = $relyingPartyName;
+    return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function getNetworkInterface()
+  {
+    return $this->networkInterface;
+  }
+
+  /**
+   * @param string $networkInterface
+   * @return $this
+   */
+  public function setNetworkInterface( $networkInterface )
+  {
+    $this->networkInterface = $networkInterface;
     return $this;
   }
 
@@ -189,6 +212,11 @@ class AuthenticationSessionRequest
     if ( isset( $this->nonce ) )
     {
       $requiredArray['nonce'] = $this->nonce;
+    }
+
+    if ( isset( $this->networkInterface ) )
+    {
+      $requiredArray[ 'networkInterface' ] = $this->networkInterface;
     }
 
     return $requiredArray;

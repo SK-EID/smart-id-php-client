@@ -39,6 +39,7 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param string $documentNumber
    * @param AuthenticationSessionRequest $request
+   * @throws \Exception
    * @return AuthenticationSessionResponse
    */
   public function authenticate( $documentNumber, AuthenticationSessionRequest $request )
@@ -51,6 +52,7 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param NationalIdentity $identity
    * @param AuthenticationSessionRequest $request
+   * @throws \Exception
    * @return AuthenticationSessionResponse
    */
   public function authenticateWithIdentity( NationalIdentity $identity, AuthenticationSessionRequest $request )
@@ -69,16 +71,16 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param SessionStatusRequest $request
    * @throws SessionNotFoundException
+   * @throws \Exception
    * @return SessionStatus
    */
   public function getSessionStatus( SessionStatusRequest $request )
   {
     $url = rtrim( $this->endpointUrl, '/' ) . self::SESSION_STATUS_URI;
     $url = str_replace( '{sessionId}', $request->getSessionId(), $url );
-    $params = $this->getResponseSocketTimeoutUrlParameter( $request );
     try
     {
-      $sessionStatus = $this->getRequest( $url, $params, 'Sk\SmartId\Api\Data\SessionStatus' );
+      $sessionStatus = $this->getRequest( $url, $request->toArray(), 'Sk\SmartId\Api\Data\SessionStatus' );
       return $sessionStatus;
     }
     catch ( NotFoundException $e )
@@ -91,6 +93,7 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param string $url
    * @param AuthenticationSessionRequest $request
    * @throws UserAccountNotFoundException
+   * @throws \Exception
    * @return AuthenticationSessionResponse
    */
   private function postAuthenticationRequest( $url, AuthenticationSessionRequest $request )
@@ -106,28 +109,16 @@ class SmartIdRestConnector implements SmartIdConnector
   }
 
   /**
-   * @param SessionStatusRequest $request
-   * @return array
-   */
-  private function getResponseSocketTimeoutUrlParameter( SessionStatusRequest $request )
-  {
-    $params = array();
-    if ( $request->isSessionStatusResponseSocketTimeoutSet() )
-    {
-      $params[ 'timeoutMs' ] = $request->getSessionStatusResponseSocketTimeoutMs();
-    }
-    return $params;
-  }
-
-  /**
    * @param string $url
    * @param array $params
    * @param string $responseType
+   * @throws \Exception
    * @return mixed
    */
   private function postRequest( $url, array $params = array(), $responseType )
   {
     $this->curl = new Curl();
+    $this->setNetworkInterface( $params );
     $this->curl->curlPost( $url, array(), json_encode( $params ) );
     $this->curl->setCurlParam( CURLOPT_HTTPHEADER, array(
         'content-type: application/json',
@@ -139,11 +130,13 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param string $url
    * @param array $params
    * @param string $responseType
+   * @throws \Exception
    * @return mixed
    */
   private function getRequest( $url, array $params = array(), $responseType )
   {
     $this->curl = new Curl();
+    $this->setNetworkInterface( $params );
     $this->curl->curlGet( $url, $params );
     return $this->request( $url, $responseType );
   }
@@ -197,5 +190,17 @@ class SmartIdRestConnector implements SmartIdConnector
   {
     $preparedResponse = json_decode( $rawResponse, true );
     return new $responseType( $preparedResponse );
+  }
+
+  /**
+   * @param array $params
+   */
+  private function setNetworkInterface( array &$params )
+  {
+    if ( isset( $params[ 'networkInterface' ] ) )
+    {
+      $this->curl->setCurlParam( CURLOPT_INTERFACE, $params[ 'networkInterface' ] );
+      unset( $params[ 'networkInterface' ] );
+    }
   }
 }
