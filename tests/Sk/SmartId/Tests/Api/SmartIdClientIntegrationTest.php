@@ -172,6 +172,65 @@ class SmartIdClientIntegrationTest extends Setup
   }
 
   /**
+   * @test
+   */
+  public function authenticate_withNetworkInterfaceInPlace()
+  {
+    $authenticationHash = AuthenticationHash::generate();
+    $this->assertNotEmpty( $authenticationHash->calculateVerificationCode() );
+
+    $authenticationResponse = $this->client->authentication()
+        ->createAuthentication()
+        ->withRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
+        ->withRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
+        ->withNetworkInterface( 'eth0' ) // or available IP
+        ->withDocumentNumber( $GLOBALS[ 'document_number' ] )
+        ->withAuthenticationHash( $authenticationHash )
+        ->withCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+        ->authenticate();
+
+    $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
+
+    $authenticationResponseValidator = new AuthenticationResponseValidator( self::RESOURCES );
+    $authenticationResult = $authenticationResponseValidator->validate( $authenticationResponse );
+    $this->assertAuthenticationResultValid( $authenticationResult );
+  }
+
+  /**
+   * @test
+   */
+  public function getAuthenticationResponse_withNetworkInterfaceInPlaceAndSessionId_isRunning()
+  {
+    $authenticationHash = AuthenticationHash::generate();
+    $this->assertNotEmpty( $authenticationHash->calculateVerificationCode() );
+
+    $sessionId = $this->client->authentication()
+        ->createAuthentication()
+        ->withRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
+        ->withRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
+        ->withNetworkInterface( 'eth0' ) // or available IP
+        ->withNationalIdentityNumber( $GLOBALS[ 'national_identity_number' ] )
+        ->withCountryCode( $GLOBALS[ 'country_code' ] )
+        ->withAuthenticationHash( $authenticationHash )
+        ->withCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+        ->withDisplayText( 'DO NOT ENTER CODE' )
+        ->startAuthenticationAndReturnSessionId();
+
+    $this->assertNotEmpty( $sessionId );
+
+    $authenticationResponse = $this->client->authentication()
+        ->setSessionStatusResponseSocketTimeoutMs( 1000 )
+        ->createSessionStatusFetcher()
+        ->withNetworkInterface( 'eth0' ) // or available IP
+        ->withSessionId( $sessionId )
+        ->withAuthenticationHash( $authenticationHash )
+        ->getAuthenticationResponse();
+
+    $this->assertNotNull( $authenticationResponse );
+    $this->assertTrue( $authenticationResponse->isRunningState() );
+  }
+
+  /**
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @param string $dataToSign
    */

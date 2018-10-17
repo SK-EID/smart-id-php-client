@@ -211,7 +211,8 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
         ->setHashType( $this->getHashTypeString() )
         ->setHash( $this->getHashInBase64() )
         ->setDisplayText( $this->displayText )
-        ->setNonce( $this->nonce );
+        ->setNonce( $this->nonce )
+        ->setNetworkInterface( $this->getNetworkInterface() );
     return $request;
   }
 

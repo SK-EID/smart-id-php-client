@@ -15,6 +15,11 @@ class SessionStatusRequest
   private $sessionStatusResponseSocketTimeoutMs;
 
   /**
+   * @var string
+   */
+  private $networkInterface;
+
+  /**
    * @param string $sessionId
    */
   public function __construct( $sessionId )
@@ -40,10 +45,12 @@ class SessionStatusRequest
 
   /**
    * @param int $sessionStatusResponseSocketTimeoutMs
+   * @return $this
    */
   public function setSessionStatusResponseSocketTimeoutMs( $sessionStatusResponseSocketTimeoutMs )
   {
     $this->sessionStatusResponseSocketTimeoutMs = $sessionStatusResponseSocketTimeoutMs;
+    return $this;
   }
 
   /**
@@ -51,7 +58,36 @@ class SessionStatusRequest
    */
   public function isSessionStatusResponseSocketTimeoutSet()
   {
-    return isset( $this->sessionStatusResponseSocketTimeoutMs ) &&
-        $this->sessionStatusResponseSocketTimeoutMs > 0;
+    return isset( $this->sessionStatusResponseSocketTimeoutMs ) && $this->sessionStatusResponseSocketTimeoutMs > 0;
+  }
+
+  /**
+   * @param string $networkInterface
+   * @return $this
+   */
+  public function setNetworkInterface( $networkInterface )
+  {
+    $this->networkInterface = $networkInterface;
+    return $this;
+  }
+
+  /**
+   * @return array
+   */
+  public function toArray()
+  {
+    $requiredArray = array();
+
+    if ( $this->isSessionStatusResponseSocketTimeoutSet() )
+    {
+      $params[ 'timeoutMs' ] = $this->sessionStatusResponseSocketTimeoutMs;
+    }
+
+    if ( isset( $this->networkInterface ) )
+    {
+      $requiredArray[ 'networkInterface' ] = $this->networkInterface;
+    }
+
+    return $requiredArray;
   }
 }

@@ -26,6 +26,11 @@ abstract class SmartIdRequestBuilder
   private $relyingPartyName;
 
   /**
+   * @var string
+   */
+  private $networkInterface;
+
+  /**
    * @param SmartIdConnector $connector
    * @param SessionStatusPoller $sessionStatusPoller
    */
@@ -52,6 +57,16 @@ abstract class SmartIdRequestBuilder
   public function withRelyingPartyName( $relyingPartyName )
   {
     $this->relyingPartyName = $relyingPartyName;
+    return $this;
+  }
+
+  /**
+   * @param string $networkInterface
+   * @return $this
+   */
+  public function withNetworkInterface( $networkInterface )
+  {
+    $this->networkInterface = $networkInterface;
     return $this;
   }
 
@@ -85,6 +100,14 @@ abstract class SmartIdRequestBuilder
   public function getRelyingPartyName()
   {
     return $this->relyingPartyName;
+  }
+
+  /**
+   * @return string
+   */
+  public function getNetworkInterface()
+  {
+    return $this->networkInterface;
   }
 
   /**
