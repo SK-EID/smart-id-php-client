@@ -20,6 +20,7 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function authenticate_withDocumentNumber()
   {
@@ -37,6 +38,8 @@ class SmartIdClientIntegrationTest extends Setup
 
     $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
 
+    var_dump($authenticationResponse);
+
     $authenticationResponseValidator = new AuthenticationResponseValidator( self::RESOURCES );
     $authenticationResult = $authenticationResponseValidator->validate( $authenticationResponse );
     $this->assertAuthenticationResultValid( $authenticationResult );
@@ -44,6 +47,7 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function authenticate_withNationalIdentityNumberAndCountryCode()
   {
@@ -122,6 +126,7 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
+   * @throws \ReflectionException
    */
   public function getAuthenticationResponse_withSessionId_isComplete()
   {

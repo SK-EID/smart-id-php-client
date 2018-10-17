@@ -36,6 +36,7 @@ class AuthenticationResponseValidator
   /**
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @return SmartIdAuthenticationResult
+   * @throws \ReflectionException
    */
   public function validate( SmartIdAuthenticationResponse $authenticationResponse )
   {
@@ -140,6 +141,7 @@ class AuthenticationResponseValidator
   /**
    * @param AuthenticationCertificate $certificate
    * @return AuthenticationIdentity
+   * @throws \ReflectionException
    */
   private function constructAuthenticationIdentity( AuthenticationCertificate $certificate )
   {
@@ -225,23 +227,19 @@ class AuthenticationResponseValidator
       return false;
     }
 
-    foreach ( $this->trustedCACertificates as $trustedCACertificate )
+    if ( $this->verifyTrustedCACertificates( $certificateAsResource ) === true )
     {
-      if ( $this->verifyTrustedCACertificate( $certificateAsResource, $trustedCACertificate ) === true )
-      {
-        return true;
-      }
+      return true;
     }
     return false;
   }
 
   /**
    * @param resource $certificateAsResource
-   * @param string $trustedCACertificate
    * @return int
    */
-  private function verifyTrustedCACertificate( $certificateAsResource, $trustedCACertificate )
+  private function verifyTrustedCACertificates( $certificateAsResource )
   {
-    return openssl_x509_checkpurpose( $certificateAsResource, X509_PURPOSE_ANY, array( $trustedCACertificate ) );
+    return openssl_x509_checkpurpose( $certificateAsResource, X509_PURPOSE_ANY, $this->trustedCACertificates );
   }
 }
