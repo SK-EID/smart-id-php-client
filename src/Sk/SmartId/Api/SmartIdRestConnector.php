@@ -176,6 +176,11 @@ class SmartIdRestConnector implements SmartIdConnector
       throw new NotFoundException( 'User account not found for URI ' . $url );
     }
 
+    if ( 401 == $httpCode )
+    {
+      throw new SmartIdException( 'Unauthorized' );
+    }    
+
     $response = $this->getResponse( $rawResponse, $responseType );
 
     return $response;
