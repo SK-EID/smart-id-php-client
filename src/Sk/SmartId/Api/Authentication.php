@@ -72,8 +72,7 @@ class Authentication extends AbstractApi
     {
       throw new TechnicalErrorException( 'Timeout can not be negative' );
     }
-    $conversionResult = $pollingSleepTimeoutMs * pow( 10, 6 );
-    $this->pollingSleepTimeoutMs = ( $conversionResult > PHP_INT_MAX ) ? PHP_INT_MAX : $conversionResult;
+    $this->pollingSleepTimeoutMs = $pollingSleepTimeoutMs;
     return $this;
   }
 
