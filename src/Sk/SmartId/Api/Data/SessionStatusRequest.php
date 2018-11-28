@@ -80,7 +80,7 @@ class SessionStatusRequest
 
     if ( $this->isSessionStatusResponseSocketTimeoutSet() )
     {
-      $params[ 'timeoutMs' ] = $this->sessionStatusResponseSocketTimeoutMs;
+      $requiredArray[ 'timeoutMs' ] = $this->sessionStatusResponseSocketTimeoutMs;
     }
 
     if ( isset( $this->networkInterface ) )

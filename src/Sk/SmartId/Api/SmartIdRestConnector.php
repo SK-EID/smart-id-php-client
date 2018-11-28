@@ -170,9 +170,9 @@ class SmartIdRestConnector implements SmartIdConnector
 
     $this->curl->closeRequest();
 
-    if ( isset( self::RESPONSE_ERROR_CODES[ $httpCode ] ) )
+    if ( array_key_exists( $httpCode, self::RESPONSE_ERROR_CODES ) )
     {
-      throw new SmartIdException( self::RESPONSE_ERROR_CODES[ $httpCode ] );
+      throw new SmartIdException( self::RESPONSE_ERROR_CODES[ $httpCode ], $httpCode );
     }
 
     if ( 404 == $httpCode )
