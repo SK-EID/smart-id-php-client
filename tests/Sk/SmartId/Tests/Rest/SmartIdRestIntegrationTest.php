@@ -21,7 +21,7 @@ class SmartIdRestIntegrationTest extends TestCase
 
   protected function setUp()
   {
-    $this->connector = new SmartIdRestConnector( $GLOBALS['host_url'] );
+    $this->connector = new SmartIdRestConnector( $GLOBALS[ 'host_url' ] );
   }
 
   /**
@@ -29,7 +29,7 @@ class SmartIdRestIntegrationTest extends TestCase
    */
   public function waitForMobileAppToFinish()
   {
-    sleep(10);
+    sleep( 10 );
   }
 
   /**
@@ -48,7 +48,7 @@ class SmartIdRestIntegrationTest extends TestCase
   private function fetchAuthenticationSession()
   {
     $request = $this->createAuthenticationSessionRequest();
-    $authenticationSessionResponse = $this->connector->authenticate( $GLOBALS['document_number'], $request );
+    $authenticationSessionResponse = $this->connector->authenticate( $GLOBALS[ 'document_number' ], $request );
     $this->assertNotNull( $authenticationSessionResponse );
     $this->assertNotEmpty( $authenticationSessionResponse->getSessionID() );
     return $authenticationSessionResponse;
@@ -60,11 +60,11 @@ class SmartIdRestIntegrationTest extends TestCase
   private function createAuthenticationSessionRequest()
   {
     $authenticationSessionRequest = new AuthenticationSessionRequest();
-    $authenticationSessionRequest->setRelyingPartyUUID( $GLOBALS['relying_party_uuid'] )
-        ->setRelyingPartyName( $GLOBALS['relying_party_name'] )
-        ->setCertificateLevel( $GLOBALS['certificate_level'] )
+    $authenticationSessionRequest->setRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
+        ->setRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
+        ->setCertificateLevel( $GLOBALS[ 'certificate_level' ] )
         ->setHashType( HashType::SHA512 );
-    $hashInBase64 = $this->calculateHashInBase64( $GLOBALS['data_to_sign'] );
+    $hashInBase64 = $this->calculateHashInBase64( $GLOBALS[ 'data_to_sign' ] );
     $authenticationSessionRequest->setHash( $hashInBase64 );
     return $authenticationSessionRequest;
   }
@@ -89,7 +89,8 @@ class SmartIdRestIntegrationTest extends TestCase
     $sessionStatus = null;
     while ( $sessionStatus === null || strcasecmp( SessionStatusCode::RUNNING, $sessionStatus->getState() ) === 0 )
     {
-      $request = new SessionStatusRequest( $sessionId );
+      $request = $this->createSessionStatusRequest( $sessionId );
+      $this->assertEquals( array('timeoutMs' => 1000), $request->toArray() );
       $sessionStatus = $this->connector->getSessionStatus( $request );
       sleep( 1 );
     }
@@ -108,5 +109,16 @@ class SmartIdRestIntegrationTest extends TestCase
     $this->assertNotEmpty( $sessionStatus->getSignature()->getValue() );
     $this->assertNotEmpty( $sessionStatus->getCert()->getValue() );
     $this->assertNotEmpty( $sessionStatus->getCert()->getCertificateLevel() );
+  }
+
+  /**
+   * @param string $sessionId
+   * @return SessionStatusRequest
+   */
+  private function createSessionStatusRequest( $sessionId )
+  {
+    $sessionStatusRequest = new SessionStatusRequest( $sessionId );
+    $sessionStatusRequest->setSessionStatusResponseSocketTimeoutMs( 1000 );
+    return $sessionStatusRequest;
   }
 }

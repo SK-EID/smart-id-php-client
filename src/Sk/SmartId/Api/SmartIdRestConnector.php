@@ -18,6 +18,17 @@ class SmartIdRestConnector implements SmartIdConnector
   const AUTHENTICATE_BY_NATIONAL_IDENTITY_PATH = '/authentication/pno/{country}/{nationalIdentityNumber}';
   const SESSION_STATUS_URI = '/session/{sessionId}';
 
+  const RESPONSE_ERROR_CODES = array(
+      503 => 'Limit exceeded',
+      403 => 'Forbidden!',
+      401 => 'Unauthorized',
+
+      580 => 'System is under maintenance, retry later',
+      480 => 'The client is old and not supported any more. Relying Party must contact customer support.',
+      472 => 'Person should view app or self-service portal now.',
+      471 => 'No suitable account of requested type found, but user has some other accounts.',
+  );
+
   /**
    * @var string
    */
@@ -115,14 +126,12 @@ class SmartIdRestConnector implements SmartIdConnector
    * @throws \Exception
    * @return mixed
    */
-  private function postRequest( $url, array $params = array(), $responseType )
+  private function postRequest( $url, array $params, $responseType )
   {
     $this->curl = new Curl();
     $this->setNetworkInterface( $params );
     $this->curl->curlPost( $url, array(), json_encode( $params ) );
-    $this->curl->setCurlParam( CURLOPT_HTTPHEADER, array(
-        'content-type: application/json',
-    ) );
+    $this->curl->setCurlParam( CURLOPT_HTTPHEADER, array('content-type: application/json',) );
     return $this->request( $url, $responseType );
   }
 
@@ -133,7 +142,7 @@ class SmartIdRestConnector implements SmartIdConnector
    * @throws \Exception
    * @return mixed
    */
-  private function getRequest( $url, array $params = array(), $responseType )
+  private function getRequest( $url, array $params, $responseType )
   {
     $this->curl = new Curl();
     $this->setNetworkInterface( $params );
@@ -161,25 +170,15 @@ class SmartIdRestConnector implements SmartIdConnector
 
     $this->curl->closeRequest();
 
-    if ( 503 == $httpCode )
+    if ( array_key_exists( $httpCode, self::RESPONSE_ERROR_CODES ) )
     {
-      throw new SmartIdException( 'Limit exceeded' );
-    }
-
-    if ( 403 == $httpCode )
-    {
-      throw new SmartIdException( 'Forbidden!' );
+      throw new SmartIdException( self::RESPONSE_ERROR_CODES[ $httpCode ], $httpCode );
     }
 
     if ( 404 == $httpCode )
     {
       throw new NotFoundException( 'User account not found for URI ' . $url );
     }
-
-    if ( 401 == $httpCode )
-    {
-      throw new SmartIdException( 'Unauthorized' );
-    }    
 
     $response = $this->getResponse( $rawResponse, $responseType );
 
