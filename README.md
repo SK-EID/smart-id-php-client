@@ -11,7 +11,7 @@ The Smart-ID PHP client can be used for easy integration of the Smart-ID solutio
 
 Smart-ID PHP client works with PHP 5.6 or later.
 
-**This PHP client cannot be used to create digitally signed containers as there no library like DigiDoc4J exists for PHP.**
+**This PHP client cannot be used to create digitally signed containers because PHP does not have a library like DigiDoc4J..**
 
 ## Installation
 The recommended way to install Smart-ID PHP Client is through [Composer]:
