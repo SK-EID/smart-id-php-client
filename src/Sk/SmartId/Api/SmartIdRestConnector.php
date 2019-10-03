@@ -115,7 +115,7 @@ class SmartIdRestConnector implements SmartIdConnector
     }
     catch ( NotFoundException $e )
     {
-      throw new UserAccountNotFoundException();
+      throw new UserAccountNotFoundException($e->getMessage());
     }
   }
 
