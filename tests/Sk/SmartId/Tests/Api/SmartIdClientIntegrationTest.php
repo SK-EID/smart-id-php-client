@@ -187,7 +187,7 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withNetworkInterface( 'eth0' ) // or available IP
+        ->withNetworkInterface( 'docker0' ) // or available IP
         ->withDocumentNumber( DummyData::VALID_DOCUMENT_NUMBER )
         ->withAuthenticationHash( $authenticationHash )
         ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
@@ -212,8 +212,8 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withNetworkInterface( 'eth0' ) // or available IP
-        ->withNationalIdentityNumber( DummyData::VALID_NATIONAL_IDENTITY )
+        ->withNetworkInterface( 'docker0' ) // or available IP
+        ->withNationalIdentityNumber( "10101010027" )
         ->withCountryCode( DummyData::COUNTRY_CODE_EE )
         ->withAuthenticationHash( $authenticationHash )
         ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
@@ -225,7 +225,7 @@ class SmartIdClientIntegrationTest extends Setup
     $authenticationResponse = $this->client->authentication()
         ->setSessionStatusResponseSocketTimeoutMs( 1000 )
         ->createSessionStatusFetcher()
-        ->withNetworkInterface( 'eth0' ) // or available IP
+        ->withNetworkInterface( 'docker0' ) // or available IP
         ->withSessionId( $sessionId )
         ->withAuthenticationHash( $authenticationHash )
         ->getAuthenticationResponse();
