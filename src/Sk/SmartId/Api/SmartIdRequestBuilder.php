@@ -83,7 +83,7 @@ abstract class SmartIdRequestBuilder
    */
   public function getSessionStatusPoller()
   {
-    return $this->sessionStatusPoller;
+    return $this->sessionStatusPoller->withNetworkInterface($this->getNetworkInterface());
   }
 
   /**

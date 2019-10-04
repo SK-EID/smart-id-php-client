@@ -3,6 +3,7 @@ namespace Sk\SmartId\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Client;
+use Sk\SmartId\Tests\Api\DummyData;
 
 class Setup extends TestCase
 {
@@ -16,8 +17,9 @@ class Setup extends TestCase
   protected function setUp()
   {
     $this->client = new Client();
-    $this->client->setRelyingPartyUUID( $GLOBALS['relying_party_uuid'] )
-        ->setRelyingPartyName( $GLOBALS['relying_party_name'] )
-        ->setHostUrl( $GLOBALS['host_url'] );
+    $this->client
+        ->setRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->setRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->setHostUrl( DummyData::DEMO_HOST_URL );
   }
 }
