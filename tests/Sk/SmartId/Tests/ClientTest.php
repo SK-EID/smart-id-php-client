@@ -27,6 +27,7 @@
 namespace Sk\SmartId\Tests;
 
 use Sk\SmartId\Api\ApiType;
+use Sk\SmartId\Util\Curl;
 
 class ClientTest extends Setup
 {

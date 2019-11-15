@@ -31,11 +31,16 @@ use Exception;
 
 class Curl
 {
+  static
+      $server_ssl_public_keys = self::DEMO_SID_PUBLIC_KEY.";".self::RP_API_PUBLIC_KEY_VALID_FROM_2016_12_20_TO_2020_01_19.";".self::RP_API_PUBLIC_KEY_VALID_FROM_2019_11_01_TO_2021_11_05;
 
   const
       GET = 1,
       POST = 2,
-      PUT = 3;
+      PUT = 3,
+      DEMO_SID_PUBLIC_KEY = "sha256//QLZIaH7Qx9Rjq3gyznQuNsvwMQb7maC5L4SLu/z5qNU=",
+      RP_API_PUBLIC_KEY_VALID_FROM_2016_12_20_TO_2020_01_19 = "sha256//R8b8SIj92sylUdok0DqfxJJN0yW2O3epE0B+5vpo2eM=",
+      RP_API_PUBLIC_KEY_VALID_FROM_2019_11_01_TO_2021_11_05 = "sha256//l2uvq6ftLN4LZ+8Un+71J2vH1BT9wTbtrE5+Fj3Vc5g=";
 
   protected
       $curl,
@@ -198,7 +203,7 @@ class Curl
     curl_setopt( $this->curl, CURLOPT_FOLLOWLOCATION, $this->followLocation );
     curl_setopt( $this->curl, CURLOPT_TIMEOUT, $this->curlTimeout );
     curl_setopt( $this->curl, CURLOPT_SSL_VERIFYPEER, false );
-    curl_setopt( $this->curl, CURLOPT_PINNEDPUBLICKEY, $this->publicSslKeys);
+    curl_setopt( $this->curl, CURLOPT_PINNEDPUBLICKEY, self::$server_ssl_public_keys);
 
     if ( self::POST === $this->requestMethod )
     {
@@ -354,9 +359,26 @@ class Curl
     return false;
   }
 
-    public function setPublicSslKeys(string $public_keys)
+  public static function useOnlyDemoPublicKey()
+  {
+      self::$server_ssl_public_keys = self::DEMO_SID_PUBLIC_KEY;
+  }
+
+  public static function useOnlyLivePublicKey()
+  {
+      self::$server_ssl_public_keys =
+              self::RP_API_PUBLIC_KEY_VALID_FROM_2016_12_20_TO_2020_01_19 . ";"
+              . self::RP_API_PUBLIC_KEY_VALID_FROM_2019_11_01_TO_2021_11_05;
+  }
+
+    public static function setPublicKeysFromArray(array $public_keys)
     {
-        $this->publicSslKeys = $public_keys;
+        self::$server_ssl_public_keys = "";
+        foreach ($public_keys as $public_key)
+        {
+            self::$server_ssl_public_keys .= $public_key.";";
+        }
+        self::$server_ssl_public_keys = substr(self::$server_ssl_public_keys, 0, strlen(self::$server_ssl_public_keys)-1);
     }
 
     /**
