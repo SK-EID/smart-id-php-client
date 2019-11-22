@@ -39,6 +39,8 @@ class SmartIdRestConnector implements SmartIdConnector
    */
   private $curl;
 
+  private $publicSslKeys;
+
   /**
    * @param string $endpointUrl
    */
@@ -129,6 +131,7 @@ class SmartIdRestConnector implements SmartIdConnector
   private function postRequest( $url, array $params, $responseType )
   {
     $this->curl = new Curl();
+    $this->curl->setPublicSslKeys($this->publicSslKeys);
     $this->setNetworkInterface( $params );
     $this->curl->curlPost( $url, array(), json_encode( $params ) );
     $this->curl->setCurlParam( CURLOPT_HTTPHEADER, array('content-type: application/json',) );
@@ -145,6 +148,7 @@ class SmartIdRestConnector implements SmartIdConnector
   private function getRequest( $url, array $params, $responseType )
   {
     $this->curl = new Curl();
+    $this->curl->setPublicSslKeys($this->publicSslKeys);
     $this->setNetworkInterface( $params );
     $this->curl->curlGet( $url, $params );
     return $this->request( $url, $responseType );
@@ -206,5 +210,10 @@ class SmartIdRestConnector implements SmartIdConnector
       $this->curl->setCurlParam( CURLOPT_INTERFACE, $params[ 'networkInterface' ] );
       unset( $params[ 'networkInterface' ] );
     }
+  }
+
+  public function setPublicSslKeys(string $sslKeys)
+  {
+      $this->publicSslKeys = $sslKeys;
   }
 }

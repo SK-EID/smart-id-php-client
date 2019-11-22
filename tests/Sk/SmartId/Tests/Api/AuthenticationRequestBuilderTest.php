@@ -49,7 +49,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticateWithDocumentNumberAndGeneratedSignableData()
   {
-    $dataToSign = new SignableData( $GLOBALS[ 'data_to_sign' ] );
+    $dataToSign = new SignableData( DummyData::SIGNABLE_TEXT );
     $authenticationResponse = $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
