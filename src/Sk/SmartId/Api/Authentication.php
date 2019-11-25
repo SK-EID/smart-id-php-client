@@ -48,6 +48,7 @@ class Authentication extends AbstractApi
   public function createAuthentication()
   {
     $connector = new SmartIdRestConnector( $this->client->getHostUrl() );
+    $connector->setPublicSslKeys($this->client->getPublicSslKeys());
     $sessionStatusPoller = $this->createSessionStatusPoller( $connector );
     $builder = new AuthenticationRequestBuilder( $connector, $sessionStatusPoller );
     $this->populateBuilderFields( $builder );

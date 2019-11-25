@@ -29,6 +29,7 @@ namespace Sk\SmartId\Tests;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Client;
 use Sk\SmartId\Tests\Api\DummyData;
+use Sk\SmartId\Util\Curl;
 
 class Setup extends TestCase
 {

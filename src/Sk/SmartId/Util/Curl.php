@@ -25,11 +25,13 @@
  * #L%
  */
 namespace Sk\SmartId\Util;
+defined('CURLOPT_PINNEDPUBLICKEY') || define('CURLOPT_PINNEDPUBLICKEY', 10230);
 
 use Exception;
 
 class Curl
 {
+
   const
       GET = 1,
       POST = 2,
@@ -44,7 +46,8 @@ class Curl
       $requestMethod = self::GET,
       $importCookies = false,
       $includeHeaders = false,
-      $curlTimeout = 600;
+      $curlTimeout = 600,
+      $publicSslKeys;
 
   /**
    * @throws Exception
@@ -195,6 +198,7 @@ class Curl
     curl_setopt( $this->curl, CURLOPT_FOLLOWLOCATION, $this->followLocation );
     curl_setopt( $this->curl, CURLOPT_TIMEOUT, $this->curlTimeout );
     curl_setopt( $this->curl, CURLOPT_SSL_VERIFYPEER, false );
+    curl_setopt( $this->curl, CURLOPT_PINNEDPUBLICKEY, $this->publicSslKeys);
 
     if ( self::POST === $this->requestMethod )
     {
@@ -350,7 +354,12 @@ class Curl
     return false;
   }
 
-  /**
+    public function setPublicSslKeys(string $public_keys)
+    {
+        $this->publicSslKeys = $public_keys;
+    }
+
+    /**
    * @param int $option
    * @return array|mixed
    */
