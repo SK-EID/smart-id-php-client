@@ -54,11 +54,11 @@ class SmartIdClientIntegrationTest extends Setup
 
     $authenticationResponse = $this->client->authentication()
         ->createAuthentication()
-        ->withRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
-        ->withRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
-        ->withDocumentNumber( $GLOBALS[ 'document_number' ] )
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withDocumentNumber( DummyData::VALID_DOCUMENT_NUMBER )
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
         ->authenticate();
 
     $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
@@ -79,12 +79,12 @@ class SmartIdClientIntegrationTest extends Setup
 
     $authenticationResponse = $this->client->authentication()
         ->createAuthentication()
-        ->withRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
-        ->withRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
-        ->withNationalIdentityNumber( $GLOBALS[ 'national_identity_number' ] )
-        ->withCountryCode( $GLOBALS[ 'country_code' ] )
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withNationalIdentityNumber( DummyData::VALID_NATIONAL_IDENTITY )
+        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
         ->authenticate();
 
     $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
@@ -104,12 +104,12 @@ class SmartIdClientIntegrationTest extends Setup
 
     $sessionId = $this->client->authentication()
         ->createAuthentication()
-        ->withRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
-        ->withRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
-        ->withNationalIdentityNumber( $GLOBALS[ 'national_identity_number' ] )
-        ->withCountryCode( $GLOBALS[ 'country_code' ] )
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withNationalIdentityNumber( DummyData::VALID_NATIONAL_IDENTITY )
+        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
         ->startAuthenticationAndReturnSessionId();
 
     $this->assertNotEmpty( $sessionId );
@@ -125,12 +125,12 @@ class SmartIdClientIntegrationTest extends Setup
 
     $sessionId = $this->client->authentication()
         ->createAuthentication()
-        ->withRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
-        ->withRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
-        ->withNationalIdentityNumber( $GLOBALS[ 'national_identity_number' ] )
-        ->withCountryCode( $GLOBALS[ 'country_code' ] )
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withNationalIdentityNumber( "10101010027" )
+        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
         ->withDisplayText( 'DO NOT ENTER CODE' )
         ->startAuthenticationAndReturnSessionId();
 
@@ -158,12 +158,12 @@ class SmartIdClientIntegrationTest extends Setup
 
     $sessionId = $this->client->authentication()
         ->createAuthentication()
-        ->withRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
-        ->withRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
-        ->withNationalIdentityNumber( $GLOBALS[ 'national_identity_number' ] )
-        ->withCountryCode( $GLOBALS[ 'country_code' ] )
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withNationalIdentityNumber( DummyData::VALID_NATIONAL_IDENTITY )
+        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
         ->startAuthenticationAndReturnSessionId();
 
     $this->assertNotEmpty( $sessionId );
@@ -210,12 +210,12 @@ class SmartIdClientIntegrationTest extends Setup
 
     $authenticationResponse = $this->client->authentication()
         ->createAuthentication()
-        ->withRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
-        ->withRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
-        ->withNetworkInterface( 'eth0' ) // or available IP
-        ->withDocumentNumber( $GLOBALS[ 'document_number' ] )
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withNetworkInterface( 'docker0' ) // or available IP
+        ->withDocumentNumber( DummyData::VALID_DOCUMENT_NUMBER )
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
         ->authenticate();
 
     $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
@@ -235,13 +235,13 @@ class SmartIdClientIntegrationTest extends Setup
 
     $sessionId = $this->client->authentication()
         ->createAuthentication()
-        ->withRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
-        ->withRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
-        ->withNetworkInterface( 'eth0' ) // or available IP
-        ->withNationalIdentityNumber( $GLOBALS[ 'national_identity_number' ] )
-        ->withCountryCode( $GLOBALS[ 'country_code' ] )
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withNetworkInterface( 'docker0' ) // or available IP
+        ->withNationalIdentityNumber( "10101010027" )
+        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
         ->withDisplayText( 'DO NOT ENTER CODE' )
         ->startAuthenticationAndReturnSessionId();
 
@@ -250,7 +250,7 @@ class SmartIdClientIntegrationTest extends Setup
     $authenticationResponse = $this->client->authentication()
         ->setSessionStatusResponseSocketTimeoutMs( 1000 )
         ->createSessionStatusFetcher()
-        ->withNetworkInterface( 'eth0' ) // or available IP
+        ->withNetworkInterface( 'docker0' ) // or available IP
         ->withSessionId( $sessionId )
         ->withAuthenticationHash( $authenticationHash )
         ->getAuthenticationResponse();

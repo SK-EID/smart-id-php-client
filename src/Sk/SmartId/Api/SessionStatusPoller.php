@@ -55,6 +55,11 @@ class SessionStatusPoller
    */
   private $sessionStatusResponseSocketTimeoutMs;
 
+    /**
+     * @var string
+     */
+  private $networkInterface;
+
   /**
    * @param SmartIdConnector $connector
    */
@@ -185,8 +190,16 @@ class SessionStatusPoller
   private function createSessionStatusFetcher( $sessionId )
   {
     $sessionStatusFetcherBuilder = new SessionStatusFetcherBuilder( $this->connector );
-    return $sessionStatusFetcherBuilder->withSessionId( $sessionId )
+    return $sessionStatusFetcherBuilder
+        ->withSessionId( $sessionId )
         ->withSessionStatusResponseSocketTimeoutMs( $this->sessionStatusResponseSocketTimeoutMs )
+        ->withNetworkInterface($this->networkInterface)
         ->build();
   }
+
+  public function withNetworkInterface( $networkInterface )
+    {
+        $this->networkInterface = $networkInterface;
+        return $this;
+    }
 }

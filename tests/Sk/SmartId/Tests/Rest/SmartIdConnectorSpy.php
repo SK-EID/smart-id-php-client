@@ -52,6 +52,11 @@ class SmartIdConnectorSpy implements SmartIdConnector
   public $authenticationSessionRequestUsed;
 
   /**
+   * @var SessionStatusRequest
+   */
+  public $sessionStatusRequestUsed;
+
+  /**
    * @var NationalIdentity
    */
   public $identityUsed;
@@ -98,6 +103,7 @@ class SmartIdConnectorSpy implements SmartIdConnector
   public function getSessionStatus( SessionStatusRequest $request )
   {
     $this->sessionIdUsed = $request->getSessionId();
+    $this->sessionStatusRequestUsed = $request;
     return $this->sessionStatusToRespond;
   }
 }

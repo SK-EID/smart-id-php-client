@@ -65,7 +65,7 @@ class SessionStatusFetcherBuilderTest extends Setup
   public function getAuthenticationResponse()
   {
     $sessionId = '97f5058e-e308-4c83-ac14-7712b0eb9d86';
-    $dataToSign = new SignableData( $GLOBALS[ 'data_to_sign' ] );
+    $dataToSign = new SignableData( DummyData::SIGNABLE_TEXT );
     $authenticationResponse = $this->builder->withSignableData( $dataToSign )
         ->withSessionId( $sessionId )
         ->getAuthenticationResponse();
@@ -79,7 +79,7 @@ class SessionStatusFetcherBuilderTest extends Setup
   public function getAuthenticationResponse_withNetworkInterfaceInPlace()
   {
     $sessionId = '97f5058e-e308-4c83-ac14-7712b0eb9d86';
-    $dataToSign = new SignableData( $GLOBALS[ 'data_to_sign' ] );
+    $dataToSign = new SignableData( DummyData::SIGNABLE_TEXT );
     $authenticationResponse = $this->builder->withSignableData( $dataToSign )
         ->withSessionId( $sessionId )
         ->withNetworkInterface( 'eth0' )

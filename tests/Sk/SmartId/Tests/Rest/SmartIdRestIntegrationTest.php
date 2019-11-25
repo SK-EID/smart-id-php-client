@@ -36,6 +36,7 @@ use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Api\SmartIdRestConnector;
+use Sk\SmartId\Tests\Api\DummyData;
 
 class SmartIdRestIntegrationTest extends TestCase
 {
@@ -46,7 +47,7 @@ class SmartIdRestIntegrationTest extends TestCase
 
   protected function setUp()
   {
-    $this->connector = new SmartIdRestConnector( $GLOBALS[ 'host_url' ] );
+    $this->connector = new SmartIdRestConnector( DummyData::TEST_URL );
   }
 
   /**
@@ -73,7 +74,7 @@ class SmartIdRestIntegrationTest extends TestCase
   private function fetchAuthenticationSession()
   {
     $request = $this->createAuthenticationSessionRequest();
-    $authenticationSessionResponse = $this->connector->authenticate( $GLOBALS[ 'document_number' ], $request );
+    $authenticationSessionResponse = $this->connector->authenticate( DummyData::VALID_DOCUMENT_NUMBER, $request );
     $this->assertNotNull( $authenticationSessionResponse );
     $this->assertNotEmpty( $authenticationSessionResponse->getSessionID() );
     return $authenticationSessionResponse;
@@ -85,11 +86,12 @@ class SmartIdRestIntegrationTest extends TestCase
   private function createAuthenticationSessionRequest()
   {
     $authenticationSessionRequest = new AuthenticationSessionRequest();
-    $authenticationSessionRequest->setRelyingPartyUUID( $GLOBALS[ 'relying_party_uuid' ] )
-        ->setRelyingPartyName( $GLOBALS[ 'relying_party_name' ] )
-        ->setCertificateLevel( $GLOBALS[ 'certificate_level' ] )
+    $authenticationSessionRequest
+        ->setRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->setRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->setCertificateLevel( DummyData::CERTIFICATE_LEVEL )
         ->setHashType( HashType::SHA512 );
-    $hashInBase64 = $this->calculateHashInBase64( $GLOBALS[ 'data_to_sign' ] );
+    $hashInBase64 = $this->calculateHashInBase64( DummyData::SIGNABLE_TEXT );
     $authenticationSessionRequest->setHash( $hashInBase64 );
     return $authenticationSessionRequest;
   }
