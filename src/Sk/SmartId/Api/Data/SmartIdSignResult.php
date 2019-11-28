@@ -24,10 +24,82 @@
  * THE SOFTWARE.
  * #L%
  */
-namespace Sk\SmartId\Api;
+namespace Sk\SmartId\Api\Data;
 
-abstract class ApiType
+class SmartIdSignResult
 {
-  const AUTHENTICATION = 'authentication';
-  const SIGN = 'signature';
+  /**
+   * @var SignIdentity
+   */
+  private $authenticationIdentity;
+
+  /**
+   * @var boolean
+   */
+  private $valid;
+
+  /**
+   * @var array
+   */
+  private $errors;
+
+  public function __construct()
+  {
+    $this->valid = true;
+    $this->errors = array();
+  }
+
+  /**
+   * @return SignIdentity
+   */
+  public function getSignIdentity()
+  {
+    return $this->authenticationIdentity;
+  }
+
+  /**
+   * @param SignIdentity $authenticationIdentity
+   * @return $this
+   */
+  public function setSignIdentity( SignIdentity $authenticationIdentity )
+  {
+    $this->authenticationIdentity = $authenticationIdentity;
+    return $this;
+  }
+
+  /**
+   * @return bool
+   */
+  public function isValid()
+  {
+    return $this->valid;
+  }
+
+  /**
+   * @param boolean $valid
+   * @return $this
+   */
+  public function setValid( $valid )
+  {
+    $this->valid = $valid;
+    return $this;
+  }
+
+  /**
+   * @param string $error
+   * @return $this
+   */
+  public function addError( $error )
+  {
+    $this->errors[] = $error;
+    return $this;
+  }
+
+  /**
+   * @return array
+   */
+  public function getErrors()
+  {
+    return $this->errors;
+  }
 }

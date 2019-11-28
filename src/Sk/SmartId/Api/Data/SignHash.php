@@ -24,10 +24,66 @@
  * THE SOFTWARE.
  * #L%
  */
-namespace Sk\SmartId\Api;
+namespace Sk\SmartId\Api\Data;
 
-abstract class ApiType
+class SignHash extends SignableData
 {
-  const AUTHENTICATION = 'authentication';
-  const SIGN = 'signature';
+  /**
+   * @var string
+   */
+  private $hash;
+
+  /**
+   * @param string $hashType
+   * @return SignHash
+   */
+  public static function generateRandomHash( $hashType )
+  {
+    $authenticationHash = new SignHash( self::getRandomBytes() );
+    $authenticationHash->setHashType( $hashType );
+    $authenticationHash->setHash( $authenticationHash->calculateHash() );
+    return $authenticationHash;
+  }
+
+  /**
+   * @return SignHash
+   */
+  public static function generate()
+  {
+    return self::generateRandomHash( HashType::SHA512 );
+  }
+
+  /**
+   * @return string
+   */
+  private static function getRandomBytes()
+  {
+    return openssl_random_pseudo_bytes( 64 );
+  }
+
+  /**
+   * @param string $hash
+   * @return $this
+   */
+  public function setHash( $hash )
+  {
+    $this->hash = $hash;
+    return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function getHash()
+  {
+    return $this->hash;
+  }
+
+  /**
+   * @return string
+   */
+  public function calculateVerificationCode()
+  {
+    return VerificationCodeCalculator::calculate( $this->hash );
+  }
 }

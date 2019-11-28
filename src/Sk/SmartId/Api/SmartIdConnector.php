@@ -31,6 +31,8 @@ use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\NationalIdentity;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
+use Sk\SmartId\Api\Data\SignSessionRequest;
+use Sk\SmartId\Api\Data\SignSessionResponse;
 use Sk\SmartId\Exception\SessionNotFoundException;
 
 interface SmartIdConnector
@@ -48,6 +50,20 @@ interface SmartIdConnector
    * @return AuthenticationSessionResponse
    */
   function authenticateWithIdentity( NationalIdentity $identity, AuthenticationSessionRequest $request );
+
+  /**
+   * @param string $documentNumber
+   * @param SignSessionRequest $request
+   * @return SignSessionResponse
+   */
+  function sign( $documentNumber, SignSessionRequest $request );
+
+  /**
+   * @param NationalIdentity $identity
+   * @param SignSessionRequest $request
+   * @return SignSessionResponse
+   */
+  function signWithIdentity( NationalIdentity $identity, SignSessionRequest $request );
 
   /**
    * @param SessionStatusRequest $request

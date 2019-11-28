@@ -33,6 +33,7 @@ use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
 use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
+use Sk\SmartId\Api\Data\SmartIdSignResponse;
 use Sk\SmartId\Exception\DocumentUnusableException;
 use Sk\SmartId\Exception\InterruptedException;
 use Sk\SmartId\Exception\SessionTimeoutException;
@@ -170,6 +171,25 @@ class SessionStatusFetcher
   }
 
   /**
+   * @return SmartIdSignResponse
+   */
+  public function getSignResponse()
+  {
+    $sessionStatus = $this->fetchSessionStatus();
+    if ( $sessionStatus->isRunningState() )
+    {
+      $authenticationResponse = new SmartIdSignResponse();
+      $authenticationResponse->setState( SessionStatusCode::RUNNING );
+    }
+    else
+    {
+      $this->validateSessionStatus( $sessionStatus );
+      $authenticationResponse = $this->createSmartIdSignResponse( $sessionStatus );
+    }
+    return $authenticationResponse;
+  }
+
+  /**
    * @return SessionStatus
    */
   public function getSessionStatus()
@@ -275,6 +295,27 @@ class SessionStatusFetcher
     $sessionCertificate = $sessionStatus->getCert();
 
     $authenticationResponse = new SmartIdAuthenticationResponse();
+    $authenticationResponse->setEndResult( $sessionResult->getEndResult() )
+        ->setSignedData( $this->getDataToSign() )
+        ->setValueInBase64( $sessionSignature->getValue() )
+        ->setAlgorithmName( $sessionSignature->getAlgorithm() )
+        ->setCertificate( $sessionCertificate->getValue() )
+        ->setCertificateLevel( $sessionCertificate->getCertificateLevel() )
+        ->setState( $sessionStatus->getState() );
+    return $authenticationResponse;
+  }
+
+  /**
+   * @param SessionStatus $sessionStatus
+   * @return SmartIdSignResponse
+   */
+  private function createSmartIdSignResponse( SessionStatus $sessionStatus )
+  {
+    $sessionResult = $sessionStatus->getResult();
+    $sessionSignature = $sessionStatus->getSignature();
+    $sessionCertificate = $sessionStatus->getCert();
+
+    $authenticationResponse = new SmartIdSignResponse();
     $authenticationResponse->setEndResult( $sessionResult->getEndResult() )
         ->setSignedData( $this->getDataToSign() )
         ->setValueInBase64( $sessionSignature->getValue() )

@@ -24,10 +24,28 @@
  * THE SOFTWARE.
  * #L%
  */
-namespace Sk\SmartId\Api;
+namespace Sk\SmartId\Api\Data;
 
-abstract class ApiType
+class SignSessionResponse extends PropertyMapper
 {
-  const AUTHENTICATION = 'authentication';
-  const SIGN = 'signature';
+  /**
+   * @var string
+   */
+  private $sessionID;
+
+  /**
+   * @return string
+   */
+  public function getSessionID()
+  {
+    return $this->sessionID;
+  }
+
+  /**
+   * @param string $sessionID
+   */
+  public function setSessionID( $sessionID )
+  {
+    $this->sessionID = $sessionID;
+  }
 }

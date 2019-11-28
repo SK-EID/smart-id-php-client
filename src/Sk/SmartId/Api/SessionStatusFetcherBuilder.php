@@ -136,6 +136,15 @@ class SessionStatusFetcherBuilder
   }
 
   /**
+   * @return Data\SmartIdSignResponse
+   */
+  public function getSignResponse()
+  {
+    return $this->build()
+        ->getSignResponse();
+  }
+
+  /**
    * @return SessionStatusFetcher
    */
   public function build()

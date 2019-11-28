@@ -28,6 +28,9 @@ namespace Sk\SmartId\Api;
 
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
+use Sk\SmartId\Api\Data\SignSessionRequest;
+use Sk\SmartId\Api\Data\SignSessionResponse;
+
 use Sk\SmartId\Api\Data\NationalIdentity;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
@@ -41,6 +44,9 @@ class SmartIdRestConnector implements SmartIdConnector
 {
   const AUTHENTICATE_BY_DOCUMENT_NUMBER_PATH = '/authentication/document/{documentNumber}';
   const AUTHENTICATE_BY_NATIONAL_IDENTITY_PATH = '/authentication/pno/{country}/{nationalIdentityNumber}';
+  const SIGN_BY_DOCUMENT_NUMBER_PATH = '/signature/document/{documentNumber}';
+  const SIGN_BY_ETSI_PATH = '/signature/etsi/{semanticsIdentifier}';
+  const SIGN_BY_NATIONAL_IDENTITY_PATH = '/signature/pno/{country}/{nationalIdentityNumber}';
   const SESSION_STATUS_URI = '/session/{sessionId}';
 
   const RESPONSE_ERROR_CODES = array(
@@ -87,6 +93,19 @@ class SmartIdRestConnector implements SmartIdConnector
     return $this->postAuthenticationRequest( $url, $request );
   }
 
+    /**
+     * @param string $documentNumber
+     * @param SignSessionRequest $request
+     * @return SignSessionResponse
+     * @throws \Exception
+     */
+  public function sign( $documentNumber, SignSessionRequest $request )
+  {
+    $url = rtrim( $this->endpointUrl, '/' ) . self::SIGN_BY_DOCUMENT_NUMBER_PATH;
+    $url = str_replace( '{documentNumber}', $documentNumber, $url );
+    return $this->postSignRequest( $url, $request );
+  }
+
   /**
    * @param NationalIdentity $identity
    * @param AuthenticationSessionRequest $request
@@ -104,6 +123,25 @@ class SmartIdRestConnector implements SmartIdConnector
         $identity->getNationalIdentityNumber(),
     ), $url );
     return $this->postAuthenticationRequest( $url, $request );
+  }
+
+    /**
+     * @param NationalIdentity $identity
+     * @param SignSessionRequest $request
+     * @return SignSessionResponse
+     * @throws \Exception
+     */
+  public function signWithIdentity( NationalIdentity $identity, SignSessionRequest $request )
+  {
+    $url = rtrim( $this->endpointUrl, '/' ) . self::SIGN_BY_NATIONAL_IDENTITY_PATH;
+    $url = str_replace( array(
+        '{country}',
+        '{nationalIdentityNumber}',
+    ), array(
+        $identity->getCountryCode(),
+        $identity->getNationalIdentityNumber(),
+    ), $url );
+    return $this->postSignRequest( $url, $request );
   }
 
   /**
@@ -139,6 +177,25 @@ class SmartIdRestConnector implements SmartIdConnector
     try
     {
       return $this->postRequest( $url, $request->toArray(), 'Sk\SmartId\Api\Data\AuthenticationSessionResponse' );
+    }
+    catch ( NotFoundException $e )
+    {
+      throw new UserAccountNotFoundException($e->getMessage());
+    }
+  }
+
+  /**
+   * @param string $url
+   * @param SignSessionRequest $request
+   * @throws UserAccountNotFoundException
+   * @throws \Exception
+   * @return SignSessionResponse
+   */
+  private function postSignRequest( $url, SignSessionRequest $request )
+  {
+    try
+    {
+      return $this->postRequest( $url, $request->toArray(), 'Sk\SmartId\Api\Data\SignSessionResponse' );
     }
     catch ( NotFoundException $e )
     {
