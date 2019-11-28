@@ -36,6 +36,7 @@ use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Api\SmartIdRestConnector;
+use Sk\SmartId\Client;
 use Sk\SmartId\Tests\Api\DummyData;
 
 class SmartIdRestIntegrationTest extends TestCase
@@ -48,6 +49,8 @@ class SmartIdRestIntegrationTest extends TestCase
   protected function setUp()
   {
     $this->connector = new SmartIdRestConnector( DummyData::TEST_URL );
+    $client = new Client();
+    $this->connector->setPublicSslKeys($client->getPublicSslKeys());
   }
 
   /**
