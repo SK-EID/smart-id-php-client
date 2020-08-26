@@ -73,10 +73,10 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
    */
   private $authenticationHash;
 
-  /**
-   * @var string
-   */
-  private $displayText;
+    /**
+     * @var array
+     */
+    private $allowedInteractionsOrder;
 
   /**
    * @var string
@@ -162,14 +162,10 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     return $this;
   }
 
-  /**
-   * @param string $displayText
-   * @return $this
-   */
-  public function withDisplayText( $displayText )
+  public function withAllowedInteractionsOrder( array $allowedInteractionsOrder)
   {
-    $this->displayText = $displayText;
-    return $this;
+      $this->allowedInteractionsOrder = $allowedInteractionsOrder;
+      return $this;
   }
 
   /**
