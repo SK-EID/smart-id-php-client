@@ -18,3 +18,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - php version 5.6 to 7.0.7
+
+## [2.0] - 2020-08-28
+
+### Added
+- Support for Smart id api version 2.0
+- Authentication routes using semantics identifiers
+- Different Interaction types based on enduser device capabilities
+
+### Removed
+- Building request with national identity (Use [semantics identifiiers](https://www.etsi.org/deliver/etsi_en/319400_319499/31941201/01.01.01_60/en_31941201v010101p.pdf) (chapter 5.1.3))
+
+### Changed
+- php version >= 7.1 

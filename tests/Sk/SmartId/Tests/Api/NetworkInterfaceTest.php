@@ -52,6 +52,7 @@ class NetworkInterfaceTest extends TestCase
         $sessionStatus->setResult(new SessionResult(array("endResult"=>"OK")));
         $sessionStatus->setSignature(new SessionSignature());
         $sessionStatus->setCert(new SessionCertificate());
+        $sessionStatus->setInteractionFlowUsed("displayTextAndPin");
         $smartIdConnectorSpy->authenticationSessionResponseToRespond = $authSessionResponse;
         $smartIdConnectorSpy->sessionStatusToRespond = $sessionStatus;
     }

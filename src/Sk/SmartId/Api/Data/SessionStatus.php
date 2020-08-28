@@ -160,6 +160,7 @@ class SessionStatus extends PropertyMapper
     public function setInteractionFlowUsed(string $interactionFlowUsed)
     {
         $this->interactionFlowUsed = $interactionFlowUsed;
+        return $this;
     }
 
 

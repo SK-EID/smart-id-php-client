@@ -32,7 +32,6 @@ use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\CertificateLevelCode;
 use Sk\SmartId\Api\Data\HashType;
 use Sk\SmartId\Api\Data\Interaction;
-use Sk\SmartId\Api\Data\NationalIdentity;
 use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SessionCertificate;
 use Sk\SmartId\Api\Data\SessionEndResultCode;
@@ -85,6 +84,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->withSignableData( $dataToSign )
         ->authenticate();
+
     $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber( $dataToSign->calculateHashInBase64(),
         CertificateLevelCode::QUALIFIED );
     $this->assertGeneratedHash( $dataToSign );
@@ -141,7 +141,7 @@ class AuthenticationRequestBuilderTest extends Setup
     $semanticsIdentifier = SemanticsIdentifier::builder()
         ->withsemanticsIdentifierType("PNO")
         ->withCountryCode("EE")
-        ->withIdentityNumber("31111111111")
+        ->withIdentifier("31111111111")
         ->build();
 
     $authenticationResponse = $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
@@ -488,6 +488,7 @@ class AuthenticationRequestBuilderTest extends Setup
     $status->setState( SessionStatusCode::COMPLETE )
         ->setResult( DummyData::createSessionEndResult() )
         ->setSignature( $signature )
+        ->setInteractionFlowUsed("displayTextAndPin")
         ->setCert( $certificate );
     return $status;
   }

@@ -20,7 +20,7 @@ class SemanticsIdentifierBuilder
     /**
      * @var string
      */
-    private $identityNumber;
+    private $identifier;
 
     public function withsemanticsIdentifierType(string $semanticsIdentifierType)
     {
@@ -34,15 +34,15 @@ class SemanticsIdentifierBuilder
         return $this;
     }
 
-    public function withIdentityNumber(string $identityNumber)
+    public function withIdentifier(string $identityNumber)
     {
-        $this->identityNumber = $identityNumber;
+        $this->identifier = $identityNumber;
         return $this;
     }
 
     public function build()
     {
-        return SemanticsIdentifier::fromString($this->semanticsIdentifierType.$this->countryCode.'-'.$this->identityNumber);
+        return SemanticsIdentifier::fromString($this->semanticsIdentifierType.$this->countryCode.'-'.$this->identifier);
     }
 
 }
