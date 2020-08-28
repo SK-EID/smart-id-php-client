@@ -29,6 +29,7 @@ namespace Sk\SmartId\Tests\Rest;
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\NationalIdentity;
+use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
 use Sk\SmartId\Api\SmartIdConnector;
@@ -45,6 +46,11 @@ class SmartIdConnectorSpy implements SmartIdConnector
    * @var string
    */
   public $documentNumberUsed;
+
+    /**
+     * @var SemanticsIdentifier
+     */
+  public $semanticsIdentifierUsed;
 
   /**
    * @var AuthenticationSessionRequest
@@ -84,18 +90,6 @@ class SmartIdConnectorSpy implements SmartIdConnector
   }
 
   /**
-   * @param NationalIdentity $identity
-   * @param AuthenticationSessionRequest $request
-   * @return AuthenticationSessionResponse
-   */
-  public function authenticateWithIdentity( NationalIdentity $identity, AuthenticationSessionRequest $request )
-  {
-    $this->identityUsed = $identity;
-    $this->authenticationSessionRequestUsed = $request;
-    return $this->authenticationSessionResponseToRespond;
-  }
-
-  /**
    * @param SessionStatusRequest $request
    * @throws SessionNotFoundException
    * @return SessionStatus
@@ -106,4 +100,11 @@ class SmartIdConnectorSpy implements SmartIdConnector
     $this->sessionStatusRequestUsed = $request;
     return $this->sessionStatusToRespond;
   }
+
+    function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request)
+    {
+        $this->semanticsIdentifierUsed = $semanticsIdentifier;
+        $this->authenticationSessionRequestUsed = $request;
+        return $this->authenticationSessionResponseToRespond;
+    }
 }

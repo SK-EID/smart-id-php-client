@@ -7,6 +7,7 @@ namespace Sk\SmartId\Tests\Api;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\AuthenticationRequestBuilder;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
+use Sk\SmartId\Api\Data\Interaction;
 use Sk\SmartId\Api\Data\SessionCertificate;
 use Sk\SmartId\Api\Data\SessionResult;
 use Sk\SmartId\Api\Data\SessionSignature;
@@ -65,6 +66,7 @@ class NetworkInterfaceTest extends TestCase
             ->withDocumentNumber( DummyData::VALID_DOCUMENT_NUMBER )
             ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
             ->withNetworkInterface( $this->NETWORK_INTERFACE )
+            ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Hellou")))
             ->withSignableData(new SignableData("TERE"))
             ->authenticate();
     }

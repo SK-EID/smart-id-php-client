@@ -49,6 +49,16 @@ class SessionStatus extends PropertyMapper
   private $cert;
 
   /**
+   * @var array
+   */
+  private $ignoredProperties;
+
+  /**
+   * @var string
+   */
+  private $interactionFlowUsed;
+
+  /**
    * @return string
    */
   public function getState()
@@ -119,6 +129,40 @@ class SessionStatus extends PropertyMapper
     $this->cert = $cert;
     return $this;
   }
+
+    /**
+     * @return array
+     */
+    public function getIgnoredProperties(): ?array
+    {
+        return $this->ignoredProperties;
+    }
+
+    /**
+     * @param array $ignoredProperties
+     */
+    public function setIgnoredProperties(array $ignoredProperties)
+    {
+        $this->ignoredProperties = $ignoredProperties;
+    }
+
+    /**
+     * @return string
+     */
+    public function getInteractionFlowUsed()
+    {
+        return $this->interactionFlowUsed;
+    }
+
+    /**
+     * @param string $interactionFlowUsed
+     */
+    public function setInteractionFlowUsed(string $interactionFlowUsed)
+    {
+        $this->interactionFlowUsed = $interactionFlowUsed;
+    }
+
+
 
   /**
    * @return bool

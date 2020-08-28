@@ -26,6 +26,7 @@
  */
 namespace Sk\SmartId\Tests\Api;
 
+use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Api\Data\SessionResult;
 use Sk\SmartId\Api\Data\SessionStatus;
@@ -37,12 +38,14 @@ class DummyData
 
 
   const CERTIFICATE_LEVEL = "ADVANCED";
-  const DEMO_HOST_URL = "https://sid.demo.sk.ee/smart-id-rp/v1/";
+  const DEMO_HOST_URL = "https://sid.demo.sk.ee/smart-id-rp/v2/";
   const TEST_URL = self::DEMO_HOST_URL;
 
   const DEMO_RELYING_PARTY_UUID = "00000000-0000-0000-0000-000000000000";
   const DEMO_RELYING_PARTY_NAME = "DEMO";
 
+
+  const VALID_SEMANTICS_IDENTIFIER = "PNOEE-10101010005";
   const VALID_NATIONAL_IDENTITY = "10101010005";
   const VALID_DOCUMENT_NUMBER = "PNOEE-10101010005-Z1B2-Q";
 

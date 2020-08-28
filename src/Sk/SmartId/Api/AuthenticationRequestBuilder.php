@@ -29,7 +29,8 @@ namespace Sk\SmartId\Api;
 use Sk\SmartId\Api\Data\AuthenticationHash;
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
-use Sk\SmartId\Api\Data\NationalIdentity;
+use Sk\SmartId\Api\Data\Interaction;
+use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
@@ -38,20 +39,11 @@ use Sk\SmartId\Exception\TechnicalErrorException;
 
 class AuthenticationRequestBuilder extends SmartIdRequestBuilder
 {
-  /**
-   * @var string
-   */
-  private $countryCode;
 
-  /**
-   * @var string
-   */
-  private $nationalIdentityNumber;
-
-  /**
-   * @var NationalIdentity
-   */
-  private $nationalIdentity;
+    /**
+     * @var SemanticsIdentifier
+     */
+  private $semanticsIdentifier;
 
   /**
    * @var string
@@ -102,35 +94,23 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     return $this;
   }
 
-  /**
-   * @param NationalIdentity $nationalIdentity
-   * @return $this
-   */
-  public function withNationalIdentity( NationalIdentity $nationalIdentity )
+    /**
+     * @param SemanticsIdentifier $semanticsIdentifier
+     */
+  public function withSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier)
   {
-    $this->nationalIdentity = $nationalIdentity;
+    $this->semanticsIdentifier = $semanticsIdentifier;
     return $this;
   }
 
-  /**
-   * @param string $countryCode
-   * @return $this
-   */
-  public function withCountryCode( $countryCode )
-  {
-    $this->countryCode = $countryCode;
-    return $this;
-  }
-
-  /**
-   * @param string $nationalIdentityNumber
-   * @return $this
-   */
-  public function withNationalIdentityNumber( $nationalIdentityNumber )
-  {
-    $this->nationalIdentityNumber = $nationalIdentityNumber;
-    return $this;
-  }
+    /**
+     * @param SemanticsIdentifier $semanticsIdentifierAsString
+     */
+    public function withSemanticsIdentifierAsString(string $semanticsIdentifierAsString)
+    {
+        $this->semanticsIdentifier = SemanticsIdentifier::fromString($semanticsIdentifierAsString);
+        return $this;
+    }
 
   /**
    * @param SignableData $dataToSign
@@ -231,7 +211,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
         ->setCertificateLevel( $this->certificateLevel )
         ->setHashType( $this->getHashTypeString() )
         ->setHash( $this->getHashInBase64() )
-        ->setDisplayText( $this->displayText )
+        ->setAllowedInteractionsOrder( $this->allowedInteractionsOrder )
         ->setNonce( $this->nonce )
         ->setNetworkInterface( $this->getNetworkInterface() );
     return $request;
@@ -280,22 +260,9 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     }
     else
     {
-      $identity = $this->getNationalIdentity();
       return $this->getConnector()
-          ->authenticateWithIdentity( $identity, $request );
+          ->authenticateWithSemanticsIdentifier($this->semanticsIdentifier, $request);
     }
-  }
-
-  /**
-   * @return NationalIdentity
-   */
-  private function getNationalIdentity()
-  {
-    if ( isset( $this->nationalIdentity ) )
-    {
-      return $this->nationalIdentity;
-    }
-    return new NationalIdentity( $this->countryCode, $this->nationalIdentityNumber );
   }
 
   /**
@@ -304,23 +271,23 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
   protected function validateParameters()
   {
     parent::validateParameters();
-    if ( !isset( $this->documentNumber ) && !$this->hasNationalIdentity() )
+    if ( !isset( $this->documentNumber ) && !isset($this->semanticsIdentifier) )
     {
-      throw new InvalidParametersException( 'Either document number or national identity must be set' );
+      throw new InvalidParametersException( 'Either document number or semantics identifier must be set' );
     }
+
+    $this->validateSemanticsIdentifierIfSet();
+
     if ( !$this->isSignableDataSet() && !$this->isAuthenticationHashSet() )
     {
       throw new InvalidParametersException( 'Signable data or hash with hash type must be set' );
     }
-  }
+    if (!isset($this->allowedInteractionsOrder) or sizeof($this->allowedInteractionsOrder) == 0)
+    {
+        throw new InvalidParametersException( 'The interaction options need to be specified' );
+    }
 
-  /**
-   * @return bool
-   */
-  private function hasNationalIdentity()
-  {
-    return isset( $this->nationalIdentity ) ||
-        ( strlen( $this->countryCode ) && strlen( $this->nationalIdentityNumber ) );
+    $this->verifyInteractionsIfSet();
   }
 
   /**
@@ -368,6 +335,8 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     $authenticationResponse = new SmartIdAuthenticationResponse();
     $authenticationResponse->setEndResult( $sessionResult->getEndResult() )
         ->setSignedData( $this->getDataToSign() )
+        ->setIgnoredProperties($sessionStatus->getIgnoredProperties())
+        ->setInteractionFlowUsed($sessionStatus->getInteractionFlowUsed())
         ->setValueInBase64( $sessionSignature->getValue() )
         ->setAlgorithmName( $sessionSignature->getAlgorithm() )
         ->setCertificate( $sessionCertificate->getValue() )
@@ -386,4 +355,28 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     }
     return $this->dataToSign->getDataToSign();
   }
+
+    /**
+     * @return SemanticsIdentifier
+     */
+    public function getSemanticsIdentifier(): SemanticsIdentifier
+    {
+        return $this->semanticsIdentifier;
+    }
+
+    protected function validateSemanticsIdentifierIfSet(): void
+    {
+        if (isset($this->semanticsIdentifier)) {
+            $this->semanticsIdentifier->validate();
+        }
+    }
+
+    protected function verifyInteractionsIfSet(): void
+    {
+        foreach ($this->allowedInteractionsOrder as $interaction) {
+            $interaction->validate();
+        }
+    }
+
+
 }

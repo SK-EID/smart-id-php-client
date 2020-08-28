@@ -371,15 +371,23 @@ class Curl
               . self::RP_API_PUBLIC_KEY_VALID_FROM_2019_11_01_TO_2021_11_05;
   }
 
-    public static function setPublicKeysFromArray(array $public_keys)
-    {
-        self::$server_ssl_public_keys = "";
-        foreach ($public_keys as $public_key)
-        {
-            self::$server_ssl_public_keys .= $public_key.";";
-        }
-        self::$server_ssl_public_keys = substr(self::$server_ssl_public_keys, 0, strlen(self::$server_ssl_public_keys)-1);
-    }
+  public function setPublicSslKeys(?string $publicSslKeys)
+  {
+      self::$server_ssl_public_keys = $publicSslKeys;
+  }
+
+
+
+
+  public static function setPublicKeysFromArray(array $public_keys)
+  {
+      self::$server_ssl_public_keys = "";
+      foreach ($public_keys as $public_key)
+      {
+          self::$server_ssl_public_keys .= $public_key.";";
+      }
+      self::$server_ssl_public_keys = substr(self::$server_ssl_public_keys, 0, strlen(self::$server_ssl_public_keys)-1);
+  }
 
     /**
    * @param int $option

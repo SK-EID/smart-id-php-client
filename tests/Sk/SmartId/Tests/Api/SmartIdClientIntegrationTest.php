@@ -29,6 +29,8 @@ namespace Sk\SmartId\Tests\Api;
 use Sk\SmartId\Api\AuthenticationResponseValidator;
 use Sk\SmartId\Api\Data\AuthenticationHash;
 use Sk\SmartId\Api\Data\AuthenticationIdentity;
+use Sk\SmartId\Api\Data\Interaction;
+use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
 use Sk\SmartId\Tests\Setup;
@@ -57,8 +59,9 @@ class SmartIdClientIntegrationTest extends Setup
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
         ->withDocumentNumber( DummyData::VALID_DOCUMENT_NUMBER )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+            Interaction::ofTypeDisplayTextAndPIN("Hellou!")))
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
         ->authenticate();
 
     $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
@@ -70,9 +73,30 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
+   */
+  public function authenticate_successfulAuthentication_interactionFlowUsedIncludedInTheResponse()
+  {
+      $authenticationHash = AuthenticationHash::generate();
+      $this->assertNotEmpty( $authenticationHash->calculateVerificationCode() );
+
+      $authenticationResponse = $this->client->authentication()
+          ->createAuthentication()
+          ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+          ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+          ->withDocumentNumber( DummyData::VALID_DOCUMENT_NUMBER )
+          ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+              Interaction::ofTypeDisplayTextAndPIN("Hellou!")))
+          ->withAuthenticationHash( $authenticationHash )
+          ->authenticate();
+
+      $this->assertNotNull($authenticationResponse->getInteractionFlowUsed());
+  }
+
+  /**
+   * @test
    * @throws \ReflectionException
    */
-  public function authenticate_withNationalIdentityNumberAndCountryCode()
+  public function authenticate_withSemanticsIdentifier()
   {
     $authenticationHash = AuthenticationHash::generate();
     $this->assertNotEmpty( $authenticationHash->calculateVerificationCode() );
@@ -81,10 +105,10 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withNationalIdentityNumber( DummyData::VALID_NATIONAL_IDENTITY )
-        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
+        ->withSemanticsIdentifier(SemanticsIdentifier::fromString(DummyData::VALID_SEMANTICS_IDENTIFIER))
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+            Interaction::ofTypeDisplayTextAndPIN("Hello")))
         ->authenticate();
 
     $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
@@ -97,7 +121,7 @@ class SmartIdClientIntegrationTest extends Setup
   /**
    * @test
    */
-  public function startAuthenticationAndReturnSessionId_withNationalIdentityNumberAndCountryCode()
+  public function startAuthenticationAndReturnSessionId_withSemanticsIdentifier()
   {
     $authenticationHash = AuthenticationHash::generate();
     $this->assertNotEmpty( $authenticationHash->calculateVerificationCode() );
@@ -106,10 +130,9 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withNationalIdentityNumber( DummyData::VALID_NATIONAL_IDENTITY )
-        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
+        ->withSemanticsIdentifier(SemanticsIdentifier::fromString(DummyData::VALID_SEMANTICS_IDENTIFIER))
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message")))
         ->startAuthenticationAndReturnSessionId();
 
     $this->assertNotEmpty( $sessionId );
@@ -127,11 +150,10 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withNationalIdentityNumber( "10101010027" )
-        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
+        ->withSemanticsIdentifier(SemanticsIdentifier::fromString("PNOEE-10101010027"))
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
-        ->withDisplayText( 'DO NOT ENTER CODE' )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+            Interaction::ofTypeDisplayTextAndPIN("Hello")))
         ->startAuthenticationAndReturnSessionId();
 
     $this->assertNotEmpty( $sessionId );
@@ -160,10 +182,10 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withNationalIdentityNumber( DummyData::VALID_NATIONAL_IDENTITY )
-        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
+        ->withSemanticsIdentifier(SemanticsIdentifier::fromString(DummyData::VALID_SEMANTICS_IDENTIFIER))
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+            Interaction::ofTypeDisplayTextAndPIN("hello")))
         ->startAuthenticationAndReturnSessionId();
 
     $this->assertNotEmpty( $sessionId );
@@ -215,7 +237,8 @@ class SmartIdClientIntegrationTest extends Setup
         ->withNetworkInterface( 'docker0' ) // or available IP
         ->withDocumentNumber( DummyData::VALID_DOCUMENT_NUMBER )
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+            Interaction::ofTypeDisplayTextAndPIN("Hellou")))
         ->authenticate();
 
     $this->assertAuthenticationResponseCreated( $authenticationResponse, $authenticationHash->getDataToSign() );
@@ -237,12 +260,11 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withSemanticsIdentifierAsString("PNOEE-10101010027")
         ->withNetworkInterface( 'docker0' ) // or available IP
-        ->withNationalIdentityNumber( "10101010027" )
-        ->withCountryCode( DummyData::COUNTRY_CODE_EE )
         ->withAuthenticationHash( $authenticationHash )
-        ->withCertificateLevel( DummyData::CERTIFICATE_LEVEL )
-        ->withDisplayText( 'DO NOT ENTER CODE' )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+            Interaction::ofTypeDisplayTextAndPIN("Hello human")))
         ->startAuthenticationAndReturnSessionId();
 
     $this->assertNotEmpty( $sessionId );
