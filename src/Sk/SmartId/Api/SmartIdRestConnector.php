@@ -235,7 +235,7 @@ class SmartIdRestConnector implements SmartIdConnector
     }
   }
 
-  public function setPublicSslKeys(string $sslKeys)
+  public function setPublicSslKeys(?string $sslKeys)
   {
       $this->publicSslKeys = $sslKeys;
   }

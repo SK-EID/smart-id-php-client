@@ -28,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Removed
 - Building request with national identity (Use [semantics identifiiers](https://www.etsi.org/deliver/etsi_en/319400_319499/31941201/01.01.01_60/en_31941201v010101p.pdf) (chapter 5.1.3))
+- Hard coded ssl public keys for demo and live smart id environments (Since this release, relying parties need to specify the public keys used when setting up the client)
 
 ### Changed
 - php version >= 7.1 

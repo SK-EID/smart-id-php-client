@@ -22,22 +22,12 @@ composer require sk-id-solutions/smart-id-php-client "~1.0"
 
 ## Https pinning
 
-    The client automatically trusts sk demo and live env public keys
-    
-    Examples of configuring
-    
-    When not specified the client will trust SK live and demo env keys
-    
-```PHP
-$this->client = new Client();
-$this->client
-  ->setRelyingPartyUUID( "YOUR UUID" )
-  ->setRelyingPartyName( "YOUR RP NAME" )
-  ->setHostUrl("HOST_URL");
+   Used to prevent man-in-the-middle attacks. [More on man in the middle attacks in case of using smart id.](https://github.com/SK-EID/smart-id-documentation#35-api-endpoint-authentication)
 
- ```
-
-    Trusting only live env public keys
+   Setting the client to trust specific public keys. SSL certificates used can be found [here](https://www.skidsolutions.eu/repositoorium/sk-sertifikaadid).
+   
+   The setPublicSslKeys method requires a string of sha256 hashes of the public keys used delimited with ";". Instructions for extrecting the hashes from certificates can be found [here](https://curl.haxx.se/libcurl/c/CURLOPT_PINNEDPUBLICKEY.html).
+   The supplied string should be of format sha256//sha256-hash-of-the-public-key;
 
 ```PHP
 $this->client = new Client();
@@ -45,30 +35,9 @@ $this->client
   ->setRelyingPartyUUID( "YOUR UUID" )
   ->setRelyingPartyName( "YOUR RP NAME" )
   ->setHostUrl("HOST_URL")
-  ->useOnlyLivePublicKey();
+  ->setPublicSslKeys("sha256//QLZIaH7Qx9Rjq3gyznQuNsvwMQb7maC5L4SLu/z5qNU=;sha256//R8b8SIj92sylUdok0DqfxJJN0yW2O3epE0B+5vpo2eM=");
  ```
 
-    Trusting only demo env public keys
-
-```PHP
-$this->client = new Client();
-$this->client
-  ->setRelyingPartyUUID( "YOUR UUID" )
-  ->setRelyingPartyName( "YOUR RP NAME" )
-  ->setHostUrl("HOST_URL")
-  ->useOnlyDemoPublicKey();
- ```
-
-   Trusting custom public keys
-
-```PHP
-$this->client = new Client();
-$this->client
-  ->setRelyingPartyUUID( "YOUR UUID" )
-  ->setRelyingPartyName( "YOUR RP NAME" )
-  ->setHostUrl("HOST_URL")
-  ->setPublicSslKeys("sha256//QLZIaH7Qx9Rjq3gyznQuNsvwMQb7maC5L4SLu/z5qNU=;sha256//R8b8SIj92sylUdok0DqfxJJN0yW2O3epE0B+5vpo2eM=);
- ```
 ## How to use it
 Take a look at the [examples](https://github.com/SK-EID/smart-id-php-client/wiki/Examples-of-using-it)
 
