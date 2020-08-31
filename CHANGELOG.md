@@ -31,4 +31,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Hard coded ssl public keys for demo and live smart id environments (Since this release, relying parties need to specify the public keys used when setting up the client)
 
 ### Changed
-- php version >= 7.1 
+- php version >= 7.2 
