@@ -93,6 +93,66 @@ class DummyData
     return $status;
   }
 
+    /**
+     * @return SessionStatus
+     */
+    public static function createRequiredInteractionNotSupportedByTheAppSessionStatus()
+    {
+        $status = self::createCompleteSessionStatus();
+        $status->setResult( self::createSessionResult( SessionEndResultCode::REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP ) );
+        return $status;
+    }
+
+    /**
+     * @return SessionStatus
+     */
+    public static function createUserRefusedDisplayTextAndPinSessionStatus()
+    {
+        $status = self::createCompleteSessionStatus();
+        $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_DISPLAYTEXTANDPIN ) );
+        return $status;
+    }
+
+    /**
+     * @return SessionStatus
+     */
+    public static function createUserRefusedVcChoiceSessionStatus()
+    {
+        $status = self::createCompleteSessionStatus();
+        $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_VC_CHOICE ) );
+        return $status;
+    }
+
+    /**
+     * @return SessionStatus
+     */
+    public static function createUserRefusedConfirmationMessageSessionStatus()
+    {
+        $status = self::createCompleteSessionStatus();
+        $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_CONFIRMATIONMESSAGE ) );
+        return $status;
+    }
+
+    /**
+     * @return SessionStatus
+     */
+    public static function createUserRefusedConfirmationMessageWithVcChoiceSessionStatus()
+    {
+        $status = self::createCompleteSessionStatus();
+        $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_CONFIRMATIONMESSAGE_WITH_VC_CHOICE ) );
+        return $status;
+    }
+
+    /**
+     * @return SessionStatus
+     */
+    public static function createUserRefusedCertChoiceeSessionStatus()
+    {
+        $status = self::createCompleteSessionStatus();
+        $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_CERT_CHOICE ) );
+        return $status;
+    }
+
   /**
    * @param string $endResult
    * @return SessionResult
