@@ -60,7 +60,7 @@ class SslTest extends Setup
  */
     public function authenticate_demoEnvSetPublicKeysFromArray_success()
     {
-        $this->client->setPublicSslKeys("sha256//QLZIaH7Qx9Rjq3gyznQuNsvwMQb7maC5L4SLu/z5qNU=;sha256//R8b8SIj92sylUdok0DqfxJJN0yW2O3epE0B+5vpo2eM=")->authentication()
+        $this->client->setPublicSslKeys("sha256//+Tz0G7u3vgcaw/o32vIoCNNjpfo8UugQEXmWkrCuc4o=;sha256//wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=")->authentication()
                 ->createAuthentication()
                 ->withCertificateLevel(DummyData::CERTIFICATE_LEVEL)
                 ->withAuthenticationHash(new AuthenticationHash(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 )))
