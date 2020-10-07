@@ -34,7 +34,8 @@ use Sk\SmartId\Api\Authentication;
 class Client
 {
   const
-          DEMO_SID_PUBLIC_KEY = "sha256//QLZIaH7Qx9Rjq3gyznQuNsvwMQb7maC5L4SLu/z5qNU=",
+          DEMO_SID_PUBLIC_KEY = "sha256/wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=",
+		  DEMO_SID_PUBLIC_KEY_VALID_FROM_2020_09_30_TO_2021_10_13 = "sha256/+Tz0G7u3vgcaw/o32vIoCNNjpfo8UugQEXmWkrCuc4o=",
           RP_API_PUBLIC_KEY_VALID_FROM_2016_12_20_TO_2020_01_19 = "sha256//R8b8SIj92sylUdok0DqfxJJN0yW2O3epE0B+5vpo2eM=",
           RP_API_PUBLIC_KEY_VALID_FROM_2019_11_01_TO_2021_11_05 = "sha256//l2uvq6ftLN4LZ+8Un+71J2vH1BT9wTbtrE5+Fj3Vc5g=",
           VERSION = '5.0';
@@ -164,7 +165,7 @@ class Client
 
     public function useOnlyDemoPublicKey()
     {
-        $this->sslKeys = self::DEMO_SID_PUBLIC_KEY;
+        $this->sslKeys = self::DEMO_SID_PUBLIC_KEY.";".self::DEMO_SID_PUBLIC_KEY_VALID_FROM_2020_09_30_TO_2021_10_13;
 
         return $this;
     }
@@ -180,7 +181,7 @@ class Client
   {
       if($this->sslKeys === null)
       {
-          $this->sslKeys = self::DEMO_SID_PUBLIC_KEY.";".self::RP_API_PUBLIC_KEY_VALID_FROM_2016_12_20_TO_2020_01_19.";".self::RP_API_PUBLIC_KEY_VALID_FROM_2019_11_01_TO_2021_11_05;
+          $this->sslKeys = self::DEMO_SID_PUBLIC_KEY.";".self::DEMO_SID_PUBLIC_KEY_VALID_FROM_2020_09_30_TO_2021_10_13.";".self::RP_API_PUBLIC_KEY_VALID_FROM_2016_12_20_TO_2020_01_19.";".self::RP_API_PUBLIC_KEY_VALID_FROM_2019_11_01_TO_2021_11_05;
       }
       return $this->sslKeys;
   }
