@@ -67,7 +67,7 @@ $this->client
   ->setRelyingPartyUUID( "YOUR UUID" )
   ->setRelyingPartyName( "YOUR RP NAME" )
   ->setHostUrl("HOST_URL")
-  ->setPublicSslKeys("sha256//+Tz0G7u3vgcaw/o32vIoCNNjpfo8UugQEXmWkrCuc4o=;sha256//wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=);
+  ->setPublicSslKeys("sha256//+Tz0G7u3vgcaw/o32vIoCNNjpfo8UugQEXmWkrCuc4o=;sha256//wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=");
  ```
 ## How to use it
 Take a look at the [examples](https://github.com/SK-EID/smart-id-php-client/wiki/Examples-of-using-it)
