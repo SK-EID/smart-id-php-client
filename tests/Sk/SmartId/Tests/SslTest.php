@@ -29,6 +29,7 @@ class SslTest extends Setup
         $hashInBase64 = base64_encode(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 ));
         $authenticationSessionRequest->setHash( $hashInBase64 );
 
+
         $authenticateSessionResponse =
                 $connector->authenticate(DummyData::VALID_DOCUMENT_NUMBER,
                         $authenticationSessionRequest);
