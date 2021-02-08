@@ -2,6 +2,11 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.5.2] - 2021-02-08
+
+### Fixed
+- Demo SSL key pinning [#24](https://github.com/SK-EID/smart-id-php-client/issues/24)
+
 ## [1.5.1] - 2019-11-25
 
 ### Fixed
