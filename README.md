@@ -35,7 +35,7 @@ $this->client
   ->setRelyingPartyUUID( "YOUR UUID" )
   ->setRelyingPartyName( "YOUR RP NAME" )
   ->setHostUrl("HOST_URL")
-  ->setPublicSslKeys("sha256//QLZIaH7Qx9Rjq3gyznQuNsvwMQb7maC5L4SLu/z5qNU=;sha256//R8b8SIj92sylUdok0DqfxJJN0yW2O3epE0B+5vpo2eM=");
+  ->setPublicSslKeys("sha256//l2uvq6ftLN4LZ+8Un+71J2vH1BT9wTbtrE5+Fj3Vc5g=;sha256//R8b8SIj92sylUdok0DqfxJJN0yW2O3epE0B+5vpo2eM=");
  ```
 
 ## How to use it
