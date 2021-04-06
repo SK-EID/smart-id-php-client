@@ -31,6 +31,7 @@ use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\DigestCalculator;
 use Sk\SmartId\Api\Data\HashType;
+use Sk\SmartId\Api\Data\Interaction;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
@@ -92,7 +93,7 @@ class SmartIdRestIntegrationTest extends TestCase
     $authenticationSessionRequest
         ->setRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->setRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->setCertificateLevel( DummyData::CERTIFICATE_LEVEL )
+        ->setAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("Hellou")))
         ->setHashType( HashType::SHA512 );
     $hashInBase64 = $this->calculateHashInBase64( DummyData::SIGNABLE_TEXT );
     $authenticationSessionRequest->setHash( $hashInBase64 );

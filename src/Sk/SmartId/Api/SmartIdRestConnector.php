@@ -28,7 +28,7 @@ namespace Sk\SmartId\Api;
 
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
-use Sk\SmartId\Api\Data\NationalIdentity;
+use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
 use Sk\SmartId\Exception\NotFoundException;
@@ -40,8 +40,8 @@ use Sk\SmartId\Util\Curl;
 class SmartIdRestConnector implements SmartIdConnector
 {
   const AUTHENTICATE_BY_DOCUMENT_NUMBER_PATH = '/authentication/document/{documentNumber}';
-  const AUTHENTICATE_BY_NATIONAL_IDENTITY_PATH = '/authentication/pno/{country}/{nationalIdentityNumber}';
   const SESSION_STATUS_URI = '/session/{sessionId}';
+  const AUTHENTICATION_BY_SEMANTICS_IDENTIFIER_PATH = '/authentication/etsi/{semantics-identifier}';
 
   const RESPONSE_ERROR_CODES = array(
       503 => 'Limit exceeded',
@@ -87,24 +87,22 @@ class SmartIdRestConnector implements SmartIdConnector
     return $this->postAuthenticationRequest( $url, $request );
   }
 
-  /**
-   * @param NationalIdentity $identity
-   * @param AuthenticationSessionRequest $request
-   * @throws \Exception
-   * @return AuthenticationSessionResponse
-   */
-  public function authenticateWithIdentity( NationalIdentity $identity, AuthenticationSessionRequest $request )
-  {
-    $url = rtrim( $this->endpointUrl, '/' ) . self::AUTHENTICATE_BY_NATIONAL_IDENTITY_PATH;
-    $url = str_replace( array(
-        '{country}',
-        '{nationalIdentityNumber}',
-    ), array(
-        $identity->getCountryCode(),
-        $identity->getNationalIdentityNumber(),
-    ), $url );
-    return $this->postAuthenticationRequest( $url, $request );
-  }
+    /**
+     * @param SemanticsIdentifier $semanticsIdentifier
+     * @param AuthenticationSessionRequest $request
+     * @return AuthenticationSessionResponse
+     * @throws \Exception
+     */
+    function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request)
+    {
+        $url = rtrim( $this->endpointUrl, '/' ) . self::AUTHENTICATION_BY_SEMANTICS_IDENTIFIER_PATH;
+        $url = str_replace( array(
+            '{semantics-identifier}'
+        ), array(
+            $semanticsIdentifier->asString()
+        ), $url );
+        return $this->postAuthenticationRequest($url, $request);
+    }
 
   /**
    * @param SessionStatusRequest $request
@@ -237,7 +235,7 @@ class SmartIdRestConnector implements SmartIdConnector
     }
   }
 
-  public function setPublicSslKeys(string $sslKeys)
+  public function setPublicSslKeys(?string $sslKeys)
   {
       $this->publicSslKeys = $sslKeys;
   }

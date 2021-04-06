@@ -29,6 +29,7 @@ namespace Sk\SmartId\Tests\Rest;
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\NationalIdentity;
+use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
 use Sk\SmartId\Api\SmartIdConnector;
@@ -87,4 +88,9 @@ class SmartIdConnectorStub implements SmartIdConnector
     $this->requestUsed = $request;
     return $this->responses[ $this->responseNumber++ ];
   }
+
+    function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request)
+    {
+        // TODO: Implement authenticateWithSemanticsIdentifier() method.
+    }
 }

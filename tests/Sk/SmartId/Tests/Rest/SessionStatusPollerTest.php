@@ -30,6 +30,12 @@ use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\SessionStatusPoller;
+use Sk\SmartId\Exception\RequiredInteractionNotSupportedByAppException;
+use Sk\SmartId\Exception\UserRefusedCertChoiceException;
+use Sk\SmartId\Exception\UserRefusedConfirmationMessageException;
+use Sk\SmartId\Exception\UserRefusedConfirmationMessageWithVcChoiceException;
+use Sk\SmartId\Exception\UserRefusedDisplayTextAndPinException;
+use Sk\SmartId\Exception\UserRefusedVcChoiceException;
 use Sk\SmartId\Tests\Api\DummyData;
 
 class SessionStatusPollerTest extends TestCase
@@ -143,6 +149,66 @@ class SessionStatusPollerTest extends TestCase
     $this->connector->responses[] = DummyData::createDocumentUnusableSessionStatus();
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
   }
+
+    /**
+     * @test
+     */
+    public function getRequiredInteractionNotSupportedByAppResponse_shouldThrowException()
+    {
+        $this->expectException(RequiredInteractionNotSupportedByAppException::class);
+        $this->connector->responses[] = DummyData::createRequiredInteractionNotSupportedByTheAppSessionStatus();
+        $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
+    }
+
+    /**
+     * @test
+     */
+    public function getUserRefusedDisplayTextAndPinResponse_shouldThrowException()
+    {
+        $this->expectException(UserRefusedDisplayTextAndPinException::class);
+        $this->connector->responses[] = DummyData::createUserRefusedDisplayTextAndPinSessionStatus();
+        $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
+    }
+
+    /**
+     * @test
+     */
+    public function getUserRefusedVcChoiceResponse_shouldThrowException()
+    {
+        $this->expectException(UserRefusedVcChoiceException::class);
+        $this->connector->responses[] = DummyData::createUserRefusedVcChoiceSessionStatus();
+        $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
+    }
+
+    /**
+     * @test
+     */
+    public function getUserRefusedConfirmationMessageResponse_shouldThrowException()
+    {
+        $this->expectException(UserRefusedConfirmationMessageException::class);
+        $this->connector->responses[] = DummyData::createUserRefusedConfirmationMessageSessionStatus();
+        $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
+    }
+
+    /**
+     * @test
+     */
+    public function getUserRefusedConfirmationMessageWithVcChoiceResponse_shouldThrowException()
+    {
+        $this->expectException(UserRefusedConfirmationMessageWithVcChoiceException::class);
+        $this->connector->responses[] = DummyData::createUserRefusedConfirmationMessageWithVcChoiceSessionStatus();
+        $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
+    }
+
+    /**
+     * @test
+     */
+    public function getUserRefusedCertChoiceResponse_shouldThrowException()
+    {
+        $this->expectException(UserRefusedCertChoiceException::class);
+        $this->connector->responses[] = DummyData::createUserRefusedCertChoiceeSessionStatus();
+        $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
+    }
 
   /**
    * @test

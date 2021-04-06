@@ -61,12 +61,12 @@ class AuthenticationSessionRequest
   /**
    * @var string
    */
-  private $displayText;
-
-  /**
-   * @var string
-   */
   private $nonce;
+
+    /**
+     * @var array
+     */
+  private $allowedInteractionsOrder;
 
   /**
    * @return string
@@ -179,24 +179,6 @@ class AuthenticationSessionRequest
   /**
    * @return string
    */
-  public function getDisplayText()
-  {
-    return $this->displayText;
-  }
-
-  /**
-   * @param string $displayText
-   * @return $this
-   */
-  public function setDisplayText( $displayText )
-  {
-    $this->displayText = $displayText;
-    return $this;
-  }
-
-  /**
-   * @return string
-   */
   public function getNonce()
   {
     return $this->nonce;
@@ -211,6 +193,25 @@ class AuthenticationSessionRequest
     $this->nonce = $nonce;
     return $this;
   }
+
+    /**
+     * @return array
+     */
+    public function getAllowedInteractionsOrder(): array
+    {
+        return $this->allowedInteractionsOrder;
+    }
+
+    /**
+     * @param array $allowedInteractionsOrder
+     */
+    public function setAllowedInteractionsOrder(array $allowedInteractionsOrder)
+    {
+        $this->allowedInteractionsOrder = $allowedInteractionsOrder;
+        return $this;
+    }
+
+
 
   /**
    * @return array
@@ -229,9 +230,10 @@ class AuthenticationSessionRequest
       $requiredArray['certificateLevel'] = $this->certificateLevel;
     }
 
-    if ( isset( $this->displayText ) )
+    if ( isset( $this->allowedInteractionsOrder ) )
     {
-      $requiredArray['displayText'] = $this->displayText;
+      $requiredArray['allowedInteractionsOrder'] = array_map('\Sk\SmartId\Api\Data\AuthenticationSessionRequest::mapInteractionToArray',
+        $this->allowedInteractionsOrder);
     }
 
     if ( isset( $this->nonce ) )
@@ -246,4 +248,10 @@ class AuthenticationSessionRequest
 
     return $requiredArray;
   }
+
+  private static function mapInteractionToArray(Interaction $interaction)
+  {
+      return $interaction->toArray();
+  }
+
 }

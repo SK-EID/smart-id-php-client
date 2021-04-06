@@ -70,6 +70,16 @@ class SmartIdAuthenticationResponse extends PropertyMapper
    */
   private $state;
 
+    /**
+     * @var array
+     */
+    private $ignoredProperties;
+
+    /**
+     * @var string
+     */
+    private $interactionFlowUsed;
+
   /**
    * @return string
    */
@@ -243,6 +253,40 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   public function getState()
   {
     return $this->state;
+  }
+
+  /**
+   * @return array
+   */
+  public function getIgnoredProperties(): ?array
+  {
+      return $this->ignoredProperties;
+  }
+
+  /**
+   * @param array $ignoredProperties
+   */
+  public function setIgnoredProperties(?array $ignoredProperties)
+  {
+      $this->ignoredProperties = $ignoredProperties;
+      return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function getInteractionFlowUsed(): string
+  {
+      return $this->interactionFlowUsed;
+  }
+
+  /**
+   * @param string $interactionFlowUsed
+   */
+  public function setInteractionFlowUsed(string $interactionFlowUsed)
+  {
+      $this->interactionFlowUsed = $interactionFlowUsed;
+      return $this;
   }
 
   /**

@@ -2,99 +2,80 @@
 
 namespace Sk\SmartId\Tests;
 
-use Sk\SmartId\Api\Data\AuthenticationHash;
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\DigestCalculator;
 use Sk\SmartId\Api\Data\HashType;
 use Sk\SmartId\Api\SmartIdRestConnector;
-use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Tests\Api\DummyData;
 use Sk\SmartId\Util\Curl;
 
 class SslTest extends Setup
 {
-    /**
-     * @test
-     */
-    public function authenticate_demoEnv_success()
-    {
-        $this->client->authentication()
-                ->createAuthentication()
-                ->withCertificateLevel(DummyData::CERTIFICATE_LEVEL)
-                ->withAuthenticationHash(new AuthenticationHash(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 )))
-                ->withDocumentNumber(DummyData::VALID_DOCUMENT_NUMBER)
-                ->authenticate();
-    }
-
-    /**
-     * @test
-     */
-    public function authenticate_demoEnvUseDemoEnvPublicKeys_success()
-    {
-        $this->client->useOnlyDemoPublicKey()->authentication()
-                ->createAuthentication()
-                ->withCertificateLevel(DummyData::CERTIFICATE_LEVEL)
-                ->withAuthenticationHash(new AuthenticationHash(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 )))
-                ->withDocumentNumber(DummyData::VALID_DOCUMENT_NUMBER)
-                ->authenticate();
-    }
-
 
     /**
      * @test
      */
     public function authenticate_demoEnvUseLiveEnvPublicKeys_shouldThrowException()
     {
-        $this->expectException(SmartIdException::class);
+        $this->expectExceptionMessage("SSL: public key does not match pinned public key!");
+        $connector = new SmartIdRestConnector( DummyData::TEST_URL );
+        $connector->setPublicSslKeys("sha256//l2uvq6ftLN4LZ+8Un+71J2vH1BT9wTbtrE5+Fj3Vc5g=;");
+        $authenticationSessionRequest = new AuthenticationSessionRequest();
+        $authenticationSessionRequest
+                ->setRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+                ->setRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+                ->setCertificateLevel( DummyData::CERTIFICATE_LEVEL )
+                ->setHashType( HashType::SHA512 );
+        $hashInBase64 = base64_encode(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 ));
+        $authenticationSessionRequest->setHash( $hashInBase64 );
 
-        $this->client->useOnlyLivePublicKey()->authentication()
-                ->createAuthentication()
-                ->withCertificateLevel(DummyData::CERTIFICATE_LEVEL)
-                ->withAuthenticationHash(new AuthenticationHash(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 )))
-                ->withDocumentNumber(DummyData::VALID_DOCUMENT_NUMBER)
-                ->authenticate();
-    }
 
-    /**
- * @test
- */
-    public function authenticate_demoEnvSetPublicKeysFromArray_success()
-    {
-        $this->client->setPublicSslKeys("sha256//+Tz0G7u3vgcaw/o32vIoCNNjpfo8UugQEXmWkrCuc4o=;sha256//wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=")->authentication()
-                ->createAuthentication()
-                ->withCertificateLevel(DummyData::CERTIFICATE_LEVEL)
-                ->withAuthenticationHash(new AuthenticationHash(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 )))
-                ->withDocumentNumber(DummyData::VALID_DOCUMENT_NUMBER)
-                ->authenticate();
+        $authenticateSessionResponse =
+                $connector->authenticate(DummyData::VALID_DOCUMENT_NUMBER,
+                        $authenticationSessionRequest);
     }
 
     /**
      * @test
      */
-    public function authenticate_demoEnvSetPublicKeysFromEmptyString_throwsException()
+    public function authenticate_demoEnvSetPublicKeysFromEmptyArray_httpsPinningNotUsed_exceptionNotThrown()
     {
-        $this->expectException(SmartIdException::class);
-        $this->client->setPublicSslKeys("")->authentication()
-                ->createAuthentication()
-                ->withCertificateLevel(DummyData::CERTIFICATE_LEVEL)
-                ->withAuthenticationHash(new AuthenticationHash(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 )))
-                ->withDocumentNumber(DummyData::VALID_DOCUMENT_NUMBER)
-                ->authenticate();
+        $connector = new SmartIdRestConnector( DummyData::TEST_URL );
+        $connector->setPublicSslKeys("");
+        $authenticationSessionRequest = new AuthenticationSessionRequest();
+        $authenticationSessionRequest
+                ->setRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+                ->setRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+                ->setCertificateLevel( DummyData::CERTIFICATE_LEVEL )
+                ->setHashType( HashType::SHA512 );
+        $hashInBase64 = base64_encode(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 ));
+        $authenticationSessionRequest->setHash( $hashInBase64 );
+
+        $authenticateSessionResponse =
+                $connector->authenticate(DummyData::VALID_DOCUMENT_NUMBER,
+                        $authenticationSessionRequest);
     }
 
     /**
      * @test
      */
-    public function makeRequestToGoogle_demoPublicKeys_shouldThrowException()
+    public function makeRequestToGoogle_defaultPublicKeys_shouldThrowException()
     {
-        $this->expectException(SmartIdException::class);
-        $this->client
-                ->setHostUrl("https://www.google.com")
-                ->useOnlyDemoPublicKey()->authentication()
-                ->createAuthentication()
-                ->withCertificateLevel(DummyData::CERTIFICATE_LEVEL)
-                ->withAuthenticationHash(new AuthenticationHash(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 )))
-                ->withDocumentNumber(DummyData::VALID_DOCUMENT_NUMBER)
-                ->authenticate();
+        $this->expectExceptionMessage("User account not found for URI www.google.com/authentication/document/PNOEE-10101010005-Z1B2-Q");
+
+        $connector = new SmartIdRestConnector( "www.google.com");
+        $connector->setPublicSslKeys("");
+        $authenticationSessionRequest = new AuthenticationSessionRequest();
+        $authenticationSessionRequest
+                ->setRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+                ->setRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+                ->setCertificateLevel( DummyData::CERTIFICATE_LEVEL )
+                ->setHashType( HashType::SHA512 );
+        $hashInBase64 = base64_encode(DigestCalculator::calculateDigest( DummyData::SIGNABLE_TEXT, HashType::SHA512 ));
+        $authenticationSessionRequest->setHash( $hashInBase64 );
+
+        $authenticateSessionResponse =
+                $connector->authenticate(DummyData::VALID_DOCUMENT_NUMBER,
+                        $authenticationSessionRequest);
     }
 }
