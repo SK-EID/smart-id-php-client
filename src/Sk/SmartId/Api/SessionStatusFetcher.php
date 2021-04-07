@@ -35,9 +35,15 @@ use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Exception\DocumentUnusableException;
 use Sk\SmartId\Exception\InterruptedException;
+use Sk\SmartId\Exception\RequiredInteractionNotSupportedByAppException;
 use Sk\SmartId\Exception\SessionTimeoutException;
 use Sk\SmartId\Exception\TechnicalErrorException;
+use Sk\SmartId\Exception\UserRefusedCertChoiceException;
+use Sk\SmartId\Exception\UserRefusedConfirmationMessageException;
+use Sk\SmartId\Exception\UserRefusedConfirmationMessageWithVcChoiceException;
+use Sk\SmartId\Exception\UserRefusedDisplayTextAndPinException;
 use Sk\SmartId\Exception\UserRefusedException;
+use Sk\SmartId\Exception\UserRefusedVcChoiceException;
 
 class SessionStatusFetcher
 {
@@ -257,6 +263,30 @@ class SessionStatusFetcher
     else if ( strcasecmp( $endResult, SessionEndResultCode::DOCUMENT_UNUSABLE ) == 0 )
     {
       throw new DocumentUnusableException();
+    }
+    else if ( strcasecmp( $endResult, SessionEndResultCode::REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP) == 0 )
+    {
+        throw new RequiredInteractionNotSupportedByAppException();
+    }
+    else if ( strcasecmp( $endResult, SessionEndResultCode::USER_REFUSED_DISPLAYTEXTANDPIN) == 0 )
+    {
+        throw new UserRefusedDisplayTextAndPinException();
+    }
+    else if ( strcasecmp( $endResult, SessionEndResultCode::USER_REFUSED_VC_CHOICE) == 0 )
+    {
+        throw new UserRefusedVcChoiceException();
+    }
+    else if ( strcasecmp( $endResult, SessionEndResultCode::USER_REFUSED_CONFIRMATIONMESSAGE) == 0 )
+    {
+        throw new UserRefusedConfirmationMessageException();
+    }
+    else if ( strcasecmp( $endResult, SessionEndResultCode::USER_REFUSED_CONFIRMATIONMESSAGE_WITH_VC_CHOICE) == 0 )
+    {
+        throw new UserRefusedConfirmationMessageWithVcChoiceException();
+    }
+    else if ( strcasecmp( $endResult, SessionEndResultCode::USER_REFUSED_CERT_CHOICE) == 0 )
+    {
+        throw new UserRefusedCertChoiceException();
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::OK ) != 0 )
     {

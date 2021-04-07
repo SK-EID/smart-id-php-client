@@ -56,6 +56,11 @@ abstract class SmartIdRequestBuilder
   private $networkInterface;
 
   /**
+   * @var array
+   */
+  private $allowedInteractionsOrder;
+
+  /**
    * @param SmartIdConnector $connector
    * @param SessionStatusPoller $sessionStatusPoller
    */
@@ -134,6 +139,14 @@ abstract class SmartIdRequestBuilder
   {
     return $this->networkInterface;
   }
+
+    /**
+     * @return array
+     */
+    public function getAllowedInteractionsOrder(): array
+    {
+        return $this->allowedInteractionsOrder;
+    }
 
   /**
    * @throws InvalidParametersException

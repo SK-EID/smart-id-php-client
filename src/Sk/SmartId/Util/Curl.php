@@ -47,7 +47,7 @@ class Curl
       $importCookies = false,
       $includeHeaders = false,
       $curlTimeout = 600,
-      $publicSslKeys;
+      $server_ssl_public_keys;
 
   /**
    * @throws Exception
@@ -198,7 +198,10 @@ class Curl
     curl_setopt( $this->curl, CURLOPT_FOLLOWLOCATION, $this->followLocation );
     curl_setopt( $this->curl, CURLOPT_TIMEOUT, $this->curlTimeout );
     curl_setopt( $this->curl, CURLOPT_SSL_VERIFYPEER, false );
-    curl_setopt( $this->curl, CURLOPT_PINNEDPUBLICKEY, $this->publicSslKeys);
+    if (isset($this->server_ssl_public_keys) and !empty($this->server_ssl_public_keys)) {
+
+        curl_setopt( $this->curl, CURLOPT_PINNEDPUBLICKEY, $this->server_ssl_public_keys);
+    }
 
     if ( self::POST === $this->requestMethod )
     {
@@ -354,10 +357,20 @@ class Curl
     return false;
   }
 
-    public function setPublicSslKeys(string $public_keys)
-    {
-        $this->publicSslKeys = $public_keys;
-    }
+  public function setPublicSslKeys(?string $publicSslKeys)
+  {
+      $this->server_ssl_public_keys = $publicSslKeys;
+  }
+
+  public function setPublicKeysFromArray(array $public_keys)
+  {
+      $this->server_ssl_public_keys = "";
+      foreach ($public_keys as $public_key)
+      {
+          $this->server_ssl_public_keys .= $public_key.";";
+      }
+      $this->server_ssl_public_keys = substr($this->server_ssl_public_keys, 0, strlen($this->server_ssl_public_keys)-1);
+  }
 
     /**
    * @param int $option

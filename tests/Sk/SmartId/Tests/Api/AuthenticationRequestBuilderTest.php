@@ -31,7 +31,8 @@ use Sk\SmartId\Api\Data\AuthenticationHash;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\CertificateLevelCode;
 use Sk\SmartId\Api\Data\HashType;
-use Sk\SmartId\Api\Data\NationalIdentity;
+use Sk\SmartId\Api\Data\Interaction;
+use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SessionCertificate;
 use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Api\Data\SessionSignature;
@@ -40,6 +41,7 @@ use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Api\SessionStatusPoller;
+use Sk\SmartId\Exception\InvalidParametersException;
 use Sk\SmartId\Tests\Rest\SmartIdConnectorSpy;
 use Sk\SmartId\Tests\Setup;
 
@@ -79,8 +81,10 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withDocumentNumber( 'PNOEE-31111111111' )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->withSignableData( $dataToSign )
         ->authenticate();
+
     $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber( $dataToSign->calculateHashInBase64(),
         CertificateLevelCode::QUALIFIED );
     $this->assertGeneratedHash( $dataToSign );
@@ -99,6 +103,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->withAuthenticationHash( $authenticationHash )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->authenticate();
     $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber( $authenticationHash->calculateHashInBase64(),
         CertificateLevelCode::QUALIFIED );
@@ -117,10 +122,10 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withSignableData( $dataToSign )
-        ->withNationalIdentityNumber( '31111111111' )
-        ->withCountryCode( 'EE' )
+        ->withSemanticsIdentifierAsString("PNOEE-31111111111")
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->authenticate();
-    $this->assertCorrectAuthenticationRequestMadeWithNationalIdentity( CertificateLevelCode::QUALIFIED );
+    $this->assertCorrectAuthenticationRequestMadeWithSemanticsIdentifier( CertificateLevelCode::QUALIFIED );
     $this->assertFixedHash();
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResponseCorrect( $authenticationResponse );
@@ -132,14 +137,22 @@ class AuthenticationRequestBuilderTest extends Setup
   public function authenticateUsingNationalIdentity()
   {
     $dataToSign = new SignableData( 'test' );
-    $identity = new NationalIdentity( 'EE', '31111111111' );
+
+    $semanticsIdentifier = SemanticsIdentifier::builder()
+        ->withsemanticsIdentifierType("PNO")
+        ->withCountryCode("EE")
+        ->withIdentifier("31111111111")
+        ->build();
+
     $authenticationResponse = $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withSignableData( $dataToSign )
-        ->withNationalIdentity( $identity )
+        ->withSemanticsIdentifier($semanticsIdentifier)
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->authenticate();
-    $this->assertCorrectAuthenticationRequestMadeWithNationalIdentity( CertificateLevelCode::QUALIFIED );
+
+    $this->assertCorrectAuthenticationRequestMadeWithSemanticsIdentifier( CertificateLevelCode::QUALIFIED );
     $this->assertFixedHash();
     $this->assertCorrectSessionRequestMade();
     $this->assertAuthenticationResponseCorrect( $authenticationResponse );
@@ -155,6 +168,10 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withRelyingPartyName( 'relying-party-name' )
         ->withDocumentNumber( 'PNOEE-31111111111' )
         ->withAuthenticationHash( $authenticationHash )
+        ->withAllowedInteractionsOrder(array(
+            Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT"),
+            Interaction::ofTypeConfirmationMessage("YOU are ABOUT TO LOGIN")
+        ))
         ->authenticate();
     $this->assertCorrectAuthenticationRequestMadeWithDocumentNumber( $authenticationHash->calculateHashInBase64(),
         null );
@@ -173,6 +190,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withAuthenticationHash( $authenticationHash )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->authenticate();
   }
 
@@ -186,6 +204,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withDocumentNumber( 'PNOEE-31111111111' )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->authenticate();
   }
 
@@ -200,6 +219,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withAuthenticationHash( $authenticationHash )
         ->withDocumentNumber( 'PNOEE-31111111111' )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->authenticate();
   }
 
@@ -214,6 +234,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withAuthenticationHash( $authenticationHash )
         ->withDocumentNumber( 'PNOEE-31111111111' )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->authenticate();
   }
 
@@ -249,13 +270,159 @@ class AuthenticationRequestBuilderTest extends Setup
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
    */
   public function authenticate_withCertificateMissingInResponse_shouldThrowException()
   {
-    $this->connector->sessionStatusToRespond->setCert( null );
+      $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
+      $this->connector->sessionStatusToRespond->setCert( null );
     $this->makeAuthenticationRequest();
   }
+
+    /**
+     * @test
+     */
+  public function authenticate_InteractionDisplayTextAndPIN_withDisplayTextLongerThan60_InvalidParameterException()
+  {
+
+      $signableData = AuthenticationHash::generate();
+      $this->expectException(InvalidParametersException::class);
+      $this->expectExceptionMessage("Interactions of type displayTextAndPIN and verificationCodeChoice require displayTexts with length 60 or less");
+      $this->builder
+          ->withRelyingPartyName( 'relying-party-name' )
+          ->withRelyingPartyUUID( 'relying-party-uuid' )
+          ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
+          ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN(str_repeat("text", 16))))
+          ->withSemanticsIdentifierAsString("PNOEE-39709246512")
+          ->withSignableData($signableData)
+          ->authenticate();
+  }
+
+    /**
+     * @test
+     */
+    public function authenticate_InteractionConfirmationMessage_withDisplayTextLongerThan200_InvalidParameterException()
+    {
+
+        $signableData = AuthenticationHash::generate();
+        $this->expectException(InvalidParametersException::class);
+        $this->expectExceptionMessage("Interactions of type confirmationMessage and confirmationMessageAndVerificationCodeChoice require displayTexts with length 200 or less");
+        $this->builder
+            ->withRelyingPartyName( 'relying-party-name' )
+            ->withRelyingPartyUUID( 'relying-party-uuid' )
+            ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
+            ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage(str_repeat("text", 51))))
+            ->withSemanticsIdentifierAsString("PNOEE-39709246512")
+            ->withSignableData($signableData)
+            ->authenticate();
+    }
+
+    /**
+     * @test
+     */
+    public function authenticate_InteractionDisplayTextAndPIN_withDisplayTextExcactly60_noException()
+    {
+
+        $signableData = AuthenticationHash::generate();
+        $this->builder
+            ->withRelyingPartyName( 'relying-party-name' )
+            ->withRelyingPartyUUID( 'relying-party-uuid' )
+            ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
+            ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN(str_repeat("text", 15))))
+            ->withSemanticsIdentifierAsString("PNOEE-39709246512")
+            ->withSignableData($signableData)
+            ->authenticate();
+    }
+
+    /**
+     * @test
+     */
+    public function authenticate_InteractionConfirmationMessage_withDisplayTextExcactly200_noException()
+    {
+
+        $signableData = AuthenticationHash::generate();
+        $this->builder
+            ->withRelyingPartyName( 'relying-party-name' )
+            ->withRelyingPartyUUID( 'relying-party-uuid' )
+            ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
+            ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage(str_repeat("text", 50))))
+            ->withSemanticsIdentifierAsString("PNOEE-39709246512")
+            ->withSignableData($signableData)
+            ->authenticate();
+    }
+
+    /**
+     * @test
+     */
+    public function authenticate_invalidSemanticsIdentifier_InvalidParameterException()
+    {
+
+        $signableData = AuthenticationHash::generate();
+        $this->expectException(InvalidParametersException::class);
+        $this->expectExceptionMessage("The semantics identifier format is invalid");
+        $this->builder
+            ->withRelyingPartyName( 'relying-party-name' )
+            ->withRelyingPartyUUID( 'relying-party-uuid' )
+            ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
+            ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("text")))
+            ->withSemanticsIdentifierAsString("PNOE-39709246512")
+            ->withSignableData($signableData)
+            ->authenticate();
+    }
+
+    /**
+     * @test
+     */
+    public function authenticate_invalidSemanticsIdentifier2_InvalidParameterException()
+    {
+
+        $signableData = AuthenticationHash::generate();
+        $this->expectException(InvalidParametersException::class);
+        $this->expectExceptionMessage("The semantics identifier format is invalid");
+        $this->builder
+            ->withRelyingPartyName( 'relying-party-name' )
+            ->withRelyingPartyUUID( 'relying-party-uuid' )
+            ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
+            ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("text")))
+            ->withSemanticsIdentifierAsString("PNOEE-3")
+            ->withSignableData($signableData)
+            ->authenticate();
+    }
+
+    /**
+     * @test
+     */
+    public function authenticate_invalidSemanticsIdentifier_noHyphen_InvalidParameterException()
+    {
+
+        $signableData = AuthenticationHash::generate();
+        $this->expectException(InvalidParametersException::class);
+        $this->expectExceptionMessage("The semantics identifier format is invalid");
+        $this->builder
+            ->withRelyingPartyName( 'relying-party-name' )
+            ->withRelyingPartyUUID( 'relying-party-uuid' )
+            ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
+            ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("text")))
+            ->withSemanticsIdentifierAsString("PNOEE39999297898")
+            ->withSignableData($signableData)
+            ->authenticate();
+    }
+
+    /**
+     * @test
+     */
+    public function authenticate_validSemanticsIdentifier_noException()
+    {
+        $signableData = AuthenticationHash::generate();
+
+        $this->builder
+            ->withRelyingPartyName( 'relying-party-name' )
+            ->withRelyingPartyUUID( 'relying-party-uuid' )
+            ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
+            ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("text")))
+            ->withSemanticsIdentifierAsString("PNOEE-39999297898")
+            ->withSignableData($signableData)
+            ->authenticate();
+    }
 
   /**
    * @param string $expectedHashToSignInBase64
@@ -275,10 +442,9 @@ class AuthenticationRequestBuilderTest extends Setup
     $this->assertEquals( $expectedHashToSignInBase64, $this->connector->authenticationSessionRequestUsed->getHash() );
   }
 
-  private function assertCorrectAuthenticationRequestMadeWithNationalIdentity( $expectedCertificateLevel )
+  private function assertCorrectAuthenticationRequestMadeWithSemanticsIdentifier( $expectedCertificateLevel )
   {
-    $this->assertEquals( '31111111111', $this->connector->identityUsed->getNationalIdentityNumber() );
-    $this->assertEquals( 'EE', $this->connector->identityUsed->getCountryCode() );
+    $this->assertEquals( 'PNOEE-31111111111', $this->connector->semanticsIdentifierUsed->asString() );
     $this->assertEquals( 'relying-party-uuid',
         $this->connector->authenticationSessionRequestUsed->getRelyingPartyUUID() );
     $this->assertEquals( 'relying-party-name',
@@ -322,6 +488,7 @@ class AuthenticationRequestBuilderTest extends Setup
     $status->setState( SessionStatusCode::COMPLETE )
         ->setResult( DummyData::createSessionEndResult() )
         ->setSignature( $signature )
+        ->setInteractionFlowUsed("displayTextAndPin")
         ->setCert( $certificate );
     return $status;
   }
@@ -344,6 +511,7 @@ class AuthenticationRequestBuilderTest extends Setup
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
         ->withAuthenticationHash( $authenticationHash )
         ->withDocumentNumber( 'PNOEE-31111111111' )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
         ->authenticate();
   }
 
