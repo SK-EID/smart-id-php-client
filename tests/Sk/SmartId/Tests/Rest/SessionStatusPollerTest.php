@@ -50,7 +50,7 @@ class SessionStatusPollerTest extends TestCase
    */
   private $poller;
 
-  protected function setUp()
+  protected function setUp() : void
   {
     $this->connector = new SmartIdConnectorStub();
     $this->poller = new SessionStatusPoller( $this->connector );

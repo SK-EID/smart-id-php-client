@@ -150,7 +150,7 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withSemanticsIdentifier(SemanticsIdentifier::fromString("PNOEE-10101010027"))
+        ->withSemanticsIdentifier(SemanticsIdentifier::fromString("PNOEE-30303039816"))
         ->withAuthenticationHash( $authenticationHash )
         ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
             Interaction::ofTypeDisplayTextAndPIN("Hello")))
@@ -234,7 +234,7 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withNetworkInterface( 'docker0' ) // or available IP
+        ->withNetworkInterface( DummyData::NETWORK_INTERFACE ) // network interface or available IP
         ->withDocumentNumber( DummyData::VALID_DOCUMENT_NUMBER )
         ->withAuthenticationHash( $authenticationHash )
         ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
@@ -260,8 +260,8 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withSemanticsIdentifierAsString("PNOEE-10101010027")
-        ->withNetworkInterface( 'docker0' ) // or available IP
+        ->withSemanticsIdentifierAsString("PNOEE-30303039903")
+        ->withNetworkInterface( DummyData::NETWORK_INTERFACE ) // or available IP
         ->withAuthenticationHash( $authenticationHash )
         ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
             Interaction::ofTypeDisplayTextAndPIN("Hello human")))
@@ -272,7 +272,7 @@ class SmartIdClientIntegrationTest extends Setup
     $authenticationResponse = $this->client->authentication()
         ->setSessionStatusResponseSocketTimeoutMs( 1000 )
         ->createSessionStatusFetcher()
-        ->withNetworkInterface( 'docker0' ) // or available IP
+        ->withNetworkInterface( DummyData::NETWORK_INTERFACE ) // or available IP
         ->withSessionId( $sessionId )
         ->withAuthenticationHash( $authenticationHash )
         ->getAuthenticationResponse();

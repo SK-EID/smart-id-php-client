@@ -51,7 +51,7 @@ class SessionStatusFetcherBuilderTest extends Setup
    */
   private $builder;
 
-  protected function setUp()
+  protected function setUp() : void
   {
     $this->connector = new SmartIdConnectorSpy();
     $this->connector->authenticationSessionResponseToRespond = $this->createDummyAuthenticationSessionResponse();

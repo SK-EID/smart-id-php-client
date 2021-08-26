@@ -7,7 +7,6 @@ use Sk\SmartId\Api\Data\DigestCalculator;
 use Sk\SmartId\Api\Data\HashType;
 use Sk\SmartId\Api\SmartIdRestConnector;
 use Sk\SmartId\Tests\Api\DummyData;
-use Sk\SmartId\Util\Curl;
 
 class SslTest extends Setup
 {
@@ -61,7 +60,7 @@ class SslTest extends Setup
      */
     public function makeRequestToGoogle_defaultPublicKeys_shouldThrowException()
     {
-        $this->expectExceptionMessage("User account not found for URI www.google.com/authentication/document/PNOEE-10101010005-Z1B2-Q");
+        $this->expectExceptionMessage("User account not found for URI www.google.com/authentication/document/" . DummyData::VALID_DOCUMENT_NUMBER);
 
         $connector = new SmartIdRestConnector( "www.google.com");
         $connector->setPublicSslKeys("");

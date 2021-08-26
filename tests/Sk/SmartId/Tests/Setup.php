@@ -29,7 +29,6 @@ namespace Sk\SmartId\Tests;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Client;
 use Sk\SmartId\Tests\Api\DummyData;
-use Sk\SmartId\Util\Curl;
 
 class Setup extends TestCase
 {
@@ -40,7 +39,7 @@ class Setup extends TestCase
    */
   protected $client;
 
-  protected function setUp()
+  protected function setUp() : void
   {
     $this->client = new Client();
     $this->client

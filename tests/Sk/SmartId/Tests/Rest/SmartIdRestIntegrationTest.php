@@ -47,7 +47,7 @@ class SmartIdRestIntegrationTest extends TestCase
    */
   private $connector;
 
-  protected function setUp()
+  protected function setUp() : void
   {
     $this->connector = new SmartIdRestConnector( DummyData::TEST_URL );
     $client = new Client();

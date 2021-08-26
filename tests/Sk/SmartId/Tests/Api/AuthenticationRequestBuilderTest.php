@@ -62,7 +62,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   private $builder;
 
-  protected function setUp()
+  protected function setUp() : void
   {
     $this->connector = new SmartIdConnectorSpy();
     $this->sessionStatusPoller = new SessionStatusPoller( $this->connector );
