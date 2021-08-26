@@ -9,7 +9,6 @@
     convertWarningsToExceptions="true"
     processIsolation="false"
     stopOnFailure="false"
-    syntaxCheck="false"
     bootstrap="./tests/bootstrap.php.dist">
 
   <php>
@@ -24,17 +23,17 @@
   </php>
 
   <testsuites>
-    <testsuite name="UnitTest" description="Smart-ID Relying Party Unit Test Suite">
+    <testsuite name="UnitTest">
       <directory>./tests</directory>
       <exclude>./tests/Sk/SmartId/Tests/Api/SmartIdClientIntegrationTest.php</exclude>
       <exclude>./tests/Sk/SmartId/Tests/Rest/SmartIdRestIntegrationTest.php</exclude>
     </testsuite>
 
-    <testsuite name="ClientIntegrationTest" description="Smart-ID Relying Party Client Integration Test Suite">
+    <testsuite name="ClientIntegrationTest">
       <file>./tests/Sk/SmartId/Tests/Api/SmartIdClientIntegrationTest.php</file>
     </testsuite>
 
-    <testsuite name="RestIntegrationTest" description="Smart-ID Relying Party Rest Integration Test Suite">
+    <testsuite name="RestIntegrationTest">
       <file>./tests/Sk/SmartId/Tests/Rest/SmartIdRestIntegrationTest.php</file>
     </testsuite>
   </testsuites>

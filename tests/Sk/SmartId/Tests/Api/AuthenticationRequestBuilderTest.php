@@ -318,6 +318,7 @@ class AuthenticationRequestBuilderTest extends Setup
 
     /**
      * @test
+     * @doesNotPerformAssertions
      */
     public function authenticate_InteractionDisplayTextAndPIN_withDisplayTextExcactly60_noException()
     {
@@ -335,6 +336,7 @@ class AuthenticationRequestBuilderTest extends Setup
 
     /**
      * @test
+     * @doesNotPerformAssertions
      */
     public function authenticate_InteractionConfirmationMessage_withDisplayTextExcactly200_noException()
     {
@@ -409,6 +411,7 @@ class AuthenticationRequestBuilderTest extends Setup
 
     /**
      * @test
+     * @doesNotPerformAssertions
      */
     public function authenticate_validSemanticsIdentifier_noException()
     {

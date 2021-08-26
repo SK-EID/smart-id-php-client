@@ -36,6 +36,7 @@ class SslTest extends Setup
 
     /**
      * @test
+     * @doesNotPerformAssertions
      */
     public function authenticate_demoEnvSetPublicKeysFromEmptyArray_httpsPinningNotUsed_exceptionNotThrown()
     {
