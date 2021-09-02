@@ -181,11 +181,11 @@ class AuthenticationRequestBuilderTest extends Setup
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\InvalidParametersException
    */
   public function authenticateWithoutDocumentNumberNorNationalIdentity_shouldThrowException()
   {
-    $authenticationHash = AuthenticationHash::generate();
+      $this->expectException(\Sk\SmartId\Exception\InvalidParametersException::class);
+      $authenticationHash = AuthenticationHash::generate();
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
@@ -196,24 +196,24 @@ class AuthenticationRequestBuilderTest extends Setup
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\InvalidParametersException
    */
   public function authenticateWithoutHash_andWithoutData_shouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\InvalidParametersException::class);
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
-        ->withRelyingPartyName( 'relying-party-name' )
-        ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
-        ->withDocumentNumber( 'PNOEE-31111111111' )
-        ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
-        ->authenticate();
+    ->withRelyingPartyName( 'relying-party-name' )
+    ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
+    ->withDocumentNumber( 'PNOEE-31111111111' )
+    ->withAllowedInteractionsOrder(array(Interaction::ofTypeDisplayTextAndPIN("DISPLAY TEXT")))
+    ->authenticate();
   }
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\InvalidParametersException
    */
   public function authenticateWithoutRelyingPartyUuid_shouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\InvalidParametersException::class);
     $authenticationHash = AuthenticationHash::generate();
     $this->builder->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
@@ -225,10 +225,10 @@ class AuthenticationRequestBuilderTest extends Setup
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\InvalidParametersException
    */
   public function authenticateWithoutRelyingPartyName_shouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\InvalidParametersException::class);
     $authenticationHash = AuthenticationHash::generate();
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
@@ -240,30 +240,30 @@ class AuthenticationRequestBuilderTest extends Setup
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\UserRefusedException
    */
   public function authenticate_withUserRefused_shouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\UserRefusedException::class);
     $this->connector->sessionStatusToRespond = DummyData::createUserRefusedSessionStatus();
     $this->makeAuthenticationRequest();
   }
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
    */
   public function authenticate_withResultMissingInResponse_shouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
     $this->connector->sessionStatusToRespond->setResult( null );
     $this->makeAuthenticationRequest();
   }
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
    */
   public function authenticate_withSignatureMissingInResponse_shouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
     $this->connector->sessionStatusToRespond->setSignature( null );
     $this->makeAuthenticationRequest();
   }

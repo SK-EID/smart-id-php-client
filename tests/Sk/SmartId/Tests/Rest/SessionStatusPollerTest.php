@@ -122,30 +122,33 @@ class SessionStatusPollerTest extends TestCase
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\UserRefusedException
+   *
    */
   public function getUserRefusedResponse_shouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\UserRefusedException::class);
     $this->connector->responses[] = DummyData::createUserRefusedSessionStatus();
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
   }
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\SessionTimeoutException
+   *
    */
   public function getUserTimeoutResponse_shouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\SessionTimeoutException::class);
     $this->connector->responses[] = DummyData::createTimeoutSessionStatus();
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
   }
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\DocumentUnusableException
+   *
    */
   public function getDocumentUnusableResponse_shouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\DocumentUnusableException::class);
     $this->connector->responses[] = DummyData::createDocumentUnusableSessionStatus();
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
   }
@@ -212,11 +215,11 @@ class SessionStatusPollerTest extends TestCase
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
    */
   public function getUnknownEndResult_shouldThrowException()
   {
-    $status = $this->createCompleteSessionStatus();
+      $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
+      $status = $this->createCompleteSessionStatus();
     $status->setResult( DummyData::createSessionResult( 'BLAH' ) );
     $this->connector->responses[] = $status;
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
@@ -224,11 +227,12 @@ class SessionStatusPollerTest extends TestCase
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
+   *
    */
   public function getMissingEndResult_shouldThrowException()
   {
-    $status = $this->createCompleteSessionStatus();
+      $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
+      $status = $this->createCompleteSessionStatus();
     $status->setResult( null );
     $this->connector->responses[] = $status;
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );

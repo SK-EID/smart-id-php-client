@@ -54,10 +54,11 @@ class SmartIdAuthenticationResultTest extends TestCase
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
+   *
    */
   public function incorrectBase64StringShouldThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
     $authenticationResponse = new SmartIdAuthenticationResponse();
     $authenticationResponse->setValueInBase64( '!IsNotValidBase64Character' );
     $authenticationResponse->getValue();

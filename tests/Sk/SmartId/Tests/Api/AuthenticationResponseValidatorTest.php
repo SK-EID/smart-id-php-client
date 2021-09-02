@@ -190,11 +190,11 @@ class AuthenticationResponseValidatorTest extends TestCase
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
    * @throws \ReflectionException
    */
   public function whenCertificateIsNull_ThenThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
     $response = $this->createValidValidationResponse();
     $response->setCertificate( null );
     $this->validator->validate( $response );
@@ -202,11 +202,11 @@ class AuthenticationResponseValidatorTest extends TestCase
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
    * @throws \ReflectionException
    */
   public function whenSignatureIsEmpty_ThenThrowException()
   {
+    $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
     $response = $this->createValidValidationResponse();
     $response->setValueInBase64( '' );
     $this->validator->validate( $response );

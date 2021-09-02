@@ -51,7 +51,7 @@ class DummyData
 
   const COUNTRY_CODE_EE = "EE";
 
-  const NETWORK_INTERFACE = "docker0"; // network interface in machine. for example "docker0", "en7", "127.0.0.1"
+  const NETWORK_INTERFACE = "en7"; // network interface in machine. for example "docker0", "en7", "127.0.0.1"
 
   /**
    * @return SessionResult
