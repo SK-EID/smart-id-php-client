@@ -26,6 +26,7 @@
  */
 namespace Sk\SmartId\Tests\Api;
 
+use ReflectionException;
 use Sk\SmartId\Api\AuthenticationResponseValidator;
 use Sk\SmartId\Api\Data\AuthenticationHash;
 use Sk\SmartId\Api\Data\AuthenticationIdentity;
@@ -47,7 +48,7 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws \ReflectionException
+   * @throws ReflectionException
    */
   public function authenticate_withDocumentNumber()
   {
@@ -94,7 +95,7 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws \ReflectionException
+   * @throws ReflectionException
    */
   public function authenticate_withSemanticsIdentifier()
   {
@@ -171,7 +172,7 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws \ReflectionException
+   * @throws ReflectionException
    */
   public function getAuthenticationResponse_withSessionId_isComplete()
   {
@@ -223,7 +224,7 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws \ReflectionException
+   * @throws ReflectionException
    */
   public function authenticate_withNetworkInterfaceInPlace()
   {
@@ -285,8 +286,8 @@ class SmartIdClientIntegrationTest extends Setup
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @param string $dataToSign
    */
-  private function assertAuthenticationResponseCreated( SmartIdAuthenticationResponse $authenticationResponse,
-                                                        $dataToSign )
+  private function assertAuthenticationResponseCreated(SmartIdAuthenticationResponse $authenticationResponse,
+                                                       string $dataToSign )
   {
     $this->assertNotNull( $authenticationResponse );
     $this->assertNotEmpty( $authenticationResponse->getEndResult() );

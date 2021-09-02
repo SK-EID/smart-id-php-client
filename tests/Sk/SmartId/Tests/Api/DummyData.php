@@ -44,19 +44,16 @@ class DummyData
 
 
   const VALID_SEMANTICS_IDENTIFIER = "PNOEE-30303039914";
-  const VALID_NATIONAL_IDENTITY = "30303039914";
   const VALID_DOCUMENT_NUMBER = "PNOEE-30303039914-5QSV-Q";
 
   const SIGNABLE_TEXT = "hashvalueinbase64";
 
-  const COUNTRY_CODE_EE = "EE";
-
-  const NETWORK_INTERFACE = "docker0"; // network interface in machine. for example "docker0", "en7", "127.0.0.1"
+  const NETWORK_INTERFACE = "en7"; // network interface in machine. for example "docker0", "en7", "127.0.0.1"
 
   /**
    * @return SessionResult
    */
-  public static function createSessionEndResult()
+  public static function createSessionEndResult(): SessionResult
   {
     $result = self::createSessionResult( SessionEndResultCode::OK );
     $result->setDocumentNumber( 'PNOEE-31111111111' );
@@ -66,7 +63,7 @@ class DummyData
   /**
    * @return SessionStatus
    */
-  public static function createUserRefusedSessionStatus()
+  public static function createUserRefusedSessionStatus(): SessionStatus
   {
     $status = self::createCompleteSessionStatus();
     $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED ) );
@@ -76,7 +73,7 @@ class DummyData
   /**
    * @return SessionStatus
    */
-  public static function createTimeoutSessionStatus()
+  public static function createTimeoutSessionStatus(): SessionStatus
   {
     $status = self::createCompleteSessionStatus();
     $status->setResult( self::createSessionResult( SessionEndResultCode::TIMEOUT ) );
@@ -86,7 +83,7 @@ class DummyData
   /**
    * @return SessionStatus
    */
-  public static function createDocumentUnusableSessionStatus()
+  public static function createDocumentUnusableSessionStatus(): SessionStatus
   {
     $status = self::createCompleteSessionStatus();
     $status->setResult( self::createSessionResult( SessionEndResultCode::DOCUMENT_UNUSABLE ) );
@@ -96,7 +93,7 @@ class DummyData
     /**
      * @return SessionStatus
      */
-    public static function createRequiredInteractionNotSupportedByTheAppSessionStatus()
+    public static function createRequiredInteractionNotSupportedByTheAppSessionStatus(): SessionStatus
     {
         $status = self::createCompleteSessionStatus();
         $status->setResult( self::createSessionResult( SessionEndResultCode::REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP ) );
@@ -106,7 +103,7 @@ class DummyData
     /**
      * @return SessionStatus
      */
-    public static function createUserRefusedDisplayTextAndPinSessionStatus()
+    public static function createUserRefusedDisplayTextAndPinSessionStatus(): SessionStatus
     {
         $status = self::createCompleteSessionStatus();
         $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_DISPLAYTEXTANDPIN ) );
@@ -116,7 +113,7 @@ class DummyData
     /**
      * @return SessionStatus
      */
-    public static function createUserRefusedVcChoiceSessionStatus()
+    public static function createUserRefusedVcChoiceSessionStatus(): SessionStatus
     {
         $status = self::createCompleteSessionStatus();
         $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_VC_CHOICE ) );
@@ -126,7 +123,7 @@ class DummyData
     /**
      * @return SessionStatus
      */
-    public static function createUserRefusedConfirmationMessageSessionStatus()
+    public static function createUserRefusedConfirmationMessageSessionStatus(): SessionStatus
     {
         $status = self::createCompleteSessionStatus();
         $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_CONFIRMATIONMESSAGE ) );
@@ -136,7 +133,7 @@ class DummyData
     /**
      * @return SessionStatus
      */
-    public static function createUserRefusedConfirmationMessageWithVcChoiceSessionStatus()
+    public static function createUserRefusedConfirmationMessageWithVcChoiceSessionStatus(): SessionStatus
     {
         $status = self::createCompleteSessionStatus();
         $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_CONFIRMATIONMESSAGE_WITH_VC_CHOICE ) );
@@ -146,7 +143,7 @@ class DummyData
     /**
      * @return SessionStatus
      */
-    public static function createUserRefusedCertChoiceeSessionStatus()
+    public static function createUserRefusedCertChoiceeSessionStatus(): SessionStatus
     {
         $status = self::createCompleteSessionStatus();
         $status->setResult( self::createSessionResult( SessionEndResultCode::USER_REFUSED_CERT_CHOICE ) );
@@ -157,7 +154,7 @@ class DummyData
    * @param string $endResult
    * @return SessionResult
    */
-  public static function createSessionResult( $endResult )
+  public static function createSessionResult(string $endResult ): SessionResult
   {
     $result = new SessionResult();
     $result->setEndResult( $endResult );
@@ -167,7 +164,7 @@ class DummyData
   /**
    * @return SessionStatus
    */
-  private static function createCompleteSessionStatus()
+  private static function createCompleteSessionStatus(): SessionStatus
   {
     $status = new SessionStatus();
     $status->setState( SessionStatusCode::COMPLETE );

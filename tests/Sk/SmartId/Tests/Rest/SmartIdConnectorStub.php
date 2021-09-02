@@ -28,7 +28,6 @@ namespace Sk\SmartId\Tests\Rest;
 
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
-use Sk\SmartId\Api\Data\NationalIdentity;
 use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
@@ -62,19 +61,9 @@ class SmartIdConnectorStub implements SmartIdConnector
    * @param AuthenticationSessionRequest $request
    * @return AuthenticationSessionResponse
    */
-  function authenticate( $documentNumber, AuthenticationSessionRequest $request )
+  function authenticate(string $documentNumber, AuthenticationSessionRequest $request ): AuthenticationSessionResponse
   {
-    return null;
-  }
-
-  /**
-   * @param NationalIdentity $identity
-   * @param AuthenticationSessionRequest $request
-   * @return AuthenticationSessionResponse
-   */
-  function authenticateWithIdentity( NationalIdentity $identity, AuthenticationSessionRequest $request )
-  {
-    return null;
+    return new AuthenticationSessionResponse();
   }
 
   /**
@@ -82,15 +71,15 @@ class SmartIdConnectorStub implements SmartIdConnector
    * @throws SessionNotFoundException
    * @return SessionStatus
    */
-  function getSessionStatus( SessionStatusRequest $request )
+  function getSessionStatus( SessionStatusRequest $request ): SessionStatus
   {
     $this->sessionIdUsed = $request->getSessionId();
     $this->requestUsed = $request;
     return $this->responses[ $this->responseNumber++ ];
   }
 
-    function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request)
+    function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request) : AuthenticationSessionResponse
     {
-        // TODO: Implement authenticateWithSemanticsIdentifier() method.
+        return new AuthenticationSessionResponse();
     }
 }

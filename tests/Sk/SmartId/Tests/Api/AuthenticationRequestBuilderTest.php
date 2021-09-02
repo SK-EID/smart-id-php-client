@@ -42,6 +42,8 @@ use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Api\SessionStatusPoller;
 use Sk\SmartId\Exception\InvalidParametersException;
+use Sk\SmartId\Exception\TechnicalErrorException;
+use Sk\SmartId\Exception\UserRefusedException;
 use Sk\SmartId\Tests\Rest\SmartIdConnectorSpy;
 use Sk\SmartId\Tests\Setup;
 
@@ -184,7 +186,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticateWithoutDocumentNumberNorNationalIdentity_shouldThrowException()
   {
-      $this->expectException(\Sk\SmartId\Exception\InvalidParametersException::class);
+      $this->expectException(InvalidParametersException::class);
       $authenticationHash = AuthenticationHash::generate();
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withRelyingPartyName( 'relying-party-name' )
@@ -199,7 +201,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticateWithoutHash_andWithoutData_shouldThrowException()
   {
-    $this->expectException(\Sk\SmartId\Exception\InvalidParametersException::class);
+    $this->expectException(InvalidParametersException::class);
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
     ->withRelyingPartyName( 'relying-party-name' )
     ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
@@ -213,7 +215,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticateWithoutRelyingPartyUuid_shouldThrowException()
   {
-    $this->expectException(\Sk\SmartId\Exception\InvalidParametersException::class);
+    $this->expectException(InvalidParametersException::class);
     $authenticationHash = AuthenticationHash::generate();
     $this->builder->withRelyingPartyName( 'relying-party-name' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
@@ -228,7 +230,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticateWithoutRelyingPartyName_shouldThrowException()
   {
-    $this->expectException(\Sk\SmartId\Exception\InvalidParametersException::class);
+    $this->expectException(InvalidParametersException::class);
     $authenticationHash = AuthenticationHash::generate();
     $this->builder->withRelyingPartyUUID( 'relying-party-uuid' )
         ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
@@ -243,7 +245,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticate_withUserRefused_shouldThrowException()
   {
-    $this->expectException(\Sk\SmartId\Exception\UserRefusedException::class);
+    $this->expectException(UserRefusedException::class);
     $this->connector->sessionStatusToRespond = DummyData::createUserRefusedSessionStatus();
     $this->makeAuthenticationRequest();
   }
@@ -253,7 +255,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticate_withResultMissingInResponse_shouldThrowException()
   {
-    $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
+    $this->expectException(TechnicalErrorException::class);
     $this->connector->sessionStatusToRespond->setResult( null );
     $this->makeAuthenticationRequest();
   }
@@ -263,7 +265,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticate_withSignatureMissingInResponse_shouldThrowException()
   {
-    $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
+    $this->expectException(TechnicalErrorException::class);
     $this->connector->sessionStatusToRespond->setSignature( null );
     $this->makeAuthenticationRequest();
   }
@@ -273,7 +275,7 @@ class AuthenticationRequestBuilderTest extends Setup
    */
   public function authenticate_withCertificateMissingInResponse_shouldThrowException()
   {
-      $this->expectException(\Sk\SmartId\Exception\TechnicalErrorException::class);
+      $this->expectException(TechnicalErrorException::class);
       $this->connector->sessionStatusToRespond->setCert( null );
     $this->makeAuthenticationRequest();
   }
@@ -431,8 +433,8 @@ class AuthenticationRequestBuilderTest extends Setup
    * @param string $expectedHashToSignInBase64
    * @param string $expectedCertificateLevel
    */
-  private function assertCorrectAuthenticationRequestMadeWithDocumentNumber( $expectedHashToSignInBase64,
-                                                                             $expectedCertificateLevel )
+  private function assertCorrectAuthenticationRequestMadeWithDocumentNumber(string $expectedHashToSignInBase64,
+                                                                            ?string $expectedCertificateLevel )
   {
     $this->assertEquals( 'PNOEE-31111111111', $this->connector->documentNumberUsed );
     $this->assertEquals( 'relying-party-uuid',
@@ -477,7 +479,7 @@ class AuthenticationRequestBuilderTest extends Setup
   /**
    * @return SessionStatus
    */
-  private function createDummySessionStatusResponse()
+  private function createDummySessionStatusResponse(): SessionStatus
   {
     $signature = new SessionSignature();
     $signature->setValue( 'c2FtcGxlIHNpZ25hdHVyZQ0K' );
@@ -499,7 +501,7 @@ class AuthenticationRequestBuilderTest extends Setup
   /**
    * @return AuthenticationSessionResponse
    */
-  private function createDummyAuthenticationSessionResponse()
+  private function createDummyAuthenticationSessionResponse(): AuthenticationSessionResponse
   {
     $response = new AuthenticationSessionResponse();
     $response->setSessionID( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
