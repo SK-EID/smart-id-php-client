@@ -51,7 +51,7 @@ class AuthenticationIdentity
   /**
    * @return string
    */
-  public function getGivenName()
+  public function getGivenName(): string
   {
     return $this->givenName;
   }
@@ -60,7 +60,7 @@ class AuthenticationIdentity
    * @param string $givenName
    * @return $this
    */
-  public function setGivenName( $givenName )
+  public function setGivenName(string $givenName ): AuthenticationIdentity
   {
     $this->givenName = $givenName;
     return $this;
@@ -69,7 +69,7 @@ class AuthenticationIdentity
   /**
    * @return string
    */
-  public function getSurName()
+  public function getSurName(): string
   {
     return $this->surName;
   }
@@ -78,7 +78,7 @@ class AuthenticationIdentity
    * @param string $surName
    * @return $this
    */
-  public function setSurName( $surName )
+  public function setSurName(string $surName ): AuthenticationIdentity
   {
     $this->surName = $surName;
     return $this;
@@ -87,7 +87,7 @@ class AuthenticationIdentity
   /**
    * @return string
    */
-  public function getIdentityCode()
+  public function getIdentityCode(): string
   {
     return $this->identityCode;
   }
@@ -96,7 +96,7 @@ class AuthenticationIdentity
    * @param string $identityCode
    * @return $this
    */
-  public function setIdentityCode( $identityCode )
+  public function setIdentityCode(string $identityCode ): AuthenticationIdentity
   {
     $this->identityCode = $identityCode;
     return $this;
@@ -105,7 +105,7 @@ class AuthenticationIdentity
   /**
    * @return string
    */
-  public function getCountry()
+  public function getCountry(): string
   {
     return $this->country;
   }
@@ -114,7 +114,7 @@ class AuthenticationIdentity
    * @param string $country
    * @return $this
    */
-  public function setCountry( $country )
+  public function setCountry(string $country ): AuthenticationIdentity
   {
     $this->country = $country;
     return $this;

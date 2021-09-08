@@ -68,7 +68,7 @@ class Curl
    *
    * @return Curl
    */
-  public function curlGet( $url, array $params = array() )
+  public function curlGet(string $url, array $params = array() ): Curl
   {
     if ( count( $params ) )
     {
@@ -85,9 +85,9 @@ class Curl
    * @param $followLocation
    * @return Curl
    */
-  public function followLocation( $followLocation )
+  public function followLocation( $followLocation ): Curl
   {
-    $this->followLocation = ( (bool)$followLocation ? 1 : 0 );
+    $this->followLocation = ( $followLocation ? 1 : 0 );
 
     return $this;
   }
@@ -97,7 +97,7 @@ class Curl
    * @param $paramsValue
    * @return Curl
    */
-  public function setCurlParam( $paramsId, $paramsValue )
+  public function setCurlParam( $paramsId, $paramsValue ): Curl
   {
     curl_setopt( $this->curl, $paramsId, $paramsValue );
 
@@ -110,7 +110,7 @@ class Curl
    * @param null $rawData
    * @return Curl
    */
-  public function curlPost( $url, array $postData = array(), $rawData = null )
+  public function curlPost(string $url, array $postData = array(), $rawData = null ): Curl
   {
     $this->setCurlParam( CURLOPT_URL, $url );
     $this->requestMethod = self::POST;
@@ -126,7 +126,7 @@ class Curl
    * @param null $rawData
    * @return Curl
    */
-  public function curlPut( $url, array $postData = array(), $rawData = null )
+  public function curlPut(string $url, array $postData = array(), $rawData = null ): Curl
   {
     $this->setCurlParam( CURLOPT_URL, $url );
     $this->requestMethod = self::PUT;
@@ -139,7 +139,7 @@ class Curl
   /**
    * @param string $savePath
    */
-  public function download( $savePath )
+  public function download(string $savePath )
   {
     $file = fopen( $savePath, 'w' );
 
@@ -153,20 +153,18 @@ class Curl
   }
 
   /**
-   * @return mixed
+   * @return bool|string
    */
   public function fetch()
   {
     curl_setopt( $this->curl, CURLOPT_RETURNTRANSFER, 1 );
 
-    $result = $this->sendRequest();
-
-    return $result;
+      return $this->sendRequest();
   }
 
-  public function getCookies()
+  public function getCookies(): array
   {
-    $this->importCookies( true );
+    $this->importCookies();
 
     curl_setopt( $this->curl, CURLOPT_RETURNTRANSFER, 1 );
 
@@ -276,7 +274,7 @@ class Curl
   /**
    * If cookies were sent, save them
    */
-  public function exportCookies( $source )
+  public function exportCookies( $source ): array
   {
     $cookies = array();
 
@@ -291,7 +289,7 @@ class Curl
     return $cookies;
   }
 
-  public function getPostFieldsString()
+  public function getPostFieldsString(): string
   {
     if ( !empty( $this->rawData ) )
     {
@@ -305,12 +303,12 @@ class Curl
    * @param array $inputArray
    * @return string
    */
-  public function generatePostFields( array $inputArray )
+  public function generatePostFields( array $inputArray ): string
   {
     return http_build_query( $inputArray );
   }
 
-  public function generateCookies( $inputArray )
+  public function generateCookies( $inputArray ): string
   {
     $cookies = array();
 
@@ -334,7 +332,7 @@ class Curl
     }
   }
 
-  public function getCurlTimeout()
+  public function getCurlTimeout(): int
   {
     return $this->curlTimeout;
   }

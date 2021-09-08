@@ -40,35 +40,35 @@ class Interaction
     }
 
 
-    public static function ofTypeDisplayTextAndPIN(string $displayText60)
+    public static function ofTypeDisplayTextAndPIN(string $displayText60): Interaction
     {
         $interaction = new Interaction(self::$displayTextAndPINInteractionFlow);
         $interaction->displayText60 = $displayText60;
         return $interaction;
     }
 
-    public static function ofTypeVerificationCodeChoice(string $displayText60)
+    public static function ofTypeVerificationCodeChoice(string $displayText60): Interaction
     {
         $interaction = new Interaction(self::$verificationCodeChoiceInteractionFlow);
         $interaction->displayText60 = $displayText60;
         return $interaction;
     }
 
-    public static function ofTypeConfirmationMessage(string $displayText200)
+    public static function ofTypeConfirmationMessage(string $displayText200): Interaction
     {
         $interaction = new Interaction(self::$confirmationMessageInteractionFlow);
         $interaction->displayText200 = $displayText200;
         return $interaction;
     }
 
-    public static function ofTypeConfirmationMessageAndVerificationCodeChoice(string $displayText200)
+    public static function ofTypeConfirmationMessageAndVerificationCodeChoice(string $displayText200): Interaction
     {
         $interaction = new Interaction(self::$confirmationMessageAndVerificationCodeChoiceInteractionFlow);
         $interaction->displayText200 = $displayText200;
         return $interaction;
     }
 
-    public function toArray()
+    public function toArray(): array
     {
         $interaction = array(
             "type" => $this->type

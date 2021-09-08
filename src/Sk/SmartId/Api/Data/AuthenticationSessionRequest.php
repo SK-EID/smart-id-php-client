@@ -71,7 +71,7 @@ class AuthenticationSessionRequest
   /**
    * @return string
    */
-  public function getRelyingPartyUUID()
+  public function getRelyingPartyUUID(): string
   {
     return $this->relyingPartyUUID;
   }
@@ -80,7 +80,7 @@ class AuthenticationSessionRequest
    * @param string $relyingPartyUUID
    * @return $this
    */
-  public function setRelyingPartyUUID( $relyingPartyUUID )
+  public function setRelyingPartyUUID(string $relyingPartyUUID ): AuthenticationSessionRequest
   {
     $this->relyingPartyUUID = $relyingPartyUUID;
     return $this;
@@ -89,7 +89,7 @@ class AuthenticationSessionRequest
   /**
    * @return string
    */
-  public function getRelyingPartyName()
+  public function getRelyingPartyName(): string
   {
     return $this->relyingPartyName;
   }
@@ -98,7 +98,7 @@ class AuthenticationSessionRequest
    * @param string $relyingPartyName
    * @return $this
    */
-  public function setRelyingPartyName( $relyingPartyName )
+  public function setRelyingPartyName(string $relyingPartyName ): AuthenticationSessionRequest
   {
     $this->relyingPartyName = $relyingPartyName;
     return $this;
@@ -107,16 +107,16 @@ class AuthenticationSessionRequest
   /**
    * @return string
    */
-  public function getNetworkInterface()
+  public function getNetworkInterface(): string
   {
     return $this->networkInterface;
   }
 
   /**
-   * @param string $networkInterface
+   * @param string|null $networkInterface
    * @return $this
    */
-  public function setNetworkInterface( $networkInterface )
+  public function setNetworkInterface(?string $networkInterface ): AuthenticationSessionRequest
   {
     $this->networkInterface = $networkInterface;
     return $this;
@@ -125,16 +125,16 @@ class AuthenticationSessionRequest
   /**
    * @return string
    */
-  public function getCertificateLevel()
+  public function getCertificateLevel(): ?string
   {
     return $this->certificateLevel;
   }
 
   /**
-   * @param string $certificateLevel
+   * @param string|null $certificateLevel
    * @return $this
    */
-  public function setCertificateLevel( $certificateLevel )
+  public function setCertificateLevel(?string $certificateLevel ): AuthenticationSessionRequest
   {
     $this->certificateLevel = $certificateLevel;
     return $this;
@@ -143,7 +143,7 @@ class AuthenticationSessionRequest
   /**
    * @return string
    */
-  public function getHash()
+  public function getHash(): string
   {
     return $this->hash;
   }
@@ -152,7 +152,7 @@ class AuthenticationSessionRequest
    * @param string $hash
    * @return $this
    */
-  public function setHash( $hash )
+  public function setHash(string $hash ): AuthenticationSessionRequest
   {
     $this->hash = $hash;
     return $this;
@@ -161,7 +161,7 @@ class AuthenticationSessionRequest
   /**
    * @return string
    */
-  public function getHashType()
+  public function getHashType(): string
   {
     return $this->hashType;
   }
@@ -170,7 +170,7 @@ class AuthenticationSessionRequest
    * @param string $hashType
    * @return $this
    */
-  public function setHashType( $hashType )
+  public function setHashType(string $hashType ): AuthenticationSessionRequest
   {
     $this->hashType = $hashType;
     return $this;
@@ -179,16 +179,16 @@ class AuthenticationSessionRequest
   /**
    * @return string
    */
-  public function getNonce()
+  public function getNonce(): string
   {
     return $this->nonce;
   }
 
   /**
-   * @param string $nonce
+   * @param string|null $nonce
    * @return $this
    */
-  public function setNonce( $nonce )
+  public function setNonce(?string $nonce ): AuthenticationSessionRequest
   {
     $this->nonce = $nonce;
     return $this;
@@ -202,10 +202,11 @@ class AuthenticationSessionRequest
         return $this->allowedInteractionsOrder;
     }
 
-    /**
-     * @param array $allowedInteractionsOrder
-     */
-    public function setAllowedInteractionsOrder(array $allowedInteractionsOrder)
+  /**
+   * @param array|null $allowedInteractionsOrder
+   * @return AuthenticationSessionRequest
+   */
+    public function setAllowedInteractionsOrder(?array $allowedInteractionsOrder): AuthenticationSessionRequest
     {
         $this->allowedInteractionsOrder = $allowedInteractionsOrder;
         return $this;
@@ -216,7 +217,7 @@ class AuthenticationSessionRequest
   /**
    * @return array
    */
-  public function toArray()
+  public function toArray(): array
   {
     $requiredArray = array(
         'relyingPartyUUID' => $this->relyingPartyUUID,
@@ -249,7 +250,7 @@ class AuthenticationSessionRequest
     return $requiredArray;
   }
 
-  private static function mapInteractionToArray(Interaction $interaction)
+  private static function mapInteractionToArray(Interaction $interaction): array
   {
       return $interaction->toArray();
   }

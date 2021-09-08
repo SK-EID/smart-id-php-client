@@ -83,7 +83,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return string
    */
-  public function getEndResult()
+  public function getEndResult(): ?string
   {
     return $this->endResult;
   }
@@ -92,7 +92,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
    * @param string $endResult
    * @return $this
    */
-  public function setEndResult( $endResult )
+  public function setEndResult(string $endResult ): SmartIdAuthenticationResponse
   {
     $this->endResult = $endResult;
     return $this;
@@ -101,7 +101,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return string
    */
-  public function getSignedData()
+  public function getSignedData(): string
   {
     return $this->signedData;
   }
@@ -110,7 +110,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
    * @param string $signedData
    * @return $this
    */
-  public function setSignedData( $signedData )
+  public function setSignedData(string $signedData ): SmartIdAuthenticationResponse
   {
     $this->signedData = $signedData;
     return $this;
@@ -119,16 +119,16 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return string
    */
-  public function getValueInBase64()
+  public function getValueInBase64(): string
   {
     return $this->valueInBase64;
   }
 
   /**
-   * @param string $valueInBase64
+   * @param string|null $valueInBase64
    * @return $this
    */
-  public function setValueInBase64( $valueInBase64 )
+  public function setValueInBase64(?string $valueInBase64 ): SmartIdAuthenticationResponse
   {
     $this->valueInBase64 = $valueInBase64;
     return $this;
@@ -137,16 +137,16 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return string
    */
-  public function getAlgorithmName()
+  public function getAlgorithmName(): string
   {
     return $this->algorithmName;
   }
 
   /**
-   * @param string $algorithmName
+   * @param string|null $algorithmName
    * @return $this
    */
-  public function setAlgorithmName( $algorithmName )
+  public function setAlgorithmName(?string $algorithmName ): SmartIdAuthenticationResponse
   {
     $this->algorithmName = $algorithmName;
     return $this;
@@ -155,7 +155,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return string
    */
-  public function getCertificate()
+  public function getCertificate(): ?string
   {
     return $this->certificate;
   }
@@ -163,7 +163,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return array
    */
-  public function getParsedCertificate()
+  public function getParsedCertificate(): array
   {
     return CertificateParser::parseX509Certificate( $this->certificate );
   }
@@ -171,17 +171,17 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return AuthenticationCertificate
    */
-  public function getCertificateInstance()
+  public function getCertificateInstance(): AuthenticationCertificate
   {
     $parsed = CertificateParser::parseX509Certificate( $this->certificate );
     return new AuthenticationCertificate( $parsed );
   }
 
   /**
-   * @param string $certificate
+   * @param string|null $certificate
    * @return $this
    */
-  public function setCertificate( $certificate )
+  public function setCertificate(?string $certificate ): SmartIdAuthenticationResponse
   {
     $this->certificate = $certificate;
     return $this;
@@ -190,16 +190,16 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return string
    */
-  public function getCertificateLevel()
+  public function getCertificateLevel(): string
   {
     return $this->certificateLevel;
   }
 
   /**
-   * @param string $certificateLevel
+   * @param string|null $certificateLevel
    * @return $this
    */
-  public function setCertificateLevel( $certificateLevel )
+  public function setCertificateLevel(?string $certificateLevel ): SmartIdAuthenticationResponse
   {
     $this->certificateLevel = $certificateLevel;
     return $this;
@@ -208,16 +208,16 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return string
    */
-  public function getRequestedCertificateLevel()
+  public function getRequestedCertificateLevel(): ?string
   {
     return $this->requestedCertificateLevel;
   }
 
   /**
-   * @param string $requestedCertificateLevel
+   * @param string|null $requestedCertificateLevel
    * @return $this
    */
-  public function setRequestedCertificateLevel( $requestedCertificateLevel )
+  public function setRequestedCertificateLevel(?string $requestedCertificateLevel ): SmartIdAuthenticationResponse
   {
     $this->requestedCertificateLevel = $requestedCertificateLevel;
     return $this;
@@ -227,7 +227,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
    * @throws TechnicalErrorException
    * @return string
    */
-  public function getValue()
+  public function getValue(): string
   {
     if ( base64_decode( $this->valueInBase64, true ) === false )
     {
@@ -241,7 +241,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
    * @param string $state
    * @return $this
    */
-  public function setState( $state )
+  public function setState(string $state ): SmartIdAuthenticationResponse
   {
     $this->state = $state;
     return $this;
@@ -250,23 +250,16 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return string
    */
-  public function getState()
+  public function getState(): string
   {
     return $this->state;
   }
 
-  /**
-   * @return array
-   */
-  public function getIgnoredProperties(): ?array
-  {
-      return $this->ignoredProperties;
-  }
-
-  /**
-   * @param array $ignoredProperties
-   */
-  public function setIgnoredProperties(?array $ignoredProperties)
+    /**
+     * @param array|null $ignoredProperties
+     * @return SmartIdAuthenticationResponse
+     */
+  public function setIgnoredProperties(?array $ignoredProperties): SmartIdAuthenticationResponse
   {
       $this->ignoredProperties = $ignoredProperties;
       return $this;
@@ -280,10 +273,11 @@ class SmartIdAuthenticationResponse extends PropertyMapper
       return $this->interactionFlowUsed;
   }
 
-  /**
-   * @param string $interactionFlowUsed
-   */
-  public function setInteractionFlowUsed(string $interactionFlowUsed)
+    /**
+     * @param string $interactionFlowUsed
+     * @return SmartIdAuthenticationResponse
+     */
+  public function setInteractionFlowUsed(string $interactionFlowUsed): SmartIdAuthenticationResponse
   {
       $this->interactionFlowUsed = $interactionFlowUsed;
       return $this;
@@ -292,7 +286,7 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   /**
    * @return bool
    */
-  public function isRunningState()
+  public function isRunningState(): bool
   {
     return strcasecmp( SessionStatusCode::RUNNING, $this->state ) == 0;
   }

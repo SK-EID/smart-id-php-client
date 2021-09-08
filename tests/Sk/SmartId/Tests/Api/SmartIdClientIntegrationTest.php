@@ -166,6 +166,8 @@ class SmartIdClientIntegrationTest extends Setup
         ->withAuthenticationHash( $authenticationHash )
         ->getAuthenticationResponse();
 
+    echo $authenticationResponse->getEndResult();
+
     $this->assertNotNull( $authenticationResponse );
     $this->assertTrue( $authenticationResponse->isRunningState() );
   }

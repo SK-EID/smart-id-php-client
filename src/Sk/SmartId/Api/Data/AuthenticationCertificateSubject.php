@@ -66,7 +66,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
   /**
    * @return string
    */
-  public function getC()
+  public function getC(): string
   {
     return $this->C;
   }
@@ -75,7 +75,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
    * @param string $C
    * @return $this
    */
-  public function setC( $C )
+  public function setC(string $C ): AuthenticationCertificateSubject
   {
     $this->C = $C;
     return $this;
@@ -84,7 +84,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
   /**
    * @return string
    */
-  public function getO()
+  public function getO(): string
   {
     return $this->O;
   }
@@ -93,7 +93,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
    * @param string $O
    * @return $this
    */
-  public function setO( $O )
+  public function setO(string $O ): AuthenticationCertificateSubject
   {
     $this->O = $O;
     return $this;
@@ -102,7 +102,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
   /**
    * @return string
    */
-  public function getOU()
+  public function getOU(): string
   {
     return $this->OU;
   }
@@ -111,7 +111,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
    * @param string $OU
    * @return $this
    */
-  public function setOU( $OU )
+  public function setOU(string $OU ): AuthenticationCertificateSubject
   {
     $this->OU = $OU;
     return $this;
@@ -120,7 +120,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
   /**
    * @return string
    */
-  public function getCN()
+  public function getCN(): string
   {
     return $this->CN;
   }
@@ -129,7 +129,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
    * @param string $CN
    * @return $this
    */
-  public function setCN( $CN )
+  public function setCN(string $CN ): AuthenticationCertificateSubject
   {
     $this->CN = $CN;
     return $this;
@@ -138,7 +138,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
   /**
    * @return string
    */
-  public function getSN()
+  public function getSN(): string
   {
     return $this->SN;
   }
@@ -147,7 +147,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
    * @param string $SN
    * @return $this
    */
-  public function setSN( $SN )
+  public function setSN(string $SN ): AuthenticationCertificateSubject
   {
     $this->SN = $SN;
     return $this;
@@ -156,7 +156,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
   /**
    * @return string
    */
-  public function getGN()
+  public function getGN(): string
   {
     return $this->GN;
   }
@@ -165,7 +165,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
    * @param string $GN
    * @return $this
    */
-  public function setGN( $GN )
+  public function setGN(string $GN ): AuthenticationCertificateSubject
   {
     $this->GN = $GN;
     return $this;
@@ -174,7 +174,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
   /**
    * @return string
    */
-  public function getSerialNumber()
+  public function getSerialNumber(): string
   {
     return $this->serialNumber;
   }
@@ -183,7 +183,7 @@ class AuthenticationCertificateSubject extends PropertyMapper
    * @param string $serialNumber
    * @return $this
    */
-  public function setSerialNumber( $serialNumber )
+  public function setSerialNumber(string $serialNumber ): AuthenticationCertificateSubject
   {
     $this->serialNumber = $serialNumber;
     return $this;

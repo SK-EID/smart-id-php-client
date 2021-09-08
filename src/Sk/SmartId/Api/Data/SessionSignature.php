@@ -41,7 +41,7 @@ class SessionSignature extends PropertyMapper
   /**
    * @return string
    */
-  public function getAlgorithm()
+  public function getAlgorithm(): ?string
   {
     return $this->algorithm;
   }
@@ -50,7 +50,7 @@ class SessionSignature extends PropertyMapper
    * @param string $algorithm
    * @return $this
    */
-  public function setAlgorithm( $algorithm )
+  public function setAlgorithm(string $algorithm ): SessionSignature
   {
     $this->algorithm = $algorithm;
     return $this;
@@ -59,7 +59,7 @@ class SessionSignature extends PropertyMapper
   /**
    * @return string
    */
-  public function getValue()
+  public function getValue(): ?string
   {
     return $this->value;
   }
@@ -68,7 +68,7 @@ class SessionSignature extends PropertyMapper
    * @param string $value
    * @return $this
    */
-  public function setValue( $value )
+  public function setValue(string $value ): SessionSignature
   {
     $this->value = $value;
     return $this;

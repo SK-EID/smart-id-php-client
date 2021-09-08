@@ -52,7 +52,7 @@ class SmartIdAuthenticationResult
   /**
    * @return AuthenticationIdentity
    */
-  public function getAuthenticationIdentity()
+  public function getAuthenticationIdentity(): AuthenticationIdentity
   {
     return $this->authenticationIdentity;
   }
@@ -61,7 +61,7 @@ class SmartIdAuthenticationResult
    * @param AuthenticationIdentity $authenticationIdentity
    * @return $this
    */
-  public function setAuthenticationIdentity( AuthenticationIdentity $authenticationIdentity )
+  public function setAuthenticationIdentity( AuthenticationIdentity $authenticationIdentity ): SmartIdAuthenticationResult
   {
     $this->authenticationIdentity = $authenticationIdentity;
     return $this;
@@ -70,7 +70,7 @@ class SmartIdAuthenticationResult
   /**
    * @return bool
    */
-  public function isValid()
+  public function isValid(): bool
   {
     return $this->valid;
   }
@@ -79,7 +79,7 @@ class SmartIdAuthenticationResult
    * @param boolean $valid
    * @return $this
    */
-  public function setValid( $valid )
+  public function setValid(bool $valid ): SmartIdAuthenticationResult
   {
     $this->valid = $valid;
     return $this;
@@ -89,7 +89,7 @@ class SmartIdAuthenticationResult
    * @param string $error
    * @return $this
    */
-  public function addError( $error )
+  public function addError(string $error ): SmartIdAuthenticationResult
   {
     $this->errors[] = $error;
     return $this;
@@ -98,7 +98,7 @@ class SmartIdAuthenticationResult
   /**
    * @return array
    */
-  public function getErrors()
+  public function getErrors(): array
   {
     return $this->errors;
   }

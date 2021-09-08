@@ -51,7 +51,7 @@ class AuthenticationCertificateIssuer extends PropertyMapper
   /**
    * @return string
    */
-  public function getC()
+  public function getC(): string
   {
     return $this->C;
   }
@@ -60,7 +60,7 @@ class AuthenticationCertificateIssuer extends PropertyMapper
    * @param string $C
    * @return $this
    */
-  public function setC( $C )
+  public function setC(string $C ): AuthenticationCertificateIssuer
   {
     $this->C = $C;
     return $this;
@@ -69,7 +69,7 @@ class AuthenticationCertificateIssuer extends PropertyMapper
   /**
    * @return string
    */
-  public function getO()
+  public function getO(): string
   {
     return $this->O;
   }
@@ -78,7 +78,7 @@ class AuthenticationCertificateIssuer extends PropertyMapper
    * @param string $O
    * @return $this
    */
-  public function setO( $O )
+  public function setO(string $O ): AuthenticationCertificateIssuer
   {
     $this->O = $O;
     return $this;
@@ -87,7 +87,7 @@ class AuthenticationCertificateIssuer extends PropertyMapper
   /**
    * @return string
    */
-  public function getUNDEF()
+  public function getUNDEF(): string
   {
     return $this->UNDEF;
   }
@@ -96,7 +96,7 @@ class AuthenticationCertificateIssuer extends PropertyMapper
    * @param string $UNDEF
    * @return $this
    */
-  public function setUNDEF( $UNDEF )
+  public function setUNDEF(string $UNDEF ): AuthenticationCertificateIssuer
   {
     $this->UNDEF = $UNDEF;
     return $this;
@@ -105,7 +105,7 @@ class AuthenticationCertificateIssuer extends PropertyMapper
   /**
    * @return string
    */
-  public function getCN()
+  public function getCN(): string
   {
     return $this->CN;
   }
@@ -114,7 +114,7 @@ class AuthenticationCertificateIssuer extends PropertyMapper
    * @param string $CN
    * @return $this
    */
-  public function setCN( $CN )
+  public function setCN(string $CN ): AuthenticationCertificateIssuer
   {
     $this->CN = $CN;
     return $this;

@@ -41,7 +41,7 @@ class VerificationCodeCalculator
    * @param string $documentHash
    * @return string
    */
-  public static function calculate( $documentHash )
+  public static function calculate(string $documentHash ): string
   {
     $digest = DigestCalculator::calculateDigest( $documentHash, HashType::SHA256 );
     $twoRightmostBytes = substr( $digest, -2 );

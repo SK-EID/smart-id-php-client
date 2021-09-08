@@ -71,7 +71,7 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param string $endpointUrl
    */
-  public function __construct( $endpointUrl )
+  public function __construct(string $endpointUrl )
   {
     $this->endpointUrl = $endpointUrl;
   }
@@ -80,7 +80,7 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param string $documentNumber
    * @param AuthenticationSessionRequest $request
    * @return AuthenticationSessionResponse
-   *@throws Exception
+   * @throws Exception
    */
   public function authenticate(string $documentNumber, AuthenticationSessionRequest $request ): AuthenticationSessionResponse
   {
@@ -118,8 +118,7 @@ class SmartIdRestConnector implements SmartIdConnector
     $url = str_replace( '{sessionId}', $request->getSessionId(), $url );
     try
     {
-      $sessionStatus = $this->getRequest( $url, $request->toArray(), 'Sk\SmartId\Api\Data\SessionStatus' );
-      return $sessionStatus;
+        return $this->getRequest( $url, $request->toArray(), 'Sk\SmartId\Api\Data\SessionStatus' );
     }
     catch ( NotFoundException $e )
     {
@@ -130,11 +129,11 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param string $url
    * @param AuthenticationSessionRequest $request
-   * @throws UserAccountNotFoundException
-   * @throws Exception
    * @return AuthenticationSessionResponse
+   * @throws Exception
+   * @throws UserAccountNotFoundException
    */
-  private function postAuthenticationRequest( $url, AuthenticationSessionRequest $request )
+  private function postAuthenticationRequest(string $url, AuthenticationSessionRequest $request ): AuthenticationSessionResponse
   {
     try
     {
@@ -146,14 +145,16 @@ class SmartIdRestConnector implements SmartIdConnector
     }
   }
 
+  // TODO signature status request response type?
+
   /**
    * @param string $url
    * @param array $params
    * @param string $responseType
-   * @throws Exception
    * @return mixed
+   * @throws Exception
    */
-  private function postRequest( $url, array $params, $responseType )
+  private function postRequest(string $url, array $params, string $responseType )
   {
     $this->curl = new Curl();
     $this->curl->setPublicSslKeys($this->publicSslKeys);
@@ -167,10 +168,10 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param string $url
    * @param array $params
    * @param string $responseType
-   * @throws Exception
    * @return mixed
+   * @throws Exception
    */
-  private function getRequest( $url, array $params, $responseType )
+  private function getRequest(string $url, array $params, string $responseType )
   {
     $this->curl = new Curl();
     $this->curl->setPublicSslKeys($this->publicSslKeys);
@@ -182,11 +183,11 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param string $url
    * @param string $responseType
-   * @throws SmartIdException
-   * @throws NotFoundException
    * @return mixed
+   * @throws NotFoundException
+   * @throws SmartIdException
    */
-  private function request( $url, $responseType )
+  private function request(string $url, string $responseType )
   {
     $rawResponse = $this->curl->fetch();
 
@@ -209,9 +210,7 @@ class SmartIdRestConnector implements SmartIdConnector
       throw new NotFoundException( 'User account not found for URI ' . $url );
     }
 
-    $response = $this->getResponse( $rawResponse, $responseType );
-
-    return $response;
+      return $this->getResponse( $rawResponse, $responseType );
   }
 
   /**
@@ -219,7 +218,7 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param string $responseType
    * @return mixed
    */
-  private function getResponse( $rawResponse, $responseType )
+  private function getResponse(string $rawResponse, string $responseType )
   {
     $preparedResponse = json_decode( $rawResponse, true );
     return new $responseType( $preparedResponse );

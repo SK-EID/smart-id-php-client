@@ -42,11 +42,11 @@ interface SmartIdConnector
    */
   function authenticate(string $documentNumber, AuthenticationSessionRequest $request ): AuthenticationSessionResponse;
 
-    /**
-     * @param SemanticsIdentifier $semanticsIdentifier
-     * @param AuthenticationSessionRequest $request
-     * @return AuthenticationSessionResponse
-     */
+  /**
+   * @param SemanticsIdentifier $semanticsIdentifier
+   * @param AuthenticationSessionRequest $request
+   * @return AuthenticationSessionResponse
+   */
   function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request): AuthenticationSessionResponse;
 
   /**
