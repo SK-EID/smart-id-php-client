@@ -22,25 +22,25 @@ class SemanticsIdentifierBuilder
      */
     private $identifier;
 
-    public function withsemanticsIdentifierType(string $semanticsIdentifierType)
+    public function withSemanticsIdentifierType(string $semanticsIdentifierType): SemanticsIdentifierBuilder
     {
         $this->semanticsIdentifierType = $semanticsIdentifierType;
         return $this;
     }
 
-    public function withCountryCode(string $countryCode)
+    public function withCountryCode(string $countryCode): SemanticsIdentifierBuilder
     {
         $this->countryCode = $countryCode;
         return $this;
     }
 
-    public function withIdentifier(string $identityNumber)
+    public function withIdentifier(string $identityNumber): SemanticsIdentifierBuilder
     {
         $this->identifier = $identityNumber;
         return $this;
     }
 
-    public function build()
+    public function build(): SemanticsIdentifier
     {
         return SemanticsIdentifier::fromString($this->semanticsIdentifierType.$this->countryCode.'-'.$this->identifier);
     }

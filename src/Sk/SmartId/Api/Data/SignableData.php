@@ -41,7 +41,7 @@ class SignableData
   /**
    * @param string $dataToSign
    */
-  public function __construct( $dataToSign )
+  public function __construct(string $dataToSign )
   {
     $this->dataToSign = $dataToSign;
   }
@@ -49,7 +49,7 @@ class SignableData
   /**
    * @return string
    */
-  public function calculateHashInBase64()
+  public function calculateHashInBase64(): string
   {
     $digest = $this->calculateHash();
     return base64_encode( $digest );
@@ -58,7 +58,7 @@ class SignableData
   /**
    * @return string
    */
-  public function calculateHash()
+  public function calculateHash(): string
   {
     return DigestCalculator::calculateDigest( $this->dataToSign, $this->hashType );
   }
@@ -67,7 +67,7 @@ class SignableData
    * @param string $hashType
    * @return $this
    */
-  public function setHashType( $hashType )
+  public function setHashType(string $hashType ): SignableData
   {
     $this->hashType = $hashType;
     return $this;
@@ -76,7 +76,7 @@ class SignableData
   /**
    * @return string
    */
-  public function getHashType()
+  public function getHashType(): string
   {
     return $this->hashType;
   }
@@ -84,7 +84,7 @@ class SignableData
   /**
    * @return bool
    */
-  public function areFieldsFilled()
+  public function areFieldsFilled(): bool
   {
     return isset( $this->hashType )
            && isset( $this->dataToSign )
@@ -95,7 +95,7 @@ class SignableData
   /**
    * @return string
    */
-  public function getDataToSign()
+  public function getDataToSign(): string
   {
     return $this->dataToSign;
   }

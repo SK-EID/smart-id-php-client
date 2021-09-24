@@ -33,8 +33,8 @@ use Sk\SmartId\Api\Authentication;
 
 class Client
 {
-  const
-          VERSION = '5.0';
+    // THIS NEEDS TO REFLECT THE CURRENT smart-id-php-client version
+  const VERSION = '2.1';
 
   /**
    * @var array
@@ -63,10 +63,10 @@ class Client
 
   /**
    * @param string $apiName
-   * @throws InvalidArgumentException
    * @return AbstractApi
+   * @throws InvalidArgumentException
    */
-  public function api( $apiName )
+  public function api( string $apiName )
   {
     switch ( $apiName )
     {
@@ -85,7 +85,7 @@ class Client
   /**
    * @return Authentication
    */
-  public function authentication()
+  public function authentication(): Authentication
   {
     if ( !isset( $this->apis['authentication'] ) )
     {
@@ -99,7 +99,7 @@ class Client
    * @param string $relyingPartyUUID
    * @return $this
    */
-  public function setRelyingPartyUUID( $relyingPartyUUID )
+  public function setRelyingPartyUUID(string $relyingPartyUUID ): Client
   {
     $this->relyingPartyUUID = $relyingPartyUUID;
 
@@ -109,7 +109,7 @@ class Client
   /**
    * @return string
    */
-  public function getRelyingPartyUUID()
+  public function getRelyingPartyUUID(): string
   {
     return $this->relyingPartyUUID;
   }
@@ -118,7 +118,7 @@ class Client
    * @param string $relyingPartyName
    * @return $this
    */
-  public function setRelyingPartyName( $relyingPartyName )
+  public function setRelyingPartyName(string $relyingPartyName ): Client
   {
     $this->relyingPartyName = $relyingPartyName;
 
@@ -128,7 +128,7 @@ class Client
   /**
    * @return string
    */
-  public function getRelyingPartyName()
+  public function getRelyingPartyName(): string
   {
     return $this->relyingPartyName;
   }
@@ -137,7 +137,7 @@ class Client
    * @param string $hostUrl
    * @return $this
    */
-  public function setHostUrl( $hostUrl )
+  public function setHostUrl(string $hostUrl ): Client
   {
     $this->hostUrl = $hostUrl;
 
@@ -147,19 +147,19 @@ class Client
   /**
    * @return string
    */
-  public function getHostUrl()
+  public function getHostUrl(): string
   {
     return $this->hostUrl;
   }
 
-  public function setPublicSslKeys(string $sslKeys)
+  public function setPublicSslKeys(string $sslKeys): Client
   {
       $this->sslKeys = $sslKeys;
 
       return $this;
   }
 
-  public function getPublicSslKeys()
+  public function getPublicSslKeys(): ?string
   {
       return $this->sslKeys;
   }

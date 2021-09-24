@@ -37,7 +37,7 @@ class AuthenticationHash extends SignableData
    * @param string $hashType
    * @return AuthenticationHash
    */
-  public static function generateRandomHash( $hashType )
+  public static function generateRandomHash(string $hashType ): AuthenticationHash
   {
     $authenticationHash = new AuthenticationHash( self::getRandomBytes() );
     $authenticationHash->setHashType( $hashType );
@@ -48,7 +48,7 @@ class AuthenticationHash extends SignableData
   /**
    * @return AuthenticationHash
    */
-  public static function generate()
+  public static function generate(): AuthenticationHash
   {
     return self::generateRandomHash( HashType::SHA512 );
   }
@@ -56,7 +56,7 @@ class AuthenticationHash extends SignableData
   /**
    * @return string
    */
-  private static function getRandomBytes()
+  private static function getRandomBytes(): string
   {
     return openssl_random_pseudo_bytes( 64 );
   }
@@ -65,7 +65,7 @@ class AuthenticationHash extends SignableData
    * @param string $hash
    * @return $this
    */
-  public function setHash( $hash )
+  public function setHash(string $hash ): AuthenticationHash
   {
     $this->hash = $hash;
     return $this;
@@ -74,7 +74,7 @@ class AuthenticationHash extends SignableData
   /**
    * @return string
    */
-  public function getHash()
+  public function getHash(): string
   {
     return $this->hash;
   }
@@ -82,7 +82,7 @@ class AuthenticationHash extends SignableData
   /**
    * @return string
    */
-  public function calculateVerificationCode()
+  public function calculateVerificationCode(): string
   {
     return VerificationCodeCalculator::calculate( $this->hash );
   }

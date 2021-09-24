@@ -36,6 +36,8 @@ use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResultError;
 use Sk\SmartId\Exception\TechnicalErrorException;
+use Sk\SmartId\Util\CertificateAttributeUtil;
+use Sk\SmartId\Util\NationalIdentityNumberUtil;
 
 class AuthenticationResponseValidator
 {
@@ -47,7 +49,7 @@ class AuthenticationResponseValidator
   /**
    * @param string|null $resourcesLocation
    */
-  public function __construct( $resourcesLocation = null )
+  public function __construct(string $resourcesLocation = null )
   {
     if ( $resourcesLocation === null )
     {
@@ -61,13 +63,12 @@ class AuthenticationResponseValidator
   /**
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @return SmartIdAuthenticationResult
-   * @throws \ReflectionException
    */
-  public function validate( SmartIdAuthenticationResponse $authenticationResponse )
+  public function validate( SmartIdAuthenticationResponse $authenticationResponse ): SmartIdAuthenticationResult
   {
     $this->validateAuthenticationResponse( $authenticationResponse );
     $authenticationResult = new SmartIdAuthenticationResult();
-    $identity = $this->constructAuthenticationIdentity( $authenticationResponse->getCertificateInstance() );
+    $identity = $this->constructAuthenticationIdentity( $authenticationResponse->getCertificateInstance(), $authenticationResponse->getCertificate() );
     $authenticationResult->setAuthenticationIdentity( $identity );
     if ( !$this->verifyResponseEndResult( $authenticationResponse ) )
     {
@@ -121,7 +122,7 @@ class AuthenticationResponseValidator
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @return bool
    */
-  private function verifyResponseEndResult( SmartIdAuthenticationResponse $authenticationResponse )
+  private function verifyResponseEndResult( SmartIdAuthenticationResponse $authenticationResponse ): bool
   {
     return strcasecmp( SessionEndResultCode::OK, $authenticationResponse->getEndResult() ) === 0;
   }
@@ -130,7 +131,7 @@ class AuthenticationResponseValidator
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @return bool
    */
-  private function verifySignature( SmartIdAuthenticationResponse $authenticationResponse )
+  private function verifySignature( SmartIdAuthenticationResponse $authenticationResponse ): bool
   {
     $preparedCertificate = CertificateParser::getPemCertificate( $authenticationResponse->getCertificate() );
     $signature = $authenticationResponse->getValue();
@@ -147,7 +148,7 @@ class AuthenticationResponseValidator
    * @param AuthenticationCertificate $authenticationCertificate
    * @return bool
    */
-  private function verifyCertificateExpiry( AuthenticationCertificate $authenticationCertificate )
+  private function verifyCertificateExpiry( AuthenticationCertificate $authenticationCertificate ): bool
   {
     return $authenticationCertificate !== null && $authenticationCertificate->getValidTo() > time();
   }
@@ -156,21 +157,21 @@ class AuthenticationResponseValidator
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @return bool
    */
-  private function verifyCertificateLevel( SmartIdAuthenticationResponse $authenticationResponse )
+  private function verifyCertificateLevel( SmartIdAuthenticationResponse $authenticationResponse ): bool
   {
     $certLevel = new CertificateLevel( $authenticationResponse->getCertificateLevel() );
     $requestedCertificateLevel = $authenticationResponse->getRequestedCertificateLevel();
-    return ( empty( $requestedCertificateLevel ) ? true : $certLevel->isEqualOrAbove( $requestedCertificateLevel ) );
+    return empty($requestedCertificateLevel) || $certLevel->isEqualOrAbove($requestedCertificateLevel);
   }
 
   /**
    * @param AuthenticationCertificate $certificate
    * @return AuthenticationIdentity
-   * @throws \ReflectionException
    */
-  private function constructAuthenticationIdentity( AuthenticationCertificate $certificate )
+  function constructAuthenticationIdentity( AuthenticationCertificate $certificate, string $x509certificate ): AuthenticationIdentity
   {
     $identity = new AuthenticationIdentity();
+    $identity->setAuthCertificate($x509certificate);
     $subject = $certificate->getSubject();
     $subjectReflection = new ReflectionClass( $subject );
 
@@ -187,7 +188,9 @@ class AuthenticationResponseValidator
       }
       elseif ( strcasecmp( $property->getName(), 'SERIALNUMBER' ) === 0 )
       {
-        $identity->setIdentityCode( $property->getValue( $subject ) );
+        $serialNumberValue = $property->getValue($subject);
+        $identity->setIdentityCode($serialNumberValue);
+        $identity->setIdentityNumber( explode('-', $serialNumberValue, 2)[1] );
       }
       elseif ( strcasecmp( $property->getName(), 'C' ) === 0 )
       {
@@ -195,13 +198,15 @@ class AuthenticationResponseValidator
       }
     }
 
+    $identity->setDateOfBirth(self::getDateOfBirth($identity));
+
     return $identity;
   }
 
   /**
    * @param string $resourcesLocation
    */
-  private function initializeTrustedCACertificatesFromResources( $resourcesLocation )
+  private function initializeTrustedCACertificatesFromResources(string $resourcesLocation )
   {
     foreach ( new DirectoryIterator( $resourcesLocation . '/trusted_certificates' ) as $certificateFile )
     {
@@ -216,7 +221,7 @@ class AuthenticationResponseValidator
    * @param string $certificateFileLocation
    * @return $this
    */
-  public function addTrustedCACertificateLocation( $certificateFileLocation )
+  public function addTrustedCACertificateLocation(string $certificateFileLocation ): AuthenticationResponseValidator
   {
     $this->trustedCACertificates[] = $certificateFileLocation;
     return $this;
@@ -225,7 +230,7 @@ class AuthenticationResponseValidator
   /**
    * @return array
    */
-  public function getTrustedCACertificates()
+  public function getTrustedCACertificates(): array
   {
     return $this->trustedCACertificates;
   }
@@ -233,7 +238,7 @@ class AuthenticationResponseValidator
   /**
    * @return $this
    */
-  public function clearTrustedCACertificates()
+  public function clearTrustedCACertificates(): AuthenticationResponseValidator
   {
     $this->trustedCACertificates = array();
     return $this;
@@ -243,7 +248,7 @@ class AuthenticationResponseValidator
    * @param string $certificate
    * @return bool
    */
-  private function isCertificateTrusted( $certificate )
+  private function isCertificateTrusted(string $certificate ): bool
   {
     $certificateAsResource = openssl_x509_read( CertificateParser::getPemCertificate( $certificate ) );
 
@@ -259,12 +264,25 @@ class AuthenticationResponseValidator
     return false;
   }
 
-  /**
-   * @param resource $certificateAsResource
-   * @return int
-   */
-  private function verifyTrustedCACertificates( $certificateAsResource )
+    /**
+     * @param resource $certificateAsResource
+     * @return bool
+     */
+  private function verifyTrustedCACertificates( $certificateAsResource ): bool
   {
     return openssl_x509_checkpurpose( $certificateAsResource, X509_PURPOSE_ANY, $this->trustedCACertificates );
+  }
+
+  private static function getDateOfBirth(AuthenticationIdentity $identity) : ?\DateTimeImmutable
+  {
+    $certificateAttributeUtil = new CertificateAttributeUtil();
+    $dateOfBirthFromCertificateField = $certificateAttributeUtil->getDateOfBirthCertificateAttribute($identity->getAuthCertificate());
+
+    if ($dateOfBirthFromCertificateField != null) {
+      return $dateOfBirthFromCertificateField;
+    }
+
+    $nationalIdentityNumberUtil = new NationalIdentityNumberUtil();
+    return $nationalIdentityNumberUtil->getDateOfBirth($identity);
   }
 }

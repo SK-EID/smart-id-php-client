@@ -45,7 +45,7 @@ class Authentication extends AbstractApi
   /**
    * @return AuthenticationRequestBuilder
    */
-  public function createAuthentication()
+  public function createAuthentication(): AuthenticationRequestBuilder
   {
     $connector = new SmartIdRestConnector( $this->client->getHostUrl() );
     $connector->setPublicSslKeys($this->client->getPublicSslKeys());
@@ -59,7 +59,7 @@ class Authentication extends AbstractApi
   /**
    * @return SessionStatusFetcherBuilder
    */
-  public function createSessionStatusFetcher()
+  public function createSessionStatusFetcher(): SessionStatusFetcherBuilder
   {
     $connector = new SmartIdRestConnector( $this->client->getHostUrl() );
     $connector->setPublicSslKeys($this->client->getPublicSslKeys());
@@ -80,7 +80,7 @@ class Authentication extends AbstractApi
    * @param SmartIdRestConnector $connector
    * @return SessionStatusPoller
    */
-  private function createSessionStatusPoller( SmartIdRestConnector $connector )
+  private function createSessionStatusPoller( SmartIdRestConnector $connector ): SessionStatusPoller
   {
     $sessionStatusPoller = new SessionStatusPoller( $connector );
     $sessionStatusPoller->setPollingSleepTimeoutMs( $this->pollingSleepTimeoutMs );
@@ -90,10 +90,10 @@ class Authentication extends AbstractApi
 
   /**
    * @param int $pollingSleepTimeoutMs
-   * @throws TechnicalErrorException
    * @return $this
+   * @throws TechnicalErrorException
    */
-  public function setPollingSleepTimeoutMs( $pollingSleepTimeoutMs )
+  public function setPollingSleepTimeoutMs( int $pollingSleepTimeoutMs ): Authentication
   {
     if ( $pollingSleepTimeoutMs < 0 )
     {
@@ -105,10 +105,10 @@ class Authentication extends AbstractApi
 
   /**
    * @param int $sessionStatusResponseSocketTimeoutMs
-   * @throws TechnicalErrorException
    * @return $this
+   * @throws TechnicalErrorException
    */
-  public function setSessionStatusResponseSocketTimeoutMs( $sessionStatusResponseSocketTimeoutMs )
+  public function setSessionStatusResponseSocketTimeoutMs( int $sessionStatusResponseSocketTimeoutMs ): Authentication
   {
     if ( $sessionStatusResponseSocketTimeoutMs < 0 )
     {

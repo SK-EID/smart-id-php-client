@@ -31,10 +31,14 @@ use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\SessionStatusPoller;
 use Sk\SmartId\Exception\RequiredInteractionNotSupportedByAppException;
+use Sk\SmartId\Exception\SessionTimeoutException;
+use Sk\SmartId\Exception\TechnicalErrorException;
+use Sk\SmartId\Exception\UnprocessableSmartIdResponseException;
 use Sk\SmartId\Exception\UserRefusedCertChoiceException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageWithVcChoiceException;
 use Sk\SmartId\Exception\UserRefusedDisplayTextAndPinException;
+use Sk\SmartId\Exception\UserRefusedException;
 use Sk\SmartId\Exception\UserRefusedVcChoiceException;
 use Sk\SmartId\Tests\Api\DummyData;
 
@@ -50,7 +54,7 @@ class SessionStatusPollerTest extends TestCase
    */
   private $poller;
 
-  protected function setUp()
+  protected function setUp() : void
   {
     $this->connector = new SmartIdConnectorStub();
     $this->poller = new SessionStatusPoller( $this->connector );
@@ -122,30 +126,33 @@ class SessionStatusPollerTest extends TestCase
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\UserRefusedException
+   *
    */
   public function getUserRefusedResponse_shouldThrowException()
   {
+    $this->expectException(UserRefusedException::class);
     $this->connector->responses[] = DummyData::createUserRefusedSessionStatus();
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
   }
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\SessionTimeoutException
+   *
    */
   public function getUserTimeoutResponse_shouldThrowException()
   {
+    $this->expectException(SessionTimeoutException::class);
     $this->connector->responses[] = DummyData::createTimeoutSessionStatus();
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
   }
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\DocumentUnusableException
+   *
    */
   public function getDocumentUnusableResponse_shouldThrowException()
   {
+    $this->expectException(UnprocessableSmartIdResponseException::class);
     $this->connector->responses[] = DummyData::createDocumentUnusableSessionStatus();
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
   }
@@ -212,10 +219,10 @@ class SessionStatusPollerTest extends TestCase
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
    */
   public function getUnknownEndResult_shouldThrowException()
   {
+    $this->expectException(TechnicalErrorException::class);
     $status = $this->createCompleteSessionStatus();
     $status->setResult( DummyData::createSessionResult( 'BLAH' ) );
     $this->connector->responses[] = $status;
@@ -224,10 +231,11 @@ class SessionStatusPollerTest extends TestCase
 
   /**
    * @test
-   * @expectedException \Sk\SmartId\Exception\TechnicalErrorException
+   *
    */
   public function getMissingEndResult_shouldThrowException()
   {
+    $this->expectException(TechnicalErrorException::class);
     $status = $this->createCompleteSessionStatus();
     $status->setResult( null );
     $this->connector->responses[] = $status;
@@ -237,7 +245,7 @@ class SessionStatusPollerTest extends TestCase
   /**
    * @param SessionStatus $status
    */
-  private function assertCompleteStateReceived( $status )
+  private function assertCompleteStateReceived(SessionStatus $status )
   {
     $this->assertNotNull( $status );
     $this->assertEquals( SessionStatusCode::COMPLETE, $status->getState() );
@@ -246,7 +254,7 @@ class SessionStatusPollerTest extends TestCase
   /**
    * @return float
    */
-  private function measurePollingDuration()
+  private function measurePollingDuration(): float
   {
     $startTime = microtime( true );
     $status = $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
@@ -258,7 +266,7 @@ class SessionStatusPollerTest extends TestCase
   /**
    * @return SessionStatus
    */
-  private function createCompleteSessionStatus()
+  private function createCompleteSessionStatus(): SessionStatus
   {
     $sessionStatus = new SessionStatus();
     $sessionStatus->setState( SessionStatusCode::COMPLETE );
@@ -269,7 +277,7 @@ class SessionStatusPollerTest extends TestCase
   /**
    * @return SessionStatus
    */
-  private function createRunningSessionStatus()
+  private function createRunningSessionStatus(): SessionStatus
   {
     $sessionStatus = new SessionStatus();
     $sessionStatus->setState( SessionStatusCode::RUNNING );
@@ -279,7 +287,7 @@ class SessionStatusPollerTest extends TestCase
   /**
    * @param int $numberOfResponses
    */
-  private function addMultipleRunningSessionResponses( $numberOfResponses )
+  private function addMultipleRunningSessionResponses(int $numberOfResponses )
   {
     for ( $i = 0; $i < $numberOfResponses; $i++ )
     {

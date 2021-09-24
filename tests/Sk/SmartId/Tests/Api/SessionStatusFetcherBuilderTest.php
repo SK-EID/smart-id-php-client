@@ -51,7 +51,7 @@ class SessionStatusFetcherBuilderTest extends Setup
    */
   private $builder;
 
-  protected function setUp()
+  protected function setUp() : void
   {
     $this->connector = new SmartIdConnectorSpy();
     $this->connector->authenticationSessionResponseToRespond = $this->createDummyAuthenticationSessionResponse();
@@ -113,7 +113,7 @@ class SessionStatusFetcherBuilderTest extends Setup
   /**
    * @return AuthenticationSessionResponse
    */
-  private function createDummyAuthenticationSessionResponse()
+  private function createDummyAuthenticationSessionResponse(): AuthenticationSessionResponse
   {
     $response = new AuthenticationSessionResponse();
     $response->setSessionID( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
@@ -123,7 +123,7 @@ class SessionStatusFetcherBuilderTest extends Setup
   /**
    * @return SessionStatus
    */
-  private function createDummySessionStatusResponse()
+  private function createDummySessionStatusResponse(): SessionStatus
   {
     $signature = new SessionSignature();
     $signature->setValue( 'c2FtcGxlIHNpZ25hdHVyZQ0K' );

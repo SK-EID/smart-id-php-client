@@ -35,7 +35,7 @@ class CertificateParser
    * @param string $certificateValue
    * @return array
    */
-  public static function parseX509Certificate( $certificateValue )
+  public static function parseX509Certificate(string $certificateValue ): array
   {
     $certificateString = self::getPemCertificate( $certificateValue );
     return openssl_x509_parse( $certificateString );
@@ -45,7 +45,7 @@ class CertificateParser
    * @param string $certificateValue
    * @return string
    */
-  public static function getPemCertificate( $certificateValue )
+  public static function getPemCertificate(string $certificateValue ): string
   {
     if ( substr( $certificateValue, 0, strlen( self::BEGIN_CERT ) ) === self::BEGIN_CERT )
     {

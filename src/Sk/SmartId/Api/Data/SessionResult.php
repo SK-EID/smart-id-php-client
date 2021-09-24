@@ -41,7 +41,7 @@ class SessionResult extends PropertyMapper
   /**
    * @return string
    */
-  public function getEndResult()
+  public function getEndResult(): string
   {
     return $this->endResult;
   }
@@ -50,7 +50,7 @@ class SessionResult extends PropertyMapper
    * @param string $endResult
    * @return $this
    */
-  public function setEndResult( $endResult )
+  public function setEndResult(string $endResult ): SessionResult
   {
     $this->endResult = $endResult;
     return $this;
@@ -59,7 +59,7 @@ class SessionResult extends PropertyMapper
   /**
    * @return string
    */
-  public function getDocumentNumber()
+  public function getDocumentNumber(): string
   {
     return $this->documentNumber;
   }
@@ -68,7 +68,7 @@ class SessionResult extends PropertyMapper
    * @param string $documentNumber
    * @return $this
    */
-  public function setDocumentNumber( $documentNumber )
+  public function setDocumentNumber(string $documentNumber ): SessionResult
   {
     $this->documentNumber = $documentNumber;
     return $this;

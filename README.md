@@ -9,7 +9,7 @@ The Smart-ID PHP client can be used for easy integration of the Smart-ID solutio
 ## Features
 * Simple interface for user authentication
 
-Smart-ID PHP client works with PHP 7.2 or later.
+Smart-ID PHP client works with PHP 7.3 or later.
 
 **This PHP client cannot be used to create digitally signed containers because PHP does not have a library like DigiDoc4J..**
 
@@ -35,7 +35,7 @@ $this->client
   ->setRelyingPartyUUID( "YOUR UUID" )
   ->setRelyingPartyName( "YOUR RP NAME" )
   ->setHostUrl("HOST_URL")
-  ->setPublicSslKeys("sha256//l2uvq6ftLN4LZ+8Un+71J2vH1BT9wTbtrE5+Fj3Vc5g=;sha256//R8b8SIj92sylUdok0DqfxJJN0yW2O3epE0B+5vpo2eM=");
+  ->setPublicSslKeys("sha256//l2uvq6ftLN4LZ+8Un+71J2vH1BT9wTbtrE5+Fj3Vc5g=;sha256//nTL2Ju/1Mt+WAHeejqZHtgPNRu049iUcXOPq0GmRgJg=");
  ```
 
 ## How to use it

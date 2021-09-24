@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  * #L%
  */
-namespace Sk\SmartId\Tests\Api;
+namespace Sk\SmartId\Util\Api;
 
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\CertificateLevel;

@@ -47,7 +47,7 @@ class SessionCertificate extends PropertyMapper
   /**
    * @return string
    */
-  public function getValue()
+  public function getValue(): ?string
   {
     return $this->value;
   }
@@ -56,17 +56,17 @@ class SessionCertificate extends PropertyMapper
    * @param string $value
    * @return $this
    */
-  public function setValue( $value )
+  public function setValue(string $value ): SessionCertificate
   {
     $this->value = $value;
     return $this;
   }
 
   /**
+   * @return string
    * @deprecated
-   * @return mixed
    */
-  public function getAssuranceLevel()
+  public function getAssuranceLevel(): string
   {
     return $this->assuranceLevel;
   }
@@ -83,7 +83,7 @@ class SessionCertificate extends PropertyMapper
   /**
    * @return string
    */
-  public function getCertificateLevel()
+  public function getCertificateLevel(): ?string
   {
     return $this->certificateLevel;
   }
@@ -92,7 +92,7 @@ class SessionCertificate extends PropertyMapper
    * @param string $certificateLevel
    * @return $this
    */
-  public function setCertificateLevel( $certificateLevel )
+  public function setCertificateLevel(string $certificateLevel ): SessionCertificate
   {
     $this->certificateLevel = $certificateLevel;
     return $this;
