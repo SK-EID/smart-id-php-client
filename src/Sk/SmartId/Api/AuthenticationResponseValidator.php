@@ -36,6 +36,8 @@ use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResult;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResultError;
 use Sk\SmartId\Exception\TechnicalErrorException;
+use Sk\SmartId\Util\CertificateAttributeUtil;
+use Sk\SmartId\Util\NationalIdentityNumberUtil;
 
 class AuthenticationResponseValidator
 {
@@ -66,7 +68,7 @@ class AuthenticationResponseValidator
   {
     $this->validateAuthenticationResponse( $authenticationResponse );
     $authenticationResult = new SmartIdAuthenticationResult();
-    $identity = $this->constructAuthenticationIdentity( $authenticationResponse->getCertificateInstance() );
+    $identity = $this->constructAuthenticationIdentity( $authenticationResponse->getCertificateInstance(), $authenticationResponse->getCertificate() );
     $authenticationResult->setAuthenticationIdentity( $identity );
     if ( !$this->verifyResponseEndResult( $authenticationResponse ) )
     {
@@ -166,9 +168,10 @@ class AuthenticationResponseValidator
    * @param AuthenticationCertificate $certificate
    * @return AuthenticationIdentity
    */
-  private function constructAuthenticationIdentity( AuthenticationCertificate $certificate ): AuthenticationIdentity
+  function constructAuthenticationIdentity( AuthenticationCertificate $certificate, string $x509certificate ): AuthenticationIdentity
   {
     $identity = new AuthenticationIdentity();
+    $identity->setAuthCertificate($x509certificate);
     $subject = $certificate->getSubject();
     $subjectReflection = new ReflectionClass( $subject );
 
@@ -185,13 +188,17 @@ class AuthenticationResponseValidator
       }
       elseif ( strcasecmp( $property->getName(), 'SERIALNUMBER' ) === 0 )
       {
-        $identity->setIdentityCode( $property->getValue( $subject ) );
+        $serialNumberValue = $property->getValue($subject);
+        $identity->setIdentityCode($serialNumberValue);
+        $identity->setIdentityNumber( explode('-', $serialNumberValue, 2)[1] );
       }
       elseif ( strcasecmp( $property->getName(), 'C' ) === 0 )
       {
         $identity->setCountry( $property->getValue( $subject ) );
       }
     }
+
+    $identity->setDateOfBirth(self::getDateOfBirth($identity));
 
     return $identity;
   }
@@ -264,5 +271,18 @@ class AuthenticationResponseValidator
   private function verifyTrustedCACertificates( $certificateAsResource ): bool
   {
     return openssl_x509_checkpurpose( $certificateAsResource, X509_PURPOSE_ANY, $this->trustedCACertificates );
+  }
+
+  private static function getDateOfBirth(AuthenticationIdentity $identity) : ?\DateTimeImmutable
+  {
+    $certificateAttributeUtil = new CertificateAttributeUtil();
+    $dateOfBirthFromCertificateField = $certificateAttributeUtil->getDateOfBirthCertificateAttribute($identity->getAuthCertificate());
+
+    if ($dateOfBirthFromCertificateField != null) {
+      return $dateOfBirthFromCertificateField;
+    }
+
+    $nationalIdentityNumberUtil = new NationalIdentityNumberUtil();
+    return $nationalIdentityNumberUtil->getDateOfBirth($identity);
   }
 }

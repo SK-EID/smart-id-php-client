@@ -33,10 +33,10 @@ use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
 use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
-use Sk\SmartId\Exception\DocumentUnusableException;
 use Sk\SmartId\Exception\RequiredInteractionNotSupportedByAppException;
 use Sk\SmartId\Exception\SessionTimeoutException;
 use Sk\SmartId\Exception\TechnicalErrorException;
+use Sk\SmartId\Exception\UnprocessableSmartIdResponseException;
 use Sk\SmartId\Exception\UserRefusedCertChoiceException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageWithVcChoiceException;
@@ -227,7 +227,7 @@ class SessionStatusFetcher
    * @throws TechnicalErrorException
    * @throws UserRefusedException
    * @throws SessionTimeoutException
-   * @throws DocumentUnusableException
+   * @throws UnprocessableSmartIdResponseException
    */
   private function validateResult( SessionStatus $sessionStatus )
   {
@@ -253,7 +253,7 @@ class SessionStatusFetcher
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::DOCUMENT_UNUSABLE ) == 0 )
     {
-      throw new DocumentUnusableException();
+      throw new UnprocessableSmartIdResponseException();
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP) == 0 )
     {

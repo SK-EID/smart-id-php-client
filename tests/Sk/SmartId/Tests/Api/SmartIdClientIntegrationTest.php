@@ -26,7 +26,6 @@
  */
 namespace Sk\SmartId\Tests\Api;
 
-use ReflectionException;
 use Sk\SmartId\Api\AuthenticationResponseValidator;
 use Sk\SmartId\Api\Data\AuthenticationHash;
 use Sk\SmartId\Api\Data\AuthenticationIdentity;
@@ -48,7 +47,6 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws ReflectionException
    */
   public function authenticate_withDocumentNumber()
   {
@@ -95,7 +93,6 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws ReflectionException
    */
   public function authenticate_withSemanticsIdentifier()
   {
@@ -174,7 +171,6 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws ReflectionException
    */
   public function getAuthenticationResponse_withSessionId_isComplete()
   {
@@ -226,7 +222,6 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws ReflectionException
    */
   public function authenticate_withNetworkInterfaceInPlace()
   {

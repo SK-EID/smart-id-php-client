@@ -30,10 +30,10 @@ use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\SessionStatusPoller;
-use Sk\SmartId\Exception\DocumentUnusableException;
 use Sk\SmartId\Exception\RequiredInteractionNotSupportedByAppException;
 use Sk\SmartId\Exception\SessionTimeoutException;
 use Sk\SmartId\Exception\TechnicalErrorException;
+use Sk\SmartId\Exception\UnprocessableSmartIdResponseException;
 use Sk\SmartId\Exception\UserRefusedCertChoiceException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageWithVcChoiceException;
@@ -152,7 +152,7 @@ class SessionStatusPollerTest extends TestCase
    */
   public function getDocumentUnusableResponse_shouldThrowException()
   {
-    $this->expectException(DocumentUnusableException::class);
+    $this->expectException(UnprocessableSmartIdResponseException::class);
     $this->connector->responses[] = DummyData::createDocumentUnusableSessionStatus();
     $this->poller->fetchFinalSessionStatus( '97f5058e-e308-4c83-ac14-7712b0eb9d86' );
   }

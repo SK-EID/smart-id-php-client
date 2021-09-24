@@ -2,9 +2,15 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.1] - 
+## [Unreleased] -
+
+### Changed
 - Upgrade to PHP 7.3
 
+### Added 
+- New function AuthenticationIdentity->getDateOfBirth() that reads birthdate info from a separate field in certificate or detects it from national identity number.
+NB This function can return null for some Latvian certificates.
+- New function AuthenticationIdentity->getIdentityNumber() that returns personal identification number without a PNOEE-, IDXLV- etc prefix
 
 ## [2.0] - 2021-04-07
 

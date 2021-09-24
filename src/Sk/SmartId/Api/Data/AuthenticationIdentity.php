@@ -39,14 +39,29 @@ class AuthenticationIdentity
   private $surName;
 
   /**
-   * @var string
+   * @var string National Identity number with prefix. Example value: 'PNOEE-10101010005'
    */
   private $identityCode;
+
+  /**
+   * @var string National Identity number without prefix. Example value: '10101010005'
+   */
+  private $identityNumber;
 
   /**
    * @var string
    */
   private $country;
+
+  /**
+   * @var string
+   */
+  private $authCertificate;
+
+  /**
+   * @var ?\DateTimeImmutable
+   */
+  private $dateOfBirth;
 
   /**
    * @return string
@@ -85,7 +100,7 @@ class AuthenticationIdentity
   }
 
   /**
-   * @return string
+   * @return string National Identity number with prefix. Example value: 'PNOEE-10101010005'
    */
   public function getIdentityCode(): string
   {
@@ -100,6 +115,22 @@ class AuthenticationIdentity
   {
     $this->identityCode = $identityCode;
     return $this;
+  }
+
+  /**
+   * @return string National Identity number without prefix. Example value: '10101010005'
+   */
+  public function getIdentityNumber(): string
+  {
+    return $this->identityNumber;
+  }
+
+  /**
+   * @param string $identityNumber
+   */
+  public function setIdentityNumber(string $identityNumber): void
+  {
+    $this->identityNumber = $identityNumber;
   }
 
   /**
@@ -119,4 +150,39 @@ class AuthenticationIdentity
     $this->country = $country;
     return $this;
   }
+
+  /**
+   * @return string
+   */
+  public function getAuthCertificate(): string
+  {
+    return $this->authCertificate;
+  }
+
+  /**
+   * @param string $authCertificate
+   */
+  public function setAuthCertificate(string $authCertificate): void
+  {
+    $this->authCertificate = $authCertificate;
+  }
+
+  /**
+   * @return \DateTimeImmutable
+   */
+  public function getDateOfBirth(): ?\DateTimeImmutable
+  {
+    return $this->dateOfBirth;
+  }
+
+  /**
+   * @param \DateTimeImmutable $dateOfBirth
+   */
+  public function setDateOfBirth(?\DateTimeImmutable $dateOfBirth): void
+  {
+    $this->dateOfBirth = $dateOfBirth;
+  }
+
+
+
 }
