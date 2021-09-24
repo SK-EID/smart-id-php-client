@@ -24,7 +24,7 @@
  * THE SOFTWARE.
  * #L%
  */
-namespace Sk\SmartId\Tests\Api;
+namespace Sk\SmartId\Util\Api;
 
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\Data\DigestCalculator;
@@ -38,6 +38,8 @@ class VerificationCodeCalculatorTest extends TestCase
    */
   public function calculateCorrectVerificationCode()
   {
+    echo "start";
+
     $this->assertVerificationCode( '7712', 'Hello World!' );
     $this->assertVerificationCode( '4612', 'Hedgehogs – why can\'t they just share the hedge?' );
     $this->assertVerificationCode( '7782', 'Go ahead, make my day.' );

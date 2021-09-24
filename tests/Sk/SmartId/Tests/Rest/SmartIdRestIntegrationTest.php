@@ -47,7 +47,7 @@ class SmartIdRestIntegrationTest extends TestCase
    */
   private $connector;
 
-  protected function setUp()
+  protected function setUp() : void
   {
     $this->connector = new SmartIdRestConnector( DummyData::TEST_URL );
     $client = new Client();
@@ -75,7 +75,7 @@ class SmartIdRestIntegrationTest extends TestCase
   /**
    * @return AuthenticationSessionResponse
    */
-  private function fetchAuthenticationSession()
+  private function fetchAuthenticationSession(): AuthenticationSessionResponse
   {
     $request = $this->createAuthenticationSessionRequest();
     $authenticationSessionResponse = $this->connector->authenticate( DummyData::VALID_DOCUMENT_NUMBER, $request );
@@ -87,7 +87,7 @@ class SmartIdRestIntegrationTest extends TestCase
   /**
    * @return AuthenticationSessionRequest
    */
-  private function createAuthenticationSessionRequest()
+  private function createAuthenticationSessionRequest(): AuthenticationSessionRequest
   {
     $authenticationSessionRequest = new AuthenticationSessionRequest();
     $authenticationSessionRequest
@@ -104,7 +104,7 @@ class SmartIdRestIntegrationTest extends TestCase
    * @param string $dataToSign
    * @return string
    */
-  private function calculateHashInBase64( $dataToSign )
+  private function calculateHashInBase64(string $dataToSign ): string
   {
     $digestValue = DigestCalculator::calculateDigest( $dataToSign, HashType::SHA512 );
     return base64_encode( $digestValue );
@@ -114,7 +114,7 @@ class SmartIdRestIntegrationTest extends TestCase
    * @param string $sessionId
    * @return SessionStatus
    */
-  private function pollSessionStatus( $sessionId )
+  private function pollSessionStatus( $sessionId ): SessionStatus
   {
     /** @var SessionStatus $sessionStatus */
     $sessionStatus = null;
@@ -146,7 +146,7 @@ class SmartIdRestIntegrationTest extends TestCase
    * @param string $sessionId
    * @return SessionStatusRequest
    */
-  private function createSessionStatusRequest( $sessionId )
+  private function createSessionStatusRequest(string $sessionId ): SessionStatusRequest
   {
     $sessionStatusRequest = new SessionStatusRequest( $sessionId );
     $sessionStatusRequest->setSessionStatusResponseSocketTimeoutMs( 1000 );

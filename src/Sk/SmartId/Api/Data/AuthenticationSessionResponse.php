@@ -36,7 +36,7 @@ class AuthenticationSessionResponse extends PropertyMapper
   /**
    * @return string
    */
-  public function getSessionID()
+  public function getSessionID(): string
   {
     return $this->sessionID;
   }
@@ -44,7 +44,7 @@ class AuthenticationSessionResponse extends PropertyMapper
   /**
    * @param string $sessionID
    */
-  public function setSessionID( $sessionID )
+  public function setSessionID(string $sessionID )
   {
     $this->sessionID = $sessionID;
   }

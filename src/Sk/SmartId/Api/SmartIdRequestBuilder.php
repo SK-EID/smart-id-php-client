@@ -74,7 +74,7 @@ abstract class SmartIdRequestBuilder
    * @param string $relyingPartyUUID
    * @return $this
    */
-  public function withRelyingPartyUUID( $relyingPartyUUID )
+  public function withRelyingPartyUUID(string $relyingPartyUUID ): SmartIdRequestBuilder
   {
     $this->relyingPartyUUID = $relyingPartyUUID;
     return $this;
@@ -84,7 +84,7 @@ abstract class SmartIdRequestBuilder
    * @param string $relyingPartyName
    * @return $this
    */
-  public function withRelyingPartyName( $relyingPartyName )
+  public function withRelyingPartyName(string $relyingPartyName ): SmartIdRequestBuilder
   {
     $this->relyingPartyName = $relyingPartyName;
     return $this;
@@ -94,7 +94,7 @@ abstract class SmartIdRequestBuilder
    * @param string $networkInterface
    * @return $this
    */
-  public function withNetworkInterface( $networkInterface )
+  public function withNetworkInterface(string $networkInterface ): SmartIdRequestBuilder
   {
     $this->networkInterface = $networkInterface;
     return $this;
@@ -103,7 +103,7 @@ abstract class SmartIdRequestBuilder
   /**
    * @return SmartIdConnector
    */
-  public function getConnector()
+  public function getConnector(): SmartIdConnector
   {
     return $this->connector;
   }
@@ -111,7 +111,7 @@ abstract class SmartIdRequestBuilder
   /**
    * @return SessionStatusPoller
    */
-  public function getSessionStatusPoller()
+  public function getSessionStatusPoller(): SessionStatusPoller
   {
     return $this->sessionStatusPoller->withNetworkInterface($this->getNetworkInterface());
   }
@@ -119,7 +119,7 @@ abstract class SmartIdRequestBuilder
   /**
    * @return string
    */
-  public function getRelyingPartyUUID()
+  public function getRelyingPartyUUID(): string
   {
     return $this->relyingPartyUUID;
   }
@@ -127,7 +127,7 @@ abstract class SmartIdRequestBuilder
   /**
    * @return string
    */
-  public function getRelyingPartyName()
+  public function getRelyingPartyName(): string
   {
     return $this->relyingPartyName;
   }
@@ -135,7 +135,7 @@ abstract class SmartIdRequestBuilder
   /**
    * @return string
    */
-  public function getNetworkInterface()
+  public function getNetworkInterface(): ?string
   {
     return $this->networkInterface;
   }

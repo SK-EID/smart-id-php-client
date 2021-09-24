@@ -45,9 +45,9 @@ class SessionStatusRequest
   private $networkInterface;
 
   /**
-   * @param string $sessionId
+   * @param string|null $sessionId
    */
-  public function __construct( $sessionId )
+  public function __construct(?string $sessionId )
   {
     $this->sessionId = $sessionId;
   }
@@ -55,7 +55,7 @@ class SessionStatusRequest
   /**
    * @return string
    */
-  public function getSessionId()
+  public function getSessionId(): ?string
   {
     return $this->sessionId;
   }
@@ -63,16 +63,16 @@ class SessionStatusRequest
   /**
    * @return int
    */
-  public function getSessionStatusResponseSocketTimeoutMs()
+  public function getSessionStatusResponseSocketTimeoutMs(): int
   {
     return $this->sessionStatusResponseSocketTimeoutMs;
   }
 
   /**
-   * @param int $sessionStatusResponseSocketTimeoutMs
+   * @param int|null $sessionStatusResponseSocketTimeoutMs
    * @return $this
    */
-  public function setSessionStatusResponseSocketTimeoutMs( $sessionStatusResponseSocketTimeoutMs )
+  public function setSessionStatusResponseSocketTimeoutMs(?int $sessionStatusResponseSocketTimeoutMs ): SessionStatusRequest
   {
     $this->sessionStatusResponseSocketTimeoutMs = $sessionStatusResponseSocketTimeoutMs;
     return $this;
@@ -81,16 +81,16 @@ class SessionStatusRequest
   /**
    * @return bool
    */
-  public function isSessionStatusResponseSocketTimeoutSet()
+  public function isSessionStatusResponseSocketTimeoutSet(): bool
   {
     return isset( $this->sessionStatusResponseSocketTimeoutMs ) && $this->sessionStatusResponseSocketTimeoutMs > 0;
   }
 
   /**
-   * @param string $networkInterface
+   * @param string|null $networkInterface
    * @return $this
    */
-  public function setNetworkInterface( $networkInterface )
+  public function setNetworkInterface(?string $networkInterface ): SessionStatusRequest
   {
     $this->networkInterface = $networkInterface;
     return $this;
@@ -99,7 +99,7 @@ class SessionStatusRequest
   /**
    * @return array
    */
-  public function toArray()
+  public function toArray(): array
   {
     $requiredArray = array();
 

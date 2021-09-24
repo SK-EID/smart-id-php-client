@@ -40,19 +40,19 @@ interface SmartIdConnector
    * @param AuthenticationSessionRequest $request
    * @return AuthenticationSessionResponse
    */
-  function authenticate( $documentNumber, AuthenticationSessionRequest $request );
+  function authenticate(string $documentNumber, AuthenticationSessionRequest $request ): AuthenticationSessionResponse;
 
-    /**
-     * @param SemanticsIdentifier $semanticsIdentifier
-     * @param AuthenticationSessionRequest $request
-     * @return AuthenticationSessionResponse
-     */
-  function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request);
+  /**
+   * @param SemanticsIdentifier $semanticsIdentifier
+   * @param AuthenticationSessionRequest $request
+   * @return AuthenticationSessionResponse
+   */
+  function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request): AuthenticationSessionResponse;
 
   /**
    * @param SessionStatusRequest $request
    * @throws SessionNotFoundException
    * @return SessionStatus
    */
-  function getSessionStatus( SessionStatusRequest $request );
+  function getSessionStatus( SessionStatusRequest $request ): SessionStatus;
 }

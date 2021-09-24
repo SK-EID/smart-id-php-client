@@ -47,7 +47,6 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws \ReflectionException
    */
   public function authenticate_withDocumentNumber()
   {
@@ -94,7 +93,6 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws \ReflectionException
    */
   public function authenticate_withSemanticsIdentifier()
   {
@@ -150,7 +148,7 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withSemanticsIdentifier(SemanticsIdentifier::fromString("PNOEE-10101010027"))
+        ->withSemanticsIdentifier(SemanticsIdentifier::fromString("PNOEE-30303039816"))
         ->withAuthenticationHash( $authenticationHash )
         ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
             Interaction::ofTypeDisplayTextAndPIN("Hello")))
@@ -165,13 +163,14 @@ class SmartIdClientIntegrationTest extends Setup
         ->withAuthenticationHash( $authenticationHash )
         ->getAuthenticationResponse();
 
+    echo $authenticationResponse->getEndResult();
+
     $this->assertNotNull( $authenticationResponse );
     $this->assertTrue( $authenticationResponse->isRunningState() );
   }
 
   /**
    * @test
-   * @throws \ReflectionException
    */
   public function getAuthenticationResponse_withSessionId_isComplete()
   {
@@ -223,7 +222,6 @@ class SmartIdClientIntegrationTest extends Setup
 
   /**
    * @test
-   * @throws \ReflectionException
    */
   public function authenticate_withNetworkInterfaceInPlace()
   {
@@ -234,7 +232,7 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withNetworkInterface( 'docker0' ) // or available IP
+        ->withNetworkInterface( DummyData::NETWORK_INTERFACE ) // network interface or available IP
         ->withDocumentNumber( DummyData::VALID_DOCUMENT_NUMBER )
         ->withAuthenticationHash( $authenticationHash )
         ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
@@ -260,8 +258,8 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withSemanticsIdentifierAsString("PNOEE-10101010027")
-        ->withNetworkInterface( 'docker0' ) // or available IP
+        ->withSemanticsIdentifierAsString("PNOEE-30303039903")
+        ->withNetworkInterface( DummyData::NETWORK_INTERFACE ) // or available IP
         ->withAuthenticationHash( $authenticationHash )
         ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
             Interaction::ofTypeDisplayTextAndPIN("Hello human")))
@@ -272,7 +270,7 @@ class SmartIdClientIntegrationTest extends Setup
     $authenticationResponse = $this->client->authentication()
         ->setSessionStatusResponseSocketTimeoutMs( 1000 )
         ->createSessionStatusFetcher()
-        ->withNetworkInterface( 'docker0' ) // or available IP
+        ->withNetworkInterface( DummyData::NETWORK_INTERFACE ) // or available IP
         ->withSessionId( $sessionId )
         ->withAuthenticationHash( $authenticationHash )
         ->getAuthenticationResponse();
@@ -285,8 +283,8 @@ class SmartIdClientIntegrationTest extends Setup
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @param string $dataToSign
    */
-  private function assertAuthenticationResponseCreated( SmartIdAuthenticationResponse $authenticationResponse,
-                                                        $dataToSign )
+  private function assertAuthenticationResponseCreated(SmartIdAuthenticationResponse $authenticationResponse,
+                                                       string $dataToSign )
   {
     $this->assertNotNull( $authenticationResponse );
     $this->assertNotEmpty( $authenticationResponse->getEndResult() );

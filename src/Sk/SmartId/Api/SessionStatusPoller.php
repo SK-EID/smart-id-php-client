@@ -28,13 +28,10 @@ namespace Sk\SmartId\Api;
 
 use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Api\Data\SessionStatus;
-use Sk\SmartId\Api\Data\SessionStatusCode;
-use Sk\SmartId\Api\Data\SessionStatusRequest;
-use Sk\SmartId\Exception\DocumentUnusableException;
-use Sk\SmartId\Exception\InterruptedException;
 use Sk\SmartId\Exception\RequiredInteractionNotSupportedByAppException;
 use Sk\SmartId\Exception\SessionTimeoutException;
 use Sk\SmartId\Exception\TechnicalErrorException;
+use Sk\SmartId\Exception\UnprocessableSmartIdResponseException;
 use Sk\SmartId\Exception\UserRefusedCertChoiceException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageWithVcChoiceException;
@@ -59,7 +56,7 @@ class SessionStatusPoller
    * In milliseconds
    * @var int
    */
-  private $sessionStatusResponseSocketTimeoutMs;
+  private $sessionStatusResponseSocketTimeoutMs = 0;
 
     /**
      * @var string
@@ -76,28 +73,21 @@ class SessionStatusPoller
 
   /**
    * @param string $sessionId
-   * @throws TechnicalErrorException
    * @return SessionStatus|null
+   * @throws TechnicalErrorException
    */
-  public function fetchFinalSessionStatus( $sessionId )
+  public function fetchFinalSessionStatus( string $sessionId ): ?SessionStatus
   {
-    try
-    {
       $sessionStatus = $this->pollForFinalSessionStatus( $sessionId );
       $this->validateResult( $sessionStatus );
       return $sessionStatus;
-    }
-    catch ( InterruptedException $e )
-    {
-      throw new TechnicalErrorException( 'Failed to poll session status: ' . $e->getMessage() );
-    }
   }
 
   /**
    * @param string $sessionId
    * @return SessionStatus|null
    */
-  private function pollForFinalSessionStatus( $sessionId )
+  private function pollForFinalSessionStatus(string $sessionId ): ?SessionStatus
   {
     /** @var SessionStatus $sessionStatus */
     $sessionStatus = null;
@@ -120,7 +110,7 @@ class SessionStatusPoller
    * @throws TechnicalErrorException
    * @throws UserRefusedException
    * @throws SessionTimeoutException
-   * @throws DocumentUnusableException
+   * @throws UnprocessableSmartIdResponseException
    */
   private function validateResult( SessionStatus $sessionStatus )
   {
@@ -141,7 +131,7 @@ class SessionStatusPoller
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::DOCUMENT_UNUSABLE ) == 0 )
     {
-      throw new DocumentUnusableException();
+      throw new UnprocessableSmartIdResponseException();
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP) == 0 )
     {
@@ -175,10 +165,10 @@ class SessionStatusPoller
 
   /**
    * @param int $pollingSleepTimeoutMs
-   * @throws TechnicalErrorException
    * @return $this
+   * @throws TechnicalErrorException
    */
-  public function setPollingSleepTimeoutMs( $pollingSleepTimeoutMs )
+  public function setPollingSleepTimeoutMs( int $pollingSleepTimeoutMs ): SessionStatusPoller
   {
     if ( $pollingSleepTimeoutMs < 0 )
     {
@@ -192,18 +182,17 @@ class SessionStatusPoller
    * @param int $milliseconds
    * @return int
    */
-  private function convertMsToMicros( $milliseconds )
+  private function convertMsToMicros(int $milliseconds )
   {
     $conversionResult = $milliseconds * pow( 10, 3 );
     return $conversionResult > PHP_INT_MAX ? PHP_INT_MAX : $conversionResult;
   }
 
   /**
-   * @param int $sessionStatusResponseSocketTimeoutMs
-   * @throws TechnicalErrorException
+   * @param int|null $sessionStatusResponseSocketTimeoutMs
    * @return $this
    */
-  public function setSessionStatusResponseSocketTimeoutMs( $sessionStatusResponseSocketTimeoutMs )
+  public function setSessionStatusResponseSocketTimeoutMs( ?int $sessionStatusResponseSocketTimeoutMs ): SessionStatusPoller
   {
     if ( $sessionStatusResponseSocketTimeoutMs < 0 )
     {
@@ -217,7 +206,7 @@ class SessionStatusPoller
    * @param string $sessionId
    * @return SessionStatusFetcher
    */
-  private function createSessionStatusFetcher( $sessionId )
+  private function createSessionStatusFetcher(string $sessionId ): SessionStatusFetcher
   {
     $sessionStatusFetcherBuilder = new SessionStatusFetcherBuilder( $this->connector );
     return $sessionStatusFetcherBuilder
@@ -227,8 +216,8 @@ class SessionStatusPoller
         ->build();
   }
 
-  public function withNetworkInterface( $networkInterface )
-    {
+  public function withNetworkInterface( $networkInterface ): SessionStatusPoller
+  {
         $this->networkInterface = $networkInterface;
         return $this;
     }

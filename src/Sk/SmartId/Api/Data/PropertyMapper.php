@@ -27,6 +27,7 @@
 namespace Sk\SmartId\Api\Data;
 
 use Exception;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionProperty;
 
@@ -35,7 +36,7 @@ abstract class PropertyMapper
   /**
    * @param array $data
    */
-  public function __construct( $data = array() )
+  public function __construct(array $data = array() )
   {
     if ( !empty( $data ) )
     {
@@ -46,10 +47,10 @@ abstract class PropertyMapper
   /**
    * @param string $key
    * @param array $arguments
-   * @throws Exception
    * @return mixed
+   * @throws Exception
    */
-  public function __call( $key, array $arguments )
+  public function __call(string $key, array $arguments )
   {
     if ( method_exists( $this, $key ) )
     {
@@ -91,12 +92,13 @@ abstract class PropertyMapper
     throw new Exception( 'Undefined method ' . $key . "!" );
   }
 
-  /**
-   * @param string $key
-   * @param mixed $value
-   * @return $this
-   */
-  public function __set( $key, $value )
+    /**
+     * @param string $key
+     * @param mixed $value
+     * @return $this
+     * @throws ReflectionException
+     */
+  public function __set(string $key, $value )
   {
     $alternativeKey = ucwords( $key, '_' );
     $alternativeKey = str_replace( '_', '', $alternativeKey );
@@ -105,12 +107,12 @@ abstract class PropertyMapper
     if ( property_exists( $this, $key ) || property_exists( $this, $alternativeKey ) )
     {
       $resultingKey = property_exists( $this, $key ) ? $key : $alternativeKey;
-      $camelizedName = 'set' . $this->camelize( $resultingKey );
+      $camelCasedName = 'set' . $this->toCamelCase( $resultingKey );
 
-      if ( method_exists( $this, $camelizedName ) )
+      if ( method_exists( $this, $camelCasedName ) )
       {
-        $result = $this->prepareValue( $camelizedName, $value );
-        $this->{$camelizedName}( $result );
+        $result = $this->prepareValue( $camelCasedName, $value );
+        $this->{$camelCasedName}( $result );
       }
       else
       {
@@ -121,12 +123,13 @@ abstract class PropertyMapper
     return $this;
   }
 
-  /**
-   * @param string $method
-   * @param array|mixed $value
-   * @return mixed
-   */
-  private function prepareValue( $method, $value )
+    /**
+     * @param string $method
+     * @param array|mixed $value
+     * @return mixed
+     * @throws ReflectionException
+     */
+  private function prepareValue(string $method, $value )
   {
     if ( is_array( $value ) )
     {
@@ -147,14 +150,14 @@ abstract class PropertyMapper
 
   /**
    * @param string $key
-   * @throws Exception
    * @return mixed
+   * @throws Exception
    */
-  public function __get( $key )
+  public function __get( string $key )
   {
     if ( property_exists( $this, $key ) )
     {
-      $camelizedName = 'get' . $this->camelize( $key );
+      $camelizedName = 'get' . $this->toCamelCase( $key );
 
       if ( method_exists( $this, $camelizedName ) )
       {
@@ -171,10 +174,11 @@ abstract class PropertyMapper
     }
   }
 
-  /**
-   * @return array
-   */
-  public function toArray()
+    /**
+     * @return array
+     * @throws ReflectionException
+     */
+  public function toArray(): array
   {
     $values = get_object_vars( $this );
 
@@ -209,7 +213,7 @@ abstract class PropertyMapper
    * @param string|array $word
    * @return string|array
    */
-  private function camelize( $word )
+  private function toCamelCase($word )
   {
     return preg_replace_callback( '#(^|_)([a-z])#', function( array $matches )
     {

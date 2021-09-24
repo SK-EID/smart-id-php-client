@@ -75,7 +75,7 @@ class SessionStatusFetcherBuilder
    * @param string $sessionId
    * @return $this
    */
-  public function withSessionId( $sessionId )
+  public function withSessionId(string $sessionId ): SessionStatusFetcherBuilder
   {
     $this->sessionId = $sessionId;
     return $this;
@@ -85,7 +85,7 @@ class SessionStatusFetcherBuilder
    * @param SignableData $dataToSign
    * @return $this
    */
-  public function withSignableData( SignableData $dataToSign )
+  public function withSignableData( SignableData $dataToSign ): SessionStatusFetcherBuilder
   {
     $this->dataToSign = $dataToSign;
     return $this;
@@ -95,18 +95,17 @@ class SessionStatusFetcherBuilder
    * @param AuthenticationHash $authenticationHash
    * @return $this
    */
-  public function withAuthenticationHash( AuthenticationHash $authenticationHash )
+  public function withAuthenticationHash( AuthenticationHash $authenticationHash ): SessionStatusFetcherBuilder
   {
     $this->authenticationHash = $authenticationHash;
     return $this;
   }
 
   /**
-   * @param int $sessionStatusResponseSocketTimeoutMs
-   * @throws TechnicalErrorException
+   * @param int|null $sessionStatusResponseSocketTimeoutMs
    * @return $this
    */
-  public function withSessionStatusResponseSocketTimeoutMs( $sessionStatusResponseSocketTimeoutMs )
+  public function withSessionStatusResponseSocketTimeoutMs( ?int $sessionStatusResponseSocketTimeoutMs): SessionStatusFetcherBuilder
   {
     if ( $sessionStatusResponseSocketTimeoutMs < 0 )
     {
@@ -117,10 +116,10 @@ class SessionStatusFetcherBuilder
   }
 
   /**
-   * @param string $networkInterface
+   * @param string|null $networkInterface
    * @return $this
    */
-  public function withNetworkInterface( $networkInterface )
+  public function withNetworkInterface(?string $networkInterface ): SessionStatusFetcherBuilder
   {
     $this->networkInterface = $networkInterface;
     return $this;
@@ -129,7 +128,7 @@ class SessionStatusFetcherBuilder
   /**
    * @return Data\SmartIdAuthenticationResponse
    */
-  public function getAuthenticationResponse()
+  public function getAuthenticationResponse(): Data\SmartIdAuthenticationResponse
   {
     return $this->build()
         ->getAuthenticationResponse();
@@ -138,7 +137,7 @@ class SessionStatusFetcherBuilder
   /**
    * @return SessionStatusFetcher
    */
-  public function build()
+  public function build(): SessionStatusFetcher
   {
     $sessionStatusFetcher = new SessionStatusFetcher( $this->connector );
     $sessionStatusFetcher->setSessionId( $this->sessionId )

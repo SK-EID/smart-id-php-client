@@ -61,7 +61,7 @@ class SessionStatus extends PropertyMapper
   /**
    * @return string
    */
-  public function getState()
+  public function getState(): string
   {
     return $this->state;
   }
@@ -70,7 +70,7 @@ class SessionStatus extends PropertyMapper
    * @param string $state
    * @return $this
    */
-  public function setState( $state )
+  public function setState(string $state ): SessionStatus
   {
     $this->state = $state;
     return $this;
@@ -79,16 +79,16 @@ class SessionStatus extends PropertyMapper
   /**
    * @return SessionResult
    */
-  public function getResult()
+  public function getResult(): ?SessionResult
   {
     return $this->result;
   }
 
-  /**
-   * @param SessionResult $result
-   * @return $this
-   */
-  public function setResult( SessionResult $result = null )
+    /**
+     * @param SessionResult|null $result
+     * @return $this
+     */
+  public function setResult( SessionResult $result = null ): SessionStatus
   {
     $this->result = $result;
     return $this;
@@ -97,16 +97,16 @@ class SessionStatus extends PropertyMapper
   /**
    * @return SessionSignature
    */
-  public function getSignature()
+  public function getSignature(): ?SessionSignature
   {
     return $this->signature;
   }
 
-  /**
-   * @param SessionSignature $signature
-   * @return $this
-   */
-  public function setSignature( SessionSignature $signature = null )
+    /**
+     * @param SessionSignature|null $signature
+     * @return $this
+     */
+  public function setSignature( SessionSignature $signature = null ): SessionStatus
   {
     $this->signature = $signature;
     return $this;
@@ -115,16 +115,16 @@ class SessionStatus extends PropertyMapper
   /**
    * @return SessionCertificate
    */
-  public function getCert()
+  public function getCert(): ?SessionCertificate
   {
     return $this->cert;
   }
 
-  /**
-   * @param SessionCertificate $cert
-   * @return $this
-   */
-  public function setCert( SessionCertificate $cert = null )
+    /**
+     * @param SessionCertificate|null $cert
+     * @return $this
+     */
+  public function setCert( SessionCertificate $cert = null ): SessionStatus
   {
     $this->cert = $cert;
     return $this;
@@ -149,15 +149,16 @@ class SessionStatus extends PropertyMapper
     /**
      * @return string
      */
-    public function getInteractionFlowUsed()
+    public function getInteractionFlowUsed(): string
     {
         return $this->interactionFlowUsed;
     }
 
     /**
      * @param string $interactionFlowUsed
+     * @return SessionStatus
      */
-    public function setInteractionFlowUsed(string $interactionFlowUsed)
+    public function setInteractionFlowUsed(string $interactionFlowUsed): SessionStatus
     {
         $this->interactionFlowUsed = $interactionFlowUsed;
         return $this;
@@ -168,7 +169,7 @@ class SessionStatus extends PropertyMapper
   /**
    * @return bool
    */
-  public function isRunningState()
+  public function isRunningState(): bool
   {
     return strcasecmp( SessionStatusCode::RUNNING, $this->state ) == 0;
   }

@@ -43,7 +43,7 @@ class CertificateLevel
   /**
    * @param string $certificateLevel
    */
-  public function __construct( $certificateLevel )
+  public function __construct(string $certificateLevel )
   {
     $this->certificateLevel = $certificateLevel;
     self::$certificateLevels = array(
@@ -56,7 +56,7 @@ class CertificateLevel
    * @param string $certificateLevel
    * @return bool
    */
-  public function isEqualOrAbove( $certificateLevel )
+  public function isEqualOrAbove(string $certificateLevel ): bool
   {
     if ( strcasecmp( $this->certificateLevel, $certificateLevel ) === 0 )
     {

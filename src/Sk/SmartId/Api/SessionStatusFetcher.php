@@ -33,11 +33,10 @@ use Sk\SmartId\Api\Data\SessionStatusCode;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
 use Sk\SmartId\Api\Data\SignableData;
 use Sk\SmartId\Api\Data\SmartIdAuthenticationResponse;
-use Sk\SmartId\Exception\DocumentUnusableException;
-use Sk\SmartId\Exception\InterruptedException;
 use Sk\SmartId\Exception\RequiredInteractionNotSupportedByAppException;
 use Sk\SmartId\Exception\SessionTimeoutException;
 use Sk\SmartId\Exception\TechnicalErrorException;
+use Sk\SmartId\Exception\UnprocessableSmartIdResponseException;
 use Sk\SmartId\Exception\UserRefusedCertChoiceException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageException;
 use Sk\SmartId\Exception\UserRefusedConfirmationMessageWithVcChoiceException;
@@ -87,10 +86,10 @@ class SessionStatusFetcher
   }
 
   /**
-   * @param string $sessionId
+   * @param string|null $sessionId
    * @return $this
    */
-  public function setSessionId( $sessionId )
+  public function setSessionId(?string $sessionId ): SessionStatusFetcher
   {
     $this->sessionId = $sessionId;
     return $this;
@@ -99,7 +98,7 @@ class SessionStatusFetcher
   /**
    * @return string
    */
-  public function getSessionId()
+  public function getSessionId(): string
   {
     return $this->sessionId;
   }
@@ -108,7 +107,7 @@ class SessionStatusFetcher
    * @param SignableData $dataToSign
    * @return $this
    */
-  public function setDataToSign( SignableData $dataToSign )
+  public function setDataToSign( SignableData $dataToSign ): SessionStatusFetcher
   {
     $this->dataToSign = $dataToSign;
     return $this;
@@ -118,27 +117,27 @@ class SessionStatusFetcher
    * @param AuthenticationHash $authenticationHash
    * @return $this
    */
-  public function setAuthenticationHash( AuthenticationHash $authenticationHash )
+  public function setAuthenticationHash( AuthenticationHash $authenticationHash ): SessionStatusFetcher
   {
     $this->authenticationHash = $authenticationHash;
     return $this;
   }
 
   /**
-   * @param int $sessionStatusResponseSocketTimeoutMs
+   * @param int|null $sessionStatusResponseSocketTimeoutMs
    * @return $this
    */
-  public function setSessionStatusResponseSocketTimeoutMs( $sessionStatusResponseSocketTimeoutMs )
+  public function setSessionStatusResponseSocketTimeoutMs(?int $sessionStatusResponseSocketTimeoutMs ): SessionStatusFetcher
   {
     $this->sessionStatusResponseSocketTimeoutMs = $sessionStatusResponseSocketTimeoutMs;
     return $this;
   }
 
   /**
-   * @param string $networkInterface
+   * @param string|null $networkInterface
    * @return $this
    */
-  public function setNetworkInterface( $networkInterface )
+  public function setNetworkInterface(?string $networkInterface ): SessionStatusFetcher
   {
     $this->networkInterface = $networkInterface;
     return $this;
@@ -147,7 +146,7 @@ class SessionStatusFetcher
   /**
    * @return string
    */
-  private function getDataToSign()
+  private function getDataToSign(): string
   {
     if ( isset( $this->authenticationHash ) )
     {
@@ -159,7 +158,7 @@ class SessionStatusFetcher
   /**
    * @return SmartIdAuthenticationResponse
    */
-  public function getAuthenticationResponse()
+  public function getAuthenticationResponse(): SmartIdAuthenticationResponse
   {
     $sessionStatus = $this->fetchSessionStatus();
     if ( $sessionStatus->isRunningState() )
@@ -178,7 +177,7 @@ class SessionStatusFetcher
   /**
    * @return SessionStatus
    */
-  public function getSessionStatus()
+  public function getSessionStatus(): SessionStatus
   {
     $request = $this->createSessionStatusRequest( $this->sessionId );
     return $this->connector->getSessionStatus( $request );
@@ -188,26 +187,18 @@ class SessionStatusFetcher
    * @throws TechnicalErrorException
    * @return SessionStatus|null
    */
-  private function fetchSessionStatus()
+  private function fetchSessionStatus(): ?SessionStatus
   {
-    try
-    {
-      /** @var SessionStatus $sessionStatus */
       $sessionStatus = $this->getSessionStatus();
       $this->validateResult( $sessionStatus );
       return $sessionStatus;
-    }
-    catch ( InterruptedException $e )
-    {
-      throw new TechnicalErrorException( 'Failed to poll session status: ' . $e->getMessage() );
-    }
   }
 
   /**
-   * @param string $sessionId
+   * @param string|null $sessionId
    * @return SessionStatusRequest
    */
-  private function createSessionStatusRequest( $sessionId )
+  private function createSessionStatusRequest(?string $sessionId ): SessionStatusRequest
   {
     $request = new SessionStatusRequest( $sessionId );
     $request->setSessionStatusResponseSocketTimeoutMs( $this->sessionStatusResponseSocketTimeoutMs )
@@ -236,7 +227,7 @@ class SessionStatusFetcher
    * @throws TechnicalErrorException
    * @throws UserRefusedException
    * @throws SessionTimeoutException
-   * @throws DocumentUnusableException
+   * @throws UnprocessableSmartIdResponseException
    */
   private function validateResult( SessionStatus $sessionStatus )
   {
@@ -262,7 +253,7 @@ class SessionStatusFetcher
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::DOCUMENT_UNUSABLE ) == 0 )
     {
-      throw new DocumentUnusableException();
+      throw new UnprocessableSmartIdResponseException();
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP) == 0 )
     {
@@ -298,7 +289,7 @@ class SessionStatusFetcher
    * @param SessionStatus $sessionStatus
    * @return SmartIdAuthenticationResponse
    */
-  private function createSmartIdAuthenticationResponse( SessionStatus $sessionStatus )
+  private function createSmartIdAuthenticationResponse( SessionStatus $sessionStatus ): SmartIdAuthenticationResponse
   {
     $sessionResult = $sessionStatus->getResult();
     $sessionSignature = $sessionStatus->getSignature();

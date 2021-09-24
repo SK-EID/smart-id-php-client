@@ -76,7 +76,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
   /**
    * @return string
    */
-  public function getBasicConstraints()
+  public function getBasicConstraints(): string
   {
     return $this->basicConstraints;
   }
@@ -85,7 +85,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
    * @param string $basicConstraints
    * @return $this
    */
-  public function setBasicConstraints( $basicConstraints )
+  public function setBasicConstraints(string $basicConstraints ): AuthenticationCertificateExtensions
   {
     $this->basicConstraints = $basicConstraints;
     return $this;
@@ -94,7 +94,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
   /**
    * @return string
    */
-  public function getKeyUsage()
+  public function getKeyUsage(): string
   {
     return $this->keyUsage;
   }
@@ -103,7 +103,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
    * @param string $keyUsage
    * @return $this
    */
-  public function setKeyUsage( $keyUsage )
+  public function setKeyUsage(string $keyUsage ): AuthenticationCertificateExtensions
   {
     $this->keyUsage = $keyUsage;
     return $this;
@@ -112,7 +112,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
   /**
    * @return string
    */
-  public function getCertificatePolicies()
+  public function getCertificatePolicies(): string
   {
     return $this->certificatePolicies;
   }
@@ -121,7 +121,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
    * @param string $certificatePolicies
    * @return $this
    */
-  public function setCertificatePolicies( $certificatePolicies )
+  public function setCertificatePolicies(string $certificatePolicies ): AuthenticationCertificateExtensions
   {
     $this->certificatePolicies = $certificatePolicies;
     return $this;
@@ -130,7 +130,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
   /**
    * @return string
    */
-  public function getSubjectKeyIdentifier()
+  public function getSubjectKeyIdentifier(): string
   {
     return $this->subjectKeyIdentifier;
   }
@@ -139,7 +139,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
    * @param string $subjectKeyIdentifier
    * @return $this
    */
-  public function setSubjectKeyIdentifier( $subjectKeyIdentifier )
+  public function setSubjectKeyIdentifier(string $subjectKeyIdentifier ): AuthenticationCertificateExtensions
   {
     $this->subjectKeyIdentifier = $subjectKeyIdentifier;
     return $this;
@@ -148,7 +148,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
   /**
    * @return string
    */
-  public function getQcStatements()
+  public function getQcStatements(): string
   {
     return $this->qcStatements;
   }
@@ -157,7 +157,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
    * @param string $qcStatements
    * @return $this
    */
-  public function setQcStatements( $qcStatements )
+  public function setQcStatements(string $qcStatements ): AuthenticationCertificateExtensions
   {
     $this->qcStatements = $qcStatements;
     return $this;
@@ -166,7 +166,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
   /**
    * @return string
    */
-  public function getAuthorityKeyIdentifier()
+  public function getAuthorityKeyIdentifier(): string
   {
     return $this->authorityKeyIdentifier;
   }
@@ -175,7 +175,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
    * @param string $authorityKeyIdentifier
    * @return $this
    */
-  public function setAuthorityKeyIdentifier( $authorityKeyIdentifier )
+  public function setAuthorityKeyIdentifier(string $authorityKeyIdentifier ): AuthenticationCertificateExtensions
   {
     $this->authorityKeyIdentifier = $authorityKeyIdentifier;
     return $this;
@@ -184,7 +184,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
   /**
    * @return string
    */
-  public function getAuthorityInfoAccess()
+  public function getAuthorityInfoAccess(): string
   {
     return $this->authorityInfoAccess;
   }
@@ -193,7 +193,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
    * @param string $authorityInfoAccess
    * @return $this
    */
-  public function setAuthorityInfoAccess( $authorityInfoAccess )
+  public function setAuthorityInfoAccess(string $authorityInfoAccess ): AuthenticationCertificateExtensions
   {
     $this->authorityInfoAccess = $authorityInfoAccess;
     return $this;
@@ -202,7 +202,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
   /**
    * @return string
    */
-  public function getExtendedKeyUsage()
+  public function getExtendedKeyUsage(): string
   {
     return $this->extendedKeyUsage;
   }
@@ -211,7 +211,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
    * @param string $extendedKeyUsage
    * @return $this
    */
-  public function setExtendedKeyUsage( $extendedKeyUsage )
+  public function setExtendedKeyUsage(string $extendedKeyUsage ): AuthenticationCertificateExtensions
   {
     $this->extendedKeyUsage = $extendedKeyUsage;
     return $this;
@@ -220,7 +220,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
   /**
    * @return string
    */
-  public function getSubjectAltName()
+  public function getSubjectAltName(): string
   {
     return $this->subjectAltName;
   }
@@ -229,7 +229,7 @@ class AuthenticationCertificateExtensions extends PropertyMapper
    * @param string $subjectAltName
    * @return $this
    */
-  public function setSubjectAltName( $subjectAltName )
+  public function setSubjectAltName(string $subjectAltName ): AuthenticationCertificateExtensions
   {
     $this->subjectAltName = $subjectAltName;
     return $this;

@@ -26,11 +26,13 @@
  */
 namespace Sk\SmartId\Api;
 
+use Exception;
 use Sk\SmartId\Api\Data\AuthenticationSessionRequest;
 use Sk\SmartId\Api\Data\AuthenticationSessionResponse;
 use Sk\SmartId\Api\Data\SemanticsIdentifier;
 use Sk\SmartId\Api\Data\SessionStatus;
 use Sk\SmartId\Api\Data\SessionStatusRequest;
+use Sk\SmartId\Client;
 use Sk\SmartId\Exception\NotFoundException;
 use Sk\SmartId\Exception\SessionNotFoundException;
 use Sk\SmartId\Exception\SmartIdException;
@@ -69,7 +71,7 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param string $endpointUrl
    */
-  public function __construct( $endpointUrl )
+  public function __construct(string $endpointUrl )
   {
     $this->endpointUrl = $endpointUrl;
   }
@@ -77,10 +79,10 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param string $documentNumber
    * @param AuthenticationSessionRequest $request
-   * @throws \Exception
    * @return AuthenticationSessionResponse
+   * @throws Exception
    */
-  public function authenticate( $documentNumber, AuthenticationSessionRequest $request )
+  public function authenticate(string $documentNumber, AuthenticationSessionRequest $request ): AuthenticationSessionResponse
   {
     $url = rtrim( $this->endpointUrl, '/' ) . self::AUTHENTICATE_BY_DOCUMENT_NUMBER_PATH;
     $url = str_replace( '{documentNumber}', $documentNumber, $url );
@@ -91,9 +93,9 @@ class SmartIdRestConnector implements SmartIdConnector
      * @param SemanticsIdentifier $semanticsIdentifier
      * @param AuthenticationSessionRequest $request
      * @return AuthenticationSessionResponse
-     * @throws \Exception
+     * @throws Exception
      */
-    function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request)
+    function authenticateWithSemanticsIdentifier(SemanticsIdentifier $semanticsIdentifier, AuthenticationSessionRequest $request) :AuthenticationSessionResponse
     {
         $url = rtrim( $this->endpointUrl, '/' ) . self::AUTHENTICATION_BY_SEMANTICS_IDENTIFIER_PATH;
         $url = str_replace( array(
@@ -107,17 +109,16 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param SessionStatusRequest $request
    * @throws SessionNotFoundException
-   * @throws \Exception
+   * @throws Exception
    * @return SessionStatus
    */
-  public function getSessionStatus( SessionStatusRequest $request )
+  public function getSessionStatus( SessionStatusRequest $request ) : SessionStatus
   {
     $url = rtrim( $this->endpointUrl, '/' ) . self::SESSION_STATUS_URI;
     $url = str_replace( '{sessionId}', $request->getSessionId(), $url );
     try
     {
-      $sessionStatus = $this->getRequest( $url, $request->toArray(), 'Sk\SmartId\Api\Data\SessionStatus' );
-      return $sessionStatus;
+        return $this->getRequest( $url, $request->toArray(), 'Sk\SmartId\Api\Data\SessionStatus' );
     }
     catch ( NotFoundException $e )
     {
@@ -128,11 +129,11 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param string $url
    * @param AuthenticationSessionRequest $request
-   * @throws UserAccountNotFoundException
-   * @throws \Exception
    * @return AuthenticationSessionResponse
+   * @throws Exception
+   * @throws UserAccountNotFoundException
    */
-  private function postAuthenticationRequest( $url, AuthenticationSessionRequest $request )
+  private function postAuthenticationRequest(string $url, AuthenticationSessionRequest $request ): AuthenticationSessionResponse
   {
     try
     {
@@ -144,20 +145,22 @@ class SmartIdRestConnector implements SmartIdConnector
     }
   }
 
+  // TODO signature status request response type?
+
   /**
    * @param string $url
    * @param array $params
    * @param string $responseType
-   * @throws \Exception
    * @return mixed
+   * @throws Exception
    */
-  private function postRequest( $url, array $params, $responseType )
+  private function postRequest(string $url, array $params, string $responseType )
   {
     $this->curl = new Curl();
     $this->curl->setPublicSslKeys($this->publicSslKeys);
     $this->setNetworkInterface( $params );
     $this->curl->curlPost( $url, array(), json_encode( $params ) );
-    $this->curl->setCurlParam( CURLOPT_HTTPHEADER, array('content-type: application/json',) );
+    $this->curl->setCurlParam( CURLOPT_HTTPHEADER, array('content-type: application/json','User-Agent: smart-id-php-client/'.Client::VERSION.' (PHP/'.phpversion().')') );
     return $this->request( $url, $responseType );
   }
 
@@ -165,10 +168,10 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param string $url
    * @param array $params
    * @param string $responseType
-   * @throws \Exception
    * @return mixed
+   * @throws Exception
    */
-  private function getRequest( $url, array $params, $responseType )
+  private function getRequest(string $url, array $params, string $responseType )
   {
     $this->curl = new Curl();
     $this->curl->setPublicSslKeys($this->publicSslKeys);
@@ -180,11 +183,11 @@ class SmartIdRestConnector implements SmartIdConnector
   /**
    * @param string $url
    * @param string $responseType
-   * @throws SmartIdException
-   * @throws NotFoundException
    * @return mixed
+   * @throws NotFoundException
+   * @throws SmartIdException
    */
-  private function request( $url, $responseType )
+  private function request(string $url, string $responseType )
   {
     $rawResponse = $this->curl->fetch();
 
@@ -207,9 +210,7 @@ class SmartIdRestConnector implements SmartIdConnector
       throw new NotFoundException( 'User account not found for URI ' . $url );
     }
 
-    $response = $this->getResponse( $rawResponse, $responseType );
-
-    return $response;
+      return $this->getResponse( $rawResponse, $responseType );
   }
 
   /**
@@ -217,7 +218,7 @@ class SmartIdRestConnector implements SmartIdConnector
    * @param string $responseType
    * @return mixed
    */
-  private function getResponse( $rawResponse, $responseType )
+  private function getResponse(string $rawResponse, string $responseType )
   {
     $preparedResponse = json_decode( $rawResponse, true );
     return new $responseType( $preparedResponse );
