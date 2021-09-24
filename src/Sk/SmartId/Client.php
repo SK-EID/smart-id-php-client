@@ -34,7 +34,7 @@ use Sk\SmartId\Api\Authentication;
 class Client
 {
     // THIS NEEDS TO REFLECT THE CURRENT smart-id-php-client version
-  const VERSION = '2.1.SNAPSHOT';
+  const VERSION = '2.1';
 
   /**
    * @var array
