@@ -23,10 +23,21 @@ class SmartIdRestConnectorTest extends TestCase
 
     $sentRequest = $connector->postRequest("https://httpbin.org/anything?", $request, 'Sk\SmartId\Tests\Api\HttpBinDummyResponse');
 
-    $this->assertRequestContainsSmartIdPhpClientLibraryVersion($sentRequest);
-    $this->assertRequestContainsSmartIdPhpClientLibraryName($sentRequest);
-    $this->assertRequestContainsPhpAsProgrammingLanguage($sentRequest);
-    $this->assertRequestUserAgentMatchesFormat($sentRequest);
+    $this->assertHeaderContainsSmartIdPhpClientLibraryVersion($sentRequest->getUserAgentHeader());
+    $this->assertHeaderContainsSmartIdPhpClientLibraryName($sentRequest->getUserAgentHeader());
+    $this->assertHeaderContainsPhpAsProgrammingLanguage($sentRequest->getUserAgentHeader());
+    $this->assertHeaderMatchesFormat($sentRequest->getUserAgentHeader());
+  }
+
+  /**
+   * @test
+   * @throws Exception
+   */
+  public function headerFormatsMatchValidation()
+  {
+    $this->assertHeaderMatchesFormat("smart-id-php-client/2.2 (PHP/7.3.27)");
+    $this->assertHeaderMatchesFormat("smart-id-php-client/2.2.SNAPSHOT (PHP/8.0)");
+    $this->assertHeaderMatchesFormat("smart-id-php-client/2.2.SNAPSHOT (PHP/8.1.3.1)");
   }
 
   /**
@@ -42,43 +53,42 @@ class SmartIdRestConnectorTest extends TestCase
 
     $sentGetRequest = $connector->getRequest("https://httpbin.org/anything?", $request, 'Sk\SmartId\Tests\Api\HttpBinDummyResponse');
 
-    self::assertStringContainsString(Client::VERSION, $sentGetRequest->getUserAgentHeader());
-    self::assertStringContainsString("smart-id-php-client/", $sentGetRequest->getUserAgentHeader());
-    self::assertStringContainsString("(PHP/", $sentGetRequest->getUserAgentHeader());
+    $this->assertHeaderContainsSmartIdPhpClientLibraryVersion($sentGetRequest->getUserAgentHeader());
+    $this->assertHeaderContainsSmartIdPhpClientLibraryName($sentGetRequest->getUserAgentHeader());
+    $this->assertHeaderContainsPhpAsProgrammingLanguage($sentGetRequest->getUserAgentHeader());
+    $this->assertHeaderMatchesFormat($sentGetRequest->getUserAgentHeader());
+  }
 
-    self::assertMatchesRegularExpression("%smart-id-php-client/[0-9]\.[0-9]\..+ \(PHP/[0-9]+\.[0-9]+\..+\)%", $sentGetRequest->getUserAgentHeader());
+  /**
+   * @param $userAgentHeaderValue
+   */
+  public function assertHeaderContainsSmartIdPhpClientLibraryVersion($userAgentHeaderValue): void
+  {
+    self::assertStringContainsString(Client::VERSION, $userAgentHeaderValue);
+  }
+
+  /**
+   * @param $userAgentHeaderValue
+   */
+  public function assertHeaderContainsSmartIdPhpClientLibraryName($userAgentHeaderValue): void
+  {
+    self::assertStringContainsString("smart-id-php-client/", $userAgentHeaderValue);
+  }
+
+  /**
+   * @param $userAgentHeaderValue
+   */
+  public function assertHeaderContainsPhpAsProgrammingLanguage($userAgentHeaderValue): void
+  {
+    self::assertStringContainsString("(PHP/", $userAgentHeaderValue);
   }
 
   /**
    * @param $sentRequest
    */
-  public function assertRequestContainsSmartIdPhpClientLibraryVersion($sentRequest): void
+  public function assertHeaderMatchesFormat($userAgentHeaderValue): void
   {
-    self::assertStringContainsString(Client::VERSION, $sentRequest->getUserAgentHeader());
-  }
-
-  /**
-   * @param $sentRequest
-   */
-  public function assertRequestContainsSmartIdPhpClientLibraryName($sentRequest): void
-  {
-    self::assertStringContainsString("smart-id-php-client/", $sentRequest->getUserAgentHeader());
-  }
-
-  /**
-   * @param $sentRequest
-   */
-  public function assertRequestContainsPhpAsProgrammingLanguage($sentRequest): void
-  {
-    self::assertStringContainsString("(PHP/", $sentRequest->getUserAgentHeader());
-  }
-
-  /**
-   * @param $sentRequest
-   */
-  public function assertRequestUserAgentMatchesFormat($sentRequest): void
-  {
-    self::assertMatchesRegularExpression("%smart-id-php-client/[0-9]\.[0-9]\..+ \(PHP/[0-9]+\.[0-9]+\..+\)%", $sentRequest->getUserAgentHeader());
+    self::assertMatchesRegularExpression("%smart-id-php-client/[0-9]\.[0-9].* \(PHP/[0-9]+\.[0-9]+.*\)%", $userAgentHeaderValue);
   }
 
 }
