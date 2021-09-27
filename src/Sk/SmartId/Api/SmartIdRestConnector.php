@@ -242,4 +242,5 @@ class SmartIdRestConnector implements SmartIdConnector
   {
       $this->publicSslKeys = $sslKeys;
   }
+
 }

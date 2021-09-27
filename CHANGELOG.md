@@ -2,7 +2,7 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased] -
+## [2.1] - 2021-09-24
 
 ### Changed
 - PHP version upgraded 7.2 -> 7.3
@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 NB This function can return null for some Latvian certificates.
 - New function AuthenticationIdentity->getIdentityNumber() that returns personal identification number without a PNOEE-, IDXLV- etc prefix
 - Return types added to methods
+- Library and PHP version number added to User-Agent header of outgoing requests
 
 ## [2.0] - 2021-04-07
 
