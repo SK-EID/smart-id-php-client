@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [2.2] - 2021-09-27
+
+### Fixed
+- Fix user agent header regex validation
+
 ### Added 
 - Library and PHP version number added to User-Agent header of all requests
 
