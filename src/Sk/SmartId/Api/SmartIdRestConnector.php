@@ -154,7 +154,7 @@ class SmartIdRestConnector implements SmartIdConnector
    * @return mixed
    * @throws Exception
    */
-  private function postRequest(string $url, array $params, string $responseType )
+  function postRequest(string $url, array $params, string $responseType )
   {
     $this->curl = new Curl();
     $this->curl->setPublicSslKeys($this->publicSslKeys);
@@ -171,12 +171,13 @@ class SmartIdRestConnector implements SmartIdConnector
    * @return mixed
    * @throws Exception
    */
-  private function getRequest(string $url, array $params, string $responseType )
+  function getRequest(string $url, array $params, string $responseType )
   {
     $this->curl = new Curl();
     $this->curl->setPublicSslKeys($this->publicSslKeys);
     $this->setNetworkInterface( $params );
     $this->curl->curlGet( $url, $params );
+    $this->curl->setCurlParam( CURLOPT_HTTPHEADER, array('User-Agent: smart-id-php-client/'.Client::VERSION.' (PHP/'.phpversion().')') );
     return $this->request( $url, $responseType );
   }
 
@@ -210,7 +211,7 @@ class SmartIdRestConnector implements SmartIdConnector
       throw new NotFoundException( 'User account not found for URI ' . $url );
     }
 
-      return $this->getResponse( $rawResponse, $responseType );
+    return $this->getResponse( $rawResponse, $responseType );
   }
 
   /**
@@ -221,6 +222,7 @@ class SmartIdRestConnector implements SmartIdConnector
   private function getResponse(string $rawResponse, string $responseType )
   {
     $preparedResponse = json_decode( $rawResponse, true );
+
     return new $responseType( $preparedResponse );
   }
 
