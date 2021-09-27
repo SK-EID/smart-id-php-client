@@ -33,8 +33,9 @@ use Sk\SmartId\Api\Authentication;
 
 class Client
 {
-    // THIS NEEDS TO REFLECT THE CURRENT smart-id-php-client version
-  const VERSION = '2.1';
+  // THIS NEEDS TO REFLECT THE CURRENT smart-id-php-client version
+  // IT IS EITHER A VERSION (like 2.2) OR A FUTURE VERSION (2.2.SNAPSHOT)
+  const VERSION = '2.2.SNAPSHOT';
 
   /**
    * @var array
@@ -163,4 +164,5 @@ class Client
   {
       return $this->sslKeys;
   }
+
 }
