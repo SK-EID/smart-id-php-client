@@ -18,8 +18,11 @@ Smart-ID PHP client works with PHP 7.3 or later.
 The recommended way to install Smart-ID PHP Client is through [Composer]:
 
 ```
-composer require sk-id-solutions/smart-id-php-client "~1.0"
+composer require sk-id-solutions/smart-id-php-client "2.2"
 ```
+
+See [packagist](https://packagist.org/packages/sk-id-solutions/smart-id-php-client) for latest published version
+and [changelog](CHANGELOG.md) for details.
 
 ## Https pinning
 
