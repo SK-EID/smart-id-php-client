@@ -124,21 +124,23 @@ abstract class PropertyMapper
   }
 
     /**
-     * @param string $method
+     * @param string $methodParam
      * @param array|mixed $value
      * @return mixed
      * @throws ReflectionException
      */
-  private function prepareValue(string $method, $value )
+  private function prepareValue(string $methodParam, $value )
   {
     if ( is_array( $value ) )
     {
-      $Method = new ReflectionMethod( $this, $method );
-      if ( $Method->getParameters()[0]->getClass() === null )
+      $reflectionMethod = new ReflectionMethod( $this, $methodParam );
+
+      $type = $reflectionMethod->getParameters()[0]->getType();
+      if ( $type === null || $type->isBuiltin() )
       {
         return $value;
       }
-      $class = $Method->getParameters()[0]->getClass()->getName();
+      $class = $type->getName();
       $result = new $class( $value );
     }
     else
@@ -199,7 +201,7 @@ abstract class PropertyMapper
    * @param array $array
    * @return $this
    */
-  public function fromArray( array $array )
+  public function fromArray( array $array ): PropertyMapper
   {
     foreach ( $array as $key => $value )
     {
