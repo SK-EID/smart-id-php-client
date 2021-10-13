@@ -48,7 +48,7 @@ class DummyData
 
   const SIGNABLE_TEXT = "hashvalueinbase64";
 
-  const NETWORK_INTERFACE = "docker0"; // network interface in machine. for example "docker0", "en7", "127.0.0.1"
+  const NETWORK_INTERFACE = "docker0"; // network interface in machine. for example "docker0", "en7", "eth0", "127.0.0.1"
 
   /**
    * @return SessionResult
