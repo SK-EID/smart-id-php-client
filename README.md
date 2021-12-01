@@ -30,7 +30,12 @@ and [changelog](CHANGELOG.md) for details.
 
    Setting the client to trust specific public keys. SSL certificates used can be found [here](https://www.skidsolutions.eu/repositoorium/sk-sertifikaadid).
    
-   The setPublicSslKeys method requires a string of sha256 hashes of the public keys used delimited with ";". Instructions for extrecting the hashes from certificates can be found [here](https://curl.haxx.se/libcurl/c/CURLOPT_PINNEDPUBLICKEY.html).
+   The setPublicSslKeys method requires a string of sha256 hashes of the public keys used delimited with ";". Instructions for extrecting the hashes from certificates can be found [here](https://curl.haxx.se/libcurl/c/CURLOPT_PINNEDPUBLICKEY.html). You can extract hashes from certificates using next openssl command.
+   
+   ```
+   openssl x509 -inform PEM -in certificate.pem -noout -pubkey | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -binary | openssl enc -base64
+   ```
+   
    The supplied string should be of format sha256//sha256-hash-of-the-public-key;
 
 ```PHP
@@ -39,7 +44,7 @@ $this->client
   ->setRelyingPartyUUID( "YOUR UUID" )
   ->setRelyingPartyName( "YOUR RP NAME" )
   ->setHostUrl("HOST_URL")
-  ->setPublicSslKeys("sha256//l2uvq6ftLN4LZ+8Un+71J2vH1BT9wTbtrE5+Fj3Vc5g=;sha256//nTL2Ju/1Mt+WAHeejqZHtgPNRu049iUcXOPq0GmRgJg=");
+  ->setPublicSslKeys("sha256//nTL2Ju/1Mt+WAHeejqZHtgPNRu049iUcXOPq0GmRgJg=;sha256//wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=");
  ```
 
 ## How to use it
