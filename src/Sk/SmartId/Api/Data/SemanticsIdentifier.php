@@ -47,9 +47,9 @@ class SemanticsIdentifier
 
     public function validate()
     {
-        if (!preg_match("/^[A-Z]{5}-[a-zA-Z\d]{5,30}$/", $this->semanticsIdentifier))
+        if (!preg_match("/^[A-Z\:]{5}-[a-zA-Z\d\-]{5,30}$/", $this->semanticsIdentifier))
         {
-            throw new InvalidParametersException("The semantics identifier format is invalid");
+            throw new InvalidParametersException("The semantics identifier '" . $this->semanticsIdentifier. "' has an invalid format");
         }
     }
 
