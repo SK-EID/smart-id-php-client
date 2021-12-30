@@ -171,6 +171,6 @@ class SessionStatus extends PropertyMapper
    */
   public function isRunningState(): bool
   {
-    return strcasecmp( SessionStatusCode::RUNNING, $this->state ) == 0;
+    return $this->state != null && strcasecmp( SessionStatusCode::RUNNING, $this->state ) == 0;
   }
 }

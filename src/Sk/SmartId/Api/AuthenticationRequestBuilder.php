@@ -253,7 +253,7 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
     $this->validateParameters();
     $request = $this->createAuthenticationSessionRequest();
 
-    if ( strlen( $this->documentNumber ) )
+    if ( !empty($this->documentNumber) )
     {
       return $this->getConnector()
           ->authenticate( $this->documentNumber, $request );
