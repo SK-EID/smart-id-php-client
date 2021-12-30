@@ -149,16 +149,12 @@ class SessionStatus extends PropertyMapper
     /**
      * @return string
      */
-    public function getInteractionFlowUsed(): string
+    public function getInteractionFlowUsed(): ?string
     {
         return $this->interactionFlowUsed;
     }
 
-    /**
-     * @param string $interactionFlowUsed
-     * @return SessionStatus
-     */
-    public function setInteractionFlowUsed(string $interactionFlowUsed): SessionStatus
+  public function setInteractionFlowUsed(?string $interactionFlowUsed): SessionStatus
     {
         $this->interactionFlowUsed = $interactionFlowUsed;
         return $this;

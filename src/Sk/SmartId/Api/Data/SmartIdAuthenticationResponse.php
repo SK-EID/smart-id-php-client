@@ -273,11 +273,11 @@ class SmartIdAuthenticationResponse extends PropertyMapper
       return $this->interactionFlowUsed;
   }
 
-    /**
-     * @param string $interactionFlowUsed
-     * @return SmartIdAuthenticationResponse
-     */
-  public function setInteractionFlowUsed(string $interactionFlowUsed): SmartIdAuthenticationResponse
+  /**
+   * @param string|null $interactionFlowUsed
+   * @return SmartIdAuthenticationResponse
+   */
+  public function setInteractionFlowUsed(?string $interactionFlowUsed): SmartIdAuthenticationResponse
   {
       $this->interactionFlowUsed = $interactionFlowUsed;
       return $this;
