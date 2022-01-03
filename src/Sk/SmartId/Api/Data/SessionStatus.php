@@ -149,16 +149,12 @@ class SessionStatus extends PropertyMapper
     /**
      * @return string
      */
-    public function getInteractionFlowUsed(): string
+    public function getInteractionFlowUsed(): ?string
     {
         return $this->interactionFlowUsed;
     }
 
-    /**
-     * @param string $interactionFlowUsed
-     * @return SessionStatus
-     */
-    public function setInteractionFlowUsed(string $interactionFlowUsed): SessionStatus
+  public function setInteractionFlowUsed(?string $interactionFlowUsed): SessionStatus
     {
         $this->interactionFlowUsed = $interactionFlowUsed;
         return $this;
@@ -171,6 +167,6 @@ class SessionStatus extends PropertyMapper
    */
   public function isRunningState(): bool
   {
-    return strcasecmp( SessionStatusCode::RUNNING, $this->state ) == 0;
+    return $this->state != null && strcasecmp( SessionStatusCode::RUNNING, $this->state ) == 0;
   }
 }

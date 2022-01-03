@@ -362,7 +362,7 @@ class AuthenticationRequestBuilderTest extends Setup
 
         $signableData = AuthenticationHash::generate();
         $this->expectException(InvalidParametersException::class);
-        $this->expectExceptionMessage("The semantics identifier format is invalid");
+        $this->expectExceptionMessage("The semantics identifier 'PNOE-39709246512' has an invalid format");
         $this->builder
             ->withRelyingPartyName( 'relying-party-name' )
             ->withRelyingPartyUUID( 'relying-party-uuid' )
@@ -381,7 +381,7 @@ class AuthenticationRequestBuilderTest extends Setup
 
         $signableData = AuthenticationHash::generate();
         $this->expectException(InvalidParametersException::class);
-        $this->expectExceptionMessage("The semantics identifier format is invalid");
+        $this->expectExceptionMessage("The semantics identifier 'PNOEE-3' has an invalid format");
         $this->builder
             ->withRelyingPartyName( 'relying-party-name' )
             ->withRelyingPartyUUID( 'relying-party-uuid' )
@@ -400,7 +400,7 @@ class AuthenticationRequestBuilderTest extends Setup
 
         $signableData = AuthenticationHash::generate();
         $this->expectException(InvalidParametersException::class);
-        $this->expectExceptionMessage("The semantics identifier format is invalid");
+        $this->expectExceptionMessage("The semantics identifier 'PNOEE39999297898' has an invalid format");
         $this->builder
             ->withRelyingPartyName( 'relying-party-name' )
             ->withRelyingPartyUUID( 'relying-party-uuid' )
@@ -424,7 +424,7 @@ class AuthenticationRequestBuilderTest extends Setup
             ->withRelyingPartyUUID( 'relying-party-uuid' )
             ->withCertificateLevel( CertificateLevelCode::QUALIFIED )
             ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("text")))
-            ->withSemanticsIdentifierAsString("PNOEE-39999297898")
+            ->withSemanticsIdentifierAsString("PNOLV-030303-10012")
             ->withSignableData($signableData)
             ->authenticate();
     }
