@@ -4,7 +4,7 @@
 namespace Sk\SmartId\Exception;
 
 
-class RequiredInteractionNotSupportedByAppException extends SmartIdException
+class RequiredInteractionNotSupportedByAppException extends UserAccountException
 {
 
 }

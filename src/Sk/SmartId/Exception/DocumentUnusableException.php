@@ -26,6 +26,6 @@
  */
 namespace Sk\SmartId\Exception;
 
-class DocumentUnusableException extends SmartIdException
+class DocumentUnusableException extends UserAccountException
 {
 }

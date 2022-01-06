@@ -4,7 +4,7 @@
 namespace Sk\SmartId\Exception;
 
 
-class UserRefusedDisplayTextAndPinException extends SmartIdException
+class UserRefusedDisplayTextAndPinException extends UserRefusedException
 {
 
 }

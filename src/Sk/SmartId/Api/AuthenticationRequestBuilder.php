@@ -340,7 +340,8 @@ class AuthenticationRequestBuilder extends SmartIdRequestBuilder
         ->setValueInBase64( $sessionSignature->getValue() )
         ->setAlgorithmName( $sessionSignature->getAlgorithm() )
         ->setCertificate( $sessionCertificate->getValue() )
-        ->setCertificateLevel( $sessionCertificate->getCertificateLevel() );
+        ->setCertificateLevel( $sessionCertificate->getCertificateLevel() )
+        ->setDocumentNumber( $sessionResult->getDocumentNumber() );
     return $authenticationResponse;
   }
 

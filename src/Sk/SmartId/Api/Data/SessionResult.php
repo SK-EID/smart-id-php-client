@@ -59,7 +59,7 @@ class SessionResult extends PropertyMapper
   /**
    * @return string
    */
-  public function getDocumentNumber(): string
+  public function getDocumentNumber(): ?string
   {
     return $this->documentNumber;
   }

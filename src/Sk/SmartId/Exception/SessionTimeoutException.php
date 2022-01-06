@@ -26,6 +26,6 @@
  */
 namespace Sk\SmartId\Exception;
 
-class SessionTimeoutException extends SmartIdException
+class SessionTimeoutException extends UserActionException
 {
 }

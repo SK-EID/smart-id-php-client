@@ -28,6 +28,7 @@ namespace Sk\SmartId\Api;
 
 use Sk\SmartId\Api\Data\SessionEndResultCode;
 use Sk\SmartId\Api\Data\SessionStatus;
+use Sk\SmartId\Exception\DocumentUnusableException;
 use Sk\SmartId\Exception\RequiredInteractionNotSupportedByAppException;
 use Sk\SmartId\Exception\SessionTimeoutException;
 use Sk\SmartId\Exception\TechnicalErrorException;
@@ -38,6 +39,7 @@ use Sk\SmartId\Exception\UserRefusedConfirmationMessageWithVcChoiceException;
 use Sk\SmartId\Exception\UserRefusedDisplayTextAndPinException;
 use Sk\SmartId\Exception\UserRefusedException;
 use Sk\SmartId\Exception\UserRefusedVcChoiceException;
+use Sk\SmartId\Exception\UserSelectedWrongVerificationCodeException;
 
 class SessionStatusPoller
 {
@@ -131,7 +133,7 @@ class SessionStatusPoller
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::DOCUMENT_UNUSABLE ) == 0 )
     {
-      throw new UnprocessableSmartIdResponseException();
+      throw new DocumentUnusableException();
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP) == 0 )
     {
@@ -156,6 +158,10 @@ class SessionStatusPoller
     else if ( strcasecmp( $endResult, SessionEndResultCode::USER_REFUSED_CERT_CHOICE) == 0 )
     {
         throw new UserRefusedCertChoiceException();
+    }
+    else if ( strcasecmp( $endResult, SessionEndResultCode::WRONG_VC) == 0 )
+    {
+        throw new UserSelectedWrongVerificationCodeException();
     }
     else if ( strcasecmp( $endResult, SessionEndResultCode::OK ) != 0 )
     {

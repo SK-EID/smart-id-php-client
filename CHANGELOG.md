@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [2.3] - UNRELEASED
+
+### Changed
+- If user picks wrong verification code then UserSelectedWrongVerificationCodeException is thrown (previously TechnicalErrorException was thrown)
+- Minimal PHP version lifted to 7.4
+
+### Added
+- Added intermediate exceptions (UserAccountException if there is problem with user Smart-ID account, UserActionException if the exception is caused by user's actions, EnduringSmartIdException if something is wrong with Smart-ID service or the integration configuration is invalid) so there is no need to handle each case independently.
+- New method SmartIdAuthenticationResponse::getDocumentNumber()
+- Usage examples added to README.md
+
 ## [2.2.2] - 2022-01-03
 
 ### Fixed

@@ -4,7 +4,7 @@
 namespace Sk\SmartId\Exception;
 
 
-class UserRefusedVcChoiceException extends SmartIdException
+class UserRefusedVcChoiceException extends UserRefusedException
 {
 
 }

@@ -4,7 +4,7 @@
 namespace Sk\SmartId\Exception;
 
 
-class UserRefusedConfirmationMessageException extends SmartIdException
+class UserRefusedConfirmationMessageException extends UserRefusedException
 {
 
 }
