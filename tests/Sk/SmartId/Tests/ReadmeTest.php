@@ -69,7 +69,7 @@ class ReadmeTest extends TestCase
     {
       $authenticationResponse = $this->client->authentication()
           ->createAuthentication()
-          ->withSemanticsIdentifier( $semanticsIdentifier ) // TODO or with document number: ->withDocumentNumber( 'PNOEE-10101010005-Z1B2-Q' )
+          ->withSemanticsIdentifier( $semanticsIdentifier )
           ->withAuthenticationHash( $authenticationHash )
           ->withCertificateLevel( CertificateLevelCode::QUALIFIED ) // Certificate level can either be "QUALIFIED" or "ADVANCED"
           ->withAllowedInteractionsOrder((array(
@@ -259,21 +259,13 @@ class ReadmeTest extends TestCase
       throw new RuntimeException("Error! Response is not valid! Error(s): ". implode(",", $authenticationResult->getErrors()));
     }
 
-
-
     $authenticationIdentity = $authenticationResult->getAuthenticationIdentity();
 
     echo "hello name: " . $authenticationIdentity->getGivenName() . ' ' . $authenticationIdentity->getSurName() . "\n";
     echo "from " . $authenticationIdentity->getCountry() . "\n";
     echo "born " . $authenticationIdentity->getDateOfBirth()->format("D d F o");
 
-
-    // TODO end copy
-
-
     self::assertTrue(true);
-
-
   }
 
 }

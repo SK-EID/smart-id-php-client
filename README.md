@@ -77,7 +77,7 @@ try
 {
   $authenticationResponse = $this->client->authentication()
       ->createAuthentication()
-      ->withSemanticsIdentifier( $semanticsIdentifier ) // TODO or with document number: ->withDocumentNumber( 'PNOEE-10101010005-Z1B2-Q' )
+      ->withSemanticsIdentifier( $semanticsIdentifier ) 
       ->withAuthenticationHash( $authenticationHash )
       ->withCertificateLevel( CertificateLevelCode::QUALIFIED ) // Certificate level can either be "QUALIFIED" or "ADVANCED"
       ->withAllowedInteractionsOrder((array(
