@@ -145,8 +145,6 @@ class SmartIdRestConnector implements SmartIdConnector
     }
   }
 
-  // TODO signature status request response type?
-
   /**
    * @param string $url
    * @param array $params

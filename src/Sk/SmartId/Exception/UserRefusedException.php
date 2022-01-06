@@ -26,6 +26,6 @@
  */
 namespace Sk\SmartId\Exception;
 
-class UserRefusedException extends SmartIdException
+class UserRefusedException extends UserActionException
 {
 }

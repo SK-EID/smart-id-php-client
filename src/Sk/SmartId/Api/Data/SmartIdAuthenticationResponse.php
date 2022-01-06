@@ -70,15 +70,20 @@ class SmartIdAuthenticationResponse extends PropertyMapper
    */
   private $state;
 
-    /**
-     * @var array
-     */
-    private $ignoredProperties;
+  /**
+   * @var array
+   */
+  private $ignoredProperties;
 
-    /**
-     * @var string
-     */
-    private $interactionFlowUsed;
+  /**
+   * @var string
+   */
+  private $interactionFlowUsed;
+
+  /**
+   * @var string
+   */
+  private $documentNumber;
 
   /**
    * @return string
@@ -290,4 +295,19 @@ class SmartIdAuthenticationResponse extends PropertyMapper
   {
     return strcasecmp( SessionStatusCode::RUNNING, $this->state ) == 0;
   }
+
+  public function setDocumentNumber(?string $documentNumber): SmartIdAuthenticationResponse
+  {
+    $this->documentNumber = $documentNumber;
+    return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function getDocumentNumber(): ?string
+  {
+    return $this->documentNumber;
+  }
+
 }

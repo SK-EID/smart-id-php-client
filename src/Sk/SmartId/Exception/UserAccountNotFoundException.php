@@ -26,6 +26,6 @@
  */
 namespace Sk\SmartId\Exception;
 
-class UserAccountNotFoundException extends SmartIdException
+class UserAccountNotFoundException extends UserAccountException
 {
 }
