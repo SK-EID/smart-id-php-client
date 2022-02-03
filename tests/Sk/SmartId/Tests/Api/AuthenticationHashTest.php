@@ -35,33 +35,31 @@ class AuthenticationHashTest extends TestCase
   /**
    * @test
    */
-  public function generated_signableData_withDefaultHashType_sha512()
+  public function generateRandomHashOfTypeSha512()
   {
     $authenticationHash = AuthenticationHash::generateRandomHash( HashType::SHA512 );
     $this->assertEquals( HashType::SHA512, $authenticationHash->getHashType() );
-    $this->assertEquals( base64_decode( $authenticationHash->calculateHashInBase64() ),
-    $authenticationHash->getHash() );
+    $this->assertEquals( base64_decode( $authenticationHash->calculateHashInBase64() ), $authenticationHash->getHash() );
   }
 
   /**
    * @test
    */
-  public function generated_signableData_withDefaultHashType_sha384()
+  public function generateRandomHashOfTypeSha384()
   {
     $authenticationHash = AuthenticationHash::generateRandomHash( HashType::SHA384 );
     $this->assertEquals( HashType::SHA384, $authenticationHash->getHashType() );
-    $this->assertEquals( base64_decode( $authenticationHash->calculateHashInBase64() ),
-    $authenticationHash->getHash() );
+    $this->assertEquals( base64_decode( $authenticationHash->calculateHashInBase64() ), $authenticationHash->getHash() );
   }
 
   /**
    * @test
    */
-  public function generated_signableData_withDefaultHashType_sha256()
+  public function generateRandomHashOfTypeSha256()
   {
     $authenticationHash = AuthenticationHash::generateRandomHash( HashType::SHA256 );
     $this->assertEquals( HashType::SHA256, $authenticationHash->getHashType() );
-    $this->assertEquals( base64_decode( $authenticationHash->calculateHashInBase64() ),
-    $authenticationHash->getHash() );
+    $this->assertEquals( base64_decode( $authenticationHash->calculateHashInBase64() ), $authenticationHash->getHash() );
   }
+
 }
