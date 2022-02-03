@@ -51,7 +51,7 @@ class CertificateAttributeUtilTest extends TestCase {
    * @test
    */
   public function testGetDateOfBirthCertificateAttribute_dateOfBirthAttributeIsNotPresent_nullReturned() {
-    $certWithoutDob = DummyData::CERTIFICATE;
+    $certWithoutDob = DummyData::CERTIFICATE_WITHOUT_DOB_FIELD;
 
     $dobUtil = new CertificateAttributeUtil();
     $dob = $dobUtil->getDateOfBirthCertificateAttribute($certWithoutDob);
