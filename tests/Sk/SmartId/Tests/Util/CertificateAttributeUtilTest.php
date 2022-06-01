@@ -26,7 +26,7 @@
  * #L%
  */
 
-namespace Sk\SmartId\Tests\Api\Util;
+namespace Sk\SmartId\Tests\Util;
 
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Tests\Api\DummyData;
