@@ -95,7 +95,7 @@ class NationalIdentityNumberUtil
         throw new UnprocessableSmartIdResponseException("Invalid personal code: " . $lvNationalIdentityNumber);
     }
 
-    if (!checkdate ( $birthMonth, $birthDay, $birthYearTwoDigit )) {
+    if (!checkdate ( $birthMonth, $birthDay, $birthYearFourDigit )) {
       throw new UnprocessableSmartIdResponseException("Unable get birthdate from Latvian personal code " . $lvNationalIdentityNumber);
     }
     
