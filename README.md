@@ -18,7 +18,7 @@ Smart-ID PHP client works with PHP 7.4 and PHP 8+
 The recommended way to install Smart-ID PHP Client is through [Composer]:
 
 ```
-composer require sk-id-solutions/smart-id-php-client "2.3"
+composer require sk-id-solutions/smart-id-php-client "2.3.1"
 ```
 
 See [packagist](https://packagist.org/packages/sk-id-solutions/smart-id-php-client) for latest published version
