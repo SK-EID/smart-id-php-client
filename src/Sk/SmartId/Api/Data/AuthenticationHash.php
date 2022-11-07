@@ -29,7 +29,7 @@ namespace Sk\SmartId\Api\Data;
 class AuthenticationHash extends SignableData
 {
   /**
-   * @var string
+   * @var string Digest of this->getDataToSign() (superclass SignableData holds that value)
    */
   private $hash;
 
@@ -62,7 +62,7 @@ class AuthenticationHash extends SignableData
   }
 
   /**
-   * @param string $hash
+   * @param string $hash Digest of dataToSign
    * @return $this
    */
   public function setHash(string $hash ): AuthenticationHash

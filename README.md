@@ -12,7 +12,7 @@ The Smart-ID PHP client can be used for easy integration of the Smart-ID solutio
 
 Smart-ID PHP client works with PHP 7.4 and PHP 8+
 
-**This PHP client cannot be used to create digitally signed containers because PHP does not have a library like DigiDoc4J..**
+**This PHP client cannot be used to create digitally signed containers because PHP does not have a library like DigiDoc4J.**
 
 ## Installation
 The recommended way to install Smart-ID PHP Client is through [Composer]:
@@ -49,7 +49,7 @@ $this->client
     ->setRelyingPartyName( 'DEMO' ) // In production replace with your name
     ->setHostUrl( 'https://sid.demo.sk.ee/smart-id-rp/v2/' ) // In production replace with production service URL
         // in production replace with correct server SSL key
-    ->setPublicSslKeys("sha256//nTL2Ju/1Mt+WAHeejqZHtgPNRu049iUcXOPq0GmRgJg=;sha256//wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=");
+    ->setPublicSslKeys("sha256//Ps1Im3KeB0Q4AlR+/J9KFd/MOznaARdwo4gURPCLaVA=");
  ```
 
 ## Authenticating with semantics identifier
@@ -104,7 +104,7 @@ catch (EnduringSmartIdException $e) {
   throw new RuntimeException("Problem with connecting to Smart-ID service. Please try again later.");
 }
 catch (SmartIdException $e) {
-  throw new RuntimeException("Smart-ID authentication process failed for uncertain reason.", $e);
+  throw new RuntimeException("Smart-ID authentication process failed for uncertain reason: ". $e);
 }
 
 // create a folder with name "trusted_certificates" and set path to that folder here:
@@ -146,6 +146,35 @@ where it will look for directory named trusted_certificates and read certs from 
 If no path is specified it will take trusted certs, that are provided by client itself.
 They are located at src/resources/trusted_certificates.
 
+#### Note about verification code and validating the signature
+
+This what happens behind the scenes (all the steps besides step #5 are performed by this library):
+
+1. For every new authentication the library generates a random value (stored into variable 'dataToSign')
+2. A digest (SHA-512, SHA-384 or SHA-256) is calculated out of this random value  (stored into variable 'hash')
+3. Verification code that is displayed to the end user is calculated out of this digest.
+4. The authentication request (together with value of 'hash') is sent out to the server.
+5. Now signing process takes place in user's the phone and the Smart-ID REST service returns the signature and the authentication certificate of the user.
+6. The library verifies that the signature value that was returned is really a valid signature.
+   (For the verification it uses the value of 'dataToSign' (and not the digest that is stored in 'hash') together with the authentication signature.)
+
+
+### Extract date of birth of the authenticated person
+
+All Estonian and Lithuanian national identity numbers contain date-of-birth info
+ant his is why getDateOfBirth() function always returns a correct value for them.
+Also birthdate info is present within old type of Latvian national identity numbers.
+
+ ```
+echo "born " . $authenticationIdentity->getDateOfBirth()->format("D d F o") . "\n";
+ ```
+
+For persons with new type of Latvian national identity number the date-of-birth is parsed from
+a separate field of the certificate but for some older Smart-id accounts
+(issued between 2017-07-01 and 2021-05-20) the value might be missing.
+
+More info about the availability of this separate field in the certificates:
+https://github.com/SK-EID/smart-id-documentation/wiki/FAQ#where-can-i-find-users-date-of-birth
 
 ## Authenticating with document number
 
@@ -198,7 +227,7 @@ try
 }
 catch (SmartIdException $e) {
   // Handle exception (more on exceptions in "Handling intentional exceptions")
-  throw new RuntimeException("Authentication failed. NB! Use exception handling blocks from above example.". $e);
+  throw new RuntimeException("Authentication failed. NB! Use exception handling blocks from above example: ". $e);
 }
 
 $authenticationResponse = null;

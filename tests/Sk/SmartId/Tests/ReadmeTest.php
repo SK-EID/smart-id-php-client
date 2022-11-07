@@ -26,10 +26,6 @@ use Sk\SmartId\Exception\UserSelectedWrongVerificationCodeException;
  */
 class ReadmeTest extends TestCase
 {
-
-//Make it available for your application
-
-
   private Client $client;
 
   public function setUp() : void
@@ -40,7 +36,7 @@ class ReadmeTest extends TestCase
         ->setRelyingPartyName( 'DEMO' ) // In production replace with your name
         ->setHostUrl( 'https://sid.demo.sk.ee/smart-id-rp/v2/' ) // In production replace with production service URL
             // in production replace with correct server SSL key
-        ->setPublicSslKeys("sha256//nTL2Ju/1Mt+WAHeejqZHtgPNRu049iUcXOPq0GmRgJg=;sha256//wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=");
+        ->setPublicSslKeys("sha256//nTL2Ju/1Mt+WAHeejqZHtgPNRu049iUcXOPq0GmRgJg=;sha256//wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=;sha256//Ps1Im3KeB0Q4AlR+/J9KFd/MOznaARdwo4gURPCLaVA=");
   }
 
   /**
@@ -58,6 +54,9 @@ class ReadmeTest extends TestCase
 
     // For security reasons a new hash value must be created for each new authentication request
     $authenticationHash = AuthenticationHash::generate();
+
+    echo 'Random string (as base64): '.base64_encode($authenticationHash->getDataToSign()) . "\n";
+    echo 'Base64 digest of that random string: '.base64_encode($authenticationHash->getHash()) . "\n";
 
     $verificationCode = $authenticationHash->calculateVerificationCode();
 
@@ -96,8 +95,12 @@ class ReadmeTest extends TestCase
       throw new RuntimeException("Problem with connecting to Smart-ID service. Please try again later.");
     }
     catch (SmartIdException $e) {
-      throw new RuntimeException("Smart-ID authentication process failed for uncertain reason.", $e);
+      throw new RuntimeException("Smart-ID authentication process failed for uncertain reason.". $e);
     }
+
+    echo 'Signature as base64:'.$authenticationResponse->getValueInBase64()."\n\n";
+
+    echo 'PEM certificate:'.$authenticationResponse->getCertificate();
 
     // create a folder with name "trusted_certificates" and set path to that folder here:
     $pathToFolderWithTrustedCertificates = __DIR__ . '/../../../resources';
@@ -156,7 +159,7 @@ class ReadmeTest extends TestCase
 
     }
     catch (SmartIdException $e) {
-      throw new RuntimeException("Smart-ID authentication process failed for uncertain reason.", $e);
+      throw new RuntimeException("Smart-ID authentication process failed for uncertain reason.". $e);
     }
 
     // create a folder with name "trusted_certificates" and set path to that folder here:

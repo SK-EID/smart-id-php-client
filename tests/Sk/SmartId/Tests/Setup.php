@@ -45,7 +45,7 @@ class Setup extends TestCase
     $this->client
         ->setRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->setRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->setPublicSslKeys("sha256//wkdgNtKpKzMtH/zoLkgeScp1Ux4TLm3sUldobVGA/g4=")
+        ->setPublicSslKeys("sha256//Ps1Im3KeB0Q4AlR+/J9KFd/MOznaARdwo4gURPCLaVA=")
         ->setHostUrl( DummyData::DEMO_HOST_URL );
   }
 }
