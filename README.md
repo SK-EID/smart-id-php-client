@@ -28,7 +28,7 @@ and [changelog](CHANGELOG.md) for details.
 
 ## Configure client details and https pinning
 
-   Used to prevent man-in-the-middle attacks. [More on man in the middle attacks in case of using smart id.](https://github.com/SK-EID/smart-id-documentation#35-api-endpoint-authentication)
+   Used to prevent man-in-the-middle attacks. [More on man in the middle attacks in case of using smart id.](https://github.com/SK-EID/smart-id-documentation#226-rp-api-endpoint-authentication)
 
    Setting the client to trust specific public keys. Production SSL certificates used can be found [here](https://www.skidsolutions.eu/en/repository/certs/)
 and demo environment certificates are [here](https://www.skidsolutions.eu/en/repository/certs/certificates-for-testing).
