@@ -127,9 +127,9 @@ class ReadmeTest extends TestCase
 
     // END COPYING to README.md starting this line.
 
-    self::assertEquals('QUALIFIED OK', $authenticationIdentity->getGivenName() );
+    self::assertEquals('OK', $authenticationIdentity->getGivenName() );
     self::assertEquals('TESTNUMBER', $authenticationIdentity->getSurName() );
-    self::assertEquals('PNOLT-30303039914-PBZK-Q', $authenticationResponse->getDocumentNumber() );
+    self::assertEquals('PNOLT-30303039914-MOCK-Q', $authenticationResponse->getDocumentNumber() );
   }
 
   /**
@@ -147,7 +147,7 @@ class ReadmeTest extends TestCase
 
       $authenticationResponse = $this->client->authentication()
           ->createAuthentication()
-          ->withDocumentNumber( 'PNOLV-329999-99901-AAAA-Q' )
+          ->withDocumentNumber( 'PNOLT-30303039914-MOCK-Q' )
           ->withAuthenticationHash( $authenticationHash )
           ->withCertificateLevel( CertificateLevelCode::QUALIFIED ) // Certificate level can either be "QUALIFIED" or "ADVANCED"
           ->withAllowedInteractionsOrder((array(
@@ -176,9 +176,9 @@ class ReadmeTest extends TestCase
 
     // DO NOT INCLUDE CODE BELOW IN README
 
-    self::assertEquals('BOD', $authenticationIdentity->getGivenName() );
+    self::assertEquals('OK', $authenticationIdentity->getGivenName() );
     self::assertEquals('TESTNUMBER', $authenticationIdentity->getSurName() );
-    self::assertEquals('LV', $authenticationIdentity->getCountry() );
+    self::assertEquals('LT', $authenticationIdentity->getCountry() );
     self::assertEquals('03.03.1903', $authenticationIdentity->getDateOfBirth()->format("d.m.o"));
 
   }

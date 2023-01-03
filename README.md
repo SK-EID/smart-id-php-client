@@ -195,7 +195,7 @@ See the example above where documentNumber is logged out in the end.
 ```PHP
 $authenticationResponse = $this->client->authentication()
   ->createAuthentication()
-  ->withDocumentNumber( 'PNOLV-329999-99901-AAAA-Q' )
+  ->withDocumentNumber( 'PNOLT-30303039914-MOCK-Q' )
   ->withAuthenticationHash( $authenticationHash )
   ->withCertificateLevel( CertificateLevelCode::QUALIFIED ) // Certificate level can either be "QUALIFIED" or "ADVANCED"
   ->withAllowedInteractionsOrder((array(
