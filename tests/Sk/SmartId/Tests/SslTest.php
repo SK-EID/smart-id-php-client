@@ -16,7 +16,7 @@ class SslTest extends Setup
      */
     public function authenticate_demoEnvUseLiveEnvPublicKeys_shouldThrowException()
     {
-        $this->expectExceptionMessage("SSL: public key does not match pinned public key!");
+        $this->expectExceptionMessage("SSL: public key does not match pinned public key");
         $connector = new SmartIdRestConnector( DummyData::TEST_URL );
         $connector->setPublicSslKeys("sha256//l2uvq6ftLN4LZ+8Un+71J2vH1BT9wTbtrE5+Fj3Vc5g=;");
         $authenticationSessionRequest = new AuthenticationSessionRequest();
