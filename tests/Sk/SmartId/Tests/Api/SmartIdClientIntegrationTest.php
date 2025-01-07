@@ -284,6 +284,64 @@ class SmartIdClientIntegrationTest extends Setup
   }
 
   /**
+   * @test
+   */
+  public function authenticateTestEid2016()
+  {
+
+    $authenticationHash = AuthenticationHash::generate();
+
+    $authenticationResponse = $this->client->authentication()
+        ->createAuthentication()
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withDocumentNumber( "PNOEE-50001029996-MOCK-Q" )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+            Interaction::ofTypeDisplayTextAndPIN("Hellou!")))
+        ->withAuthenticationHash( $authenticationHash )
+        ->authenticate();
+
+    $pathToFolderWithTrustedCertificates = __DIR__ . '/../../../../resources';
+
+    $authenticationResponseValidator = new AuthenticationResponseValidator($pathToFolderWithTrustedCertificates);
+    $authenticationResult = $authenticationResponseValidator->validate( $authenticationResponse );
+
+    $authenticationIdentity = $authenticationResult->getAuthenticationIdentity();
+    self::assertTrue($authenticationResult->isValid());
+    self::assertEquals('TESTNUMBER', $authenticationIdentity->getSurName() );
+    self::assertEquals('PNOEE-50001029996-MOCK-Q', $authenticationResponse->getDocumentNumber() );
+  }
+
+  /**
+   * @test
+   */
+  public function authenticateTestEidq2024()
+  {
+
+    $authenticationHash = AuthenticationHash::generate();
+
+    $authenticationResponse = $this->client->authentication()
+        ->createAuthentication()
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withDocumentNumber( "PNOEE-40504040001-MOCK-Q" )
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+            Interaction::ofTypeDisplayTextAndPIN("Hellou!")))
+        ->withAuthenticationHash( $authenticationHash )
+        ->authenticate();
+
+    $pathToFolderWithTrustedCertificates = __DIR__ . '/../../../../resources';
+
+    $authenticationResponseValidator = new AuthenticationResponseValidator($pathToFolderWithTrustedCertificates);
+    $authenticationResult = $authenticationResponseValidator->validate( $authenticationResponse );
+
+    $authenticationIdentity = $authenticationResult->getAuthenticationIdentity();
+    self::assertTrue($authenticationResult->isValid());
+    self::assertEquals('TESTNUMBER', $authenticationIdentity->getSurName() );
+    self::assertEquals('PNOEE-40504040001-MOCK-Q', $authenticationResponse->getDocumentNumber() );
+  }
+
+  /**
    * @param SmartIdAuthenticationResponse $authenticationResponse
    * @param string $dataToSign
    */
