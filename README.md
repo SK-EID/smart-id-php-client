@@ -1,4 +1,4 @@
-[![Tests](https://github.com/jalukse/test-workflow/actions/workflows/tests.yml/badge.svg)](https://github.com/jalukse/test-workflow/actions/workflows/tests.yaml)
+[![Tests](https://github.com/jalukse/test-workflow/actions/workflows/tests.yaml/badge.svg)](https://github.com/jalukse/test-workflow/actions/workflows/tests.yaml)
 [![Latest Version](https://img.shields.io/packagist/v/sk-id-solutions/smart-id-php-client?label=version)](https://packagist.org/packages/sk-id-solutions/smart-id-php-client/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
