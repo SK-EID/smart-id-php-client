@@ -1,6 +1,6 @@
-[![Build Status](https://app.travis-ci.com/SK-EID/smart-id-php-client.svg?branch=master)](https://app.travis-ci.com/SK-EID/smart-id-php-client)
+[![Tests](https://github.com/SK-EID/smart-id-php-client/actions/workflows/tests.yaml/badge.svg)](https://github.com/SK-EID/smart-id-php-client/actions/workflows/tests.yaml)
 [![Latest Version](https://img.shields.io/packagist/v/sk-id-solutions/smart-id-php-client?label=version)](https://packagist.org/packages/sk-id-solutions/smart-id-php-client/)
-[![License: LGPL v3](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 # Smart-ID PHP client
 
