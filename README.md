@@ -31,7 +31,7 @@ and [changelog](CHANGELOG.md) for details.
    Used to prevent man-in-the-middle attacks. [More on man in the middle attacks in case of using smart id.](https://github.com/SK-EID/smart-id-documentation#226-rp-api-endpoint-authentication)
 
    Setting the client to trust specific public keys. Production SSL certificates used can be found [here](https://www.skidsolutions.eu/en/repository/certs/)
-and demo environment certificates are [here](https://www.skidsolutions.eu/en/repository/certs/certificates-for-testing).
+and demo environment certificates are [here](https://www.skidsolutions.eu/resources/certificates/#Test-certificates).
    
    The setPublicSslKeys method requires a string of sha256 hashes of the public keys used delimited with ";". You can extract hashes from certificates using next openssl command.
    
