@@ -31,6 +31,14 @@ class SemanticsIdentifierTest extends TestCase
     $this->assertNull( SemanticsIdentifier::fromString("PNOLT-30303039816")->validate());
   }
 
+    /**
+   * @test
+   */
+  public function validate_belgian()
+  {
+    $this->assertNull( SemanticsIdentifier::fromString("PNOBE-05040400032")->validate());
+  }
+
   /**
    * Example @described https://www.etsi.org/deliver/etsi_en/319400_319499/31941201/01.01.01_60/en_31941201v010101p.pdf in chapter 5.1.3
    *

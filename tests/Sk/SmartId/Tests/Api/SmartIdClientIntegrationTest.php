@@ -295,7 +295,7 @@ class SmartIdClientIntegrationTest extends Setup
         ->createAuthentication()
         ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
         ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
-        ->withDocumentNumber( "PNOEE-50001029996-MOCK-Q" )
+        ->withDocumentNumber( "PNOEE-30303039914-MOCK-Q" )
         ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
             Interaction::ofTypeDisplayTextAndPIN("Hellou!")))
         ->withAuthenticationHash( $authenticationHash )
@@ -309,7 +309,7 @@ class SmartIdClientIntegrationTest extends Setup
     $authenticationIdentity = $authenticationResult->getAuthenticationIdentity();
     self::assertTrue($authenticationResult->isValid());
     self::assertEquals('TESTNUMBER', $authenticationIdentity->getSurName() );
-    self::assertEquals('PNOEE-50001029996-MOCK-Q', $authenticationResponse->getDocumentNumber() );
+    self::assertEquals('PNOEE-30303039914-MOCK-Q', $authenticationResponse->getDocumentNumber() );
   }
 
   /**
@@ -339,6 +339,40 @@ class SmartIdClientIntegrationTest extends Setup
     self::assertTrue($authenticationResult->isValid());
     self::assertEquals('TESTNUMBER', $authenticationIdentity->getSurName() );
     self::assertEquals('PNOEE-40504040001-MOCK-Q', $authenticationResponse->getDocumentNumber() );
+  }
+
+  /**
+   * @test
+   */
+  public function authenticateTestBelgian()
+  {
+
+    $authenticationHash = AuthenticationHash::generate();
+    $semanticsIdentifier = SemanticsIdentifier::builder()
+        ->withSemanticsIdentifierType('PNO')
+        ->withCountryCode('BE')
+        ->withIdentifier('05040400032')
+        ->build();
+
+    $authenticationResponse = $this->client->authentication()
+        ->createAuthentication()
+        ->withRelyingPartyUUID( DummyData::DEMO_RELYING_PARTY_UUID )
+        ->withRelyingPartyName( DummyData::DEMO_RELYING_PARTY_NAME )
+        ->withSemanticsIdentifier($semanticsIdentifier)
+        ->withAllowedInteractionsOrder(array(Interaction::ofTypeConfirmationMessage("Message"),
+            Interaction::ofTypeDisplayTextAndPIN("Hellou!")))
+        ->withAuthenticationHash( $authenticationHash )
+        ->authenticate();
+
+    $pathToFolderWithTrustedCertificates = __DIR__ . '/../../../../resources';
+
+    $authenticationResponseValidator = new AuthenticationResponseValidator($pathToFolderWithTrustedCertificates);
+    $authenticationResult = $authenticationResponseValidator->validate( $authenticationResponse );
+
+    $authenticationIdentity = $authenticationResult->getAuthenticationIdentity();
+    self::assertTrue($authenticationResult->isValid());
+    self::assertEquals('TESTNUMBER', $authenticationIdentity->getSurName() );
+    self::assertEquals('PNOBE-05040400032-MOCK-Q', $authenticationResponse->getDocumentNumber() );
   }
 
   /**
