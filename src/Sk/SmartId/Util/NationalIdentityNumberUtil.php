@@ -35,7 +35,7 @@ class NationalIdentityNumberUtil
       case "LV":
         return $this->parseLvDateOfBirth( $authenticationIdentity->getIdentityNumber() );
       default:
-        throw new UnprocessableSmartIdResponseException("Unknown country: " . $authenticationIdentity->getCountry());
+        return null;
     }
   }
 

@@ -91,6 +91,23 @@ class NationalIdentityNumberUtilTest extends TestCase
   /**
    * @test
    */
+  public function getDateOfBirthFromIdCode_belgianIdCode_returns()
+  {
+    $parsedCertificate = CertificateParser::parseX509Certificate(AuthenticationResponseValidatorTest::AUTH_CERTIFICATE_BE);
+    $ltCertificate = new AuthenticationCertificate($parsedCertificate);
+
+    $authenticationResponseValidator = new AuthenticationResponseValidator(Setup::RESOURCES);
+    $authenticationIdentity = $authenticationResponseValidator->constructAuthenticationIdentity($ltCertificate, AuthenticationResponseValidatorTest::AUTH_CERTIFICATE_BE);
+
+    $nationalIdentityNumberUtil = new NationalIdentityNumberUtil();
+    $dateOfBirth = $nationalIdentityNumberUtil->getDateOfBirth($authenticationIdentity);
+
+    assertNull($dateOfBirth);
+  }
+
+  /**
+   * @test
+   */
   public function parseLvDateOfBirth_withoutDateOfBirth_returnsNull()
   {
     $nationalIdentityNumberUtil = new NationalIdentityNumberUtil();
