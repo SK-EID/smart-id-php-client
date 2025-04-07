@@ -2,7 +2,11 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [2.3.2] - 2024-01-17
+## [2.3.3] - 2025-04-07
+### Fixed
+- return NULL for getDateOfBirth instead of error
+
+## [2.3.2] - 2025-01-17
 ### Added
 - new CA certificates
 
