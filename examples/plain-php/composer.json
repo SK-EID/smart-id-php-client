@@ -1,0 +1,16 @@
+{
+    "name": "sk-id-solutions/smart-id-php-example-plain",
+    "description": "Smart-ID PHP SDK - Plain PHP",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.4",
+        "sk-id-solutions/smart-id-php-client": "^3.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "guzzlehttp/psr7": "^2.0",
+        "chillerlan/php-qrcode": "^5.0"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
