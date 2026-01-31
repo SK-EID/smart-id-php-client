@@ -6,5 +6,7 @@ namespace Sk\SmartId\Enum;
 
 enum SessionType: string
 {
-    case AUTHENTICATION = 'authentication';
+    case AUTHENTICATION = 'auth';
+    case SIGNATURE = 'sign';
+    case CERTIFICATE = 'cert';
 }

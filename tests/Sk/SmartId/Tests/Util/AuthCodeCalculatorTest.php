@@ -35,30 +35,34 @@ class AuthCodeCalculatorTest extends TestCase
     }
 
     #[Test]
-    public function calculateWithElapsedSeconds(): void
+    public function calculateWithUnprotectedDeviceLink(): void
     {
         $sessionSecret = base64_encode(random_bytes(32));
         $rpChallenge = base64_encode(random_bytes(32));
         $rpName = 'Test RP';
         $interactions = [Interaction::verificationCodeChoice()];
 
-        $authCode0 = AuthCodeCalculator::calculate(
+        $authCodeWithLink = AuthCodeCalculator::calculate(
             $sessionSecret,
             $rpChallenge,
             $rpName,
             $interactions,
-            0,
+            null,
+            null,
+            'https://smart-id.com?deviceLinkType=QR&elapsedSeconds=0&sessionToken=abc',
         );
 
-        $authCode5 = AuthCodeCalculator::calculate(
+        $authCodeWithDifferentLink = AuthCodeCalculator::calculate(
             $sessionSecret,
             $rpChallenge,
             $rpName,
             $interactions,
-            5,
+            null,
+            null,
+            'https://smart-id.com?deviceLinkType=QR&elapsedSeconds=5&sessionToken=abc',
         );
 
-        $this->assertNotSame($authCode0, $authCode5);
+        $this->assertNotSame($authCodeWithLink, $authCodeWithDifferentLink);
     }
 
     #[Test]
@@ -74,7 +78,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            0,
             'https://example.com/callback',
         );
 
@@ -83,7 +86,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            0,
             null,
         );
 
@@ -103,7 +105,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            0,
             null,
             'Brokered RP',
         );
@@ -113,7 +114,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            0,
             null,
             null,
         );
@@ -122,36 +122,34 @@ class AuthCodeCalculatorTest extends TestCase
     }
 
     #[Test]
-    public function calculateWithUnprotectedLink(): void
+    public function calculateWithDifferentDeviceLinks(): void
     {
         $sessionSecret = base64_encode(random_bytes(32));
         $rpChallenge = base64_encode(random_bytes(32));
         $rpName = 'Test RP';
         $interactions = [Interaction::verificationCodeChoice()];
 
-        $authCodeProtected = AuthCodeCalculator::calculate(
+        $authCode1 = AuthCodeCalculator::calculate(
             $sessionSecret,
             $rpChallenge,
             $rpName,
             $interactions,
-            0,
             null,
             null,
-            false,
+            'https://smart-id.com?deviceLinkType=QR&sessionToken=abc',
         );
 
-        $authCodeUnprotected = AuthCodeCalculator::calculate(
+        $authCode2 = AuthCodeCalculator::calculate(
             $sessionSecret,
             $rpChallenge,
             $rpName,
             $interactions,
-            0,
             null,
             null,
-            true,
+            'https://smart-id.com?deviceLinkType=Web2App&sessionToken=abc',
         );
 
-        $this->assertNotSame($authCodeProtected, $authCodeUnprotected);
+        $this->assertNotSame($authCode1, $authCode2);
     }
 
     #[Test]
@@ -222,13 +220,16 @@ class AuthCodeCalculatorTest extends TestCase
         $rpChallenge = base64_encode('fixed-challenge-for-testing!!!!');
         $rpName = 'Test RP';
         $interactions = [Interaction::verificationCodeChoice()];
+        $unprotectedDeviceLink = 'https://smart-id.com?deviceLinkType=QR&sessionToken=test';
 
         $authCode1 = AuthCodeCalculator::calculate(
             $sessionSecret,
             $rpChallenge,
             $rpName,
             $interactions,
-            0,
+            null,
+            null,
+            $unprotectedDeviceLink,
         );
 
         $authCode2 = AuthCodeCalculator::calculate(
@@ -236,7 +237,9 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            0,
+            null,
+            null,
+            $unprotectedDeviceLink,
         );
 
         $this->assertSame($authCode1, $authCode2);

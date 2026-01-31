@@ -13,6 +13,6 @@ class SessionTypeTest extends TestCase
     #[Test]
     public function authenticationHasCorrectValue(): void
     {
-        $this->assertSame('authentication', SessionType::AUTHENTICATION->value);
+        $this->assertSame('auth', SessionType::AUTHENTICATION->value);
     }
 }

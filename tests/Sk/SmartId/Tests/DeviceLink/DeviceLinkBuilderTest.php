@@ -47,8 +47,12 @@ class DeviceLinkBuilderTest extends TestCase
 
         $url = $builder->buildQrCodeUrl();
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/qr?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=QR&', $url);
         $this->assertStringContainsString('sessionToken=token-456', $url);
+        $this->assertStringContainsString('sessionType=auth', $url);
+        $this->assertStringContainsString('version=1.0', $url);
+        $this->assertStringContainsString('lang=eng', $url);
+        $this->assertStringContainsString('elapsedSeconds=', $url);
         $this->assertStringContainsString('authCode=', $url);
     }
 
@@ -64,8 +68,9 @@ class DeviceLinkBuilderTest extends TestCase
 
         $url = $builder->buildWeb2AppUrl();
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/web2app?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=Web2App&', $url);
         $this->assertStringContainsString('sessionToken=token-456', $url);
+        $this->assertStringNotContainsString('elapsedSeconds=', $url);
     }
 
     #[Test]
@@ -80,8 +85,9 @@ class DeviceLinkBuilderTest extends TestCase
 
         $url = $builder->buildApp2AppUrl();
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/app2app?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=App2App&', $url);
         $this->assertStringContainsString('sessionToken=token-456', $url);
+        $this->assertStringNotContainsString('elapsedSeconds=', $url);
     }
 
     #[Test]
@@ -98,9 +104,9 @@ class DeviceLinkBuilderTest extends TestCase
         $web2appUrl = $builder->buildUrl(DeviceLinkType::WEB2APP);
         $app2appUrl = $builder->buildUrl(DeviceLinkType::APP2APP);
 
-        $this->assertStringContainsString('/qr?', $qrUrl);
-        $this->assertStringContainsString('/web2app?', $web2appUrl);
-        $this->assertStringContainsString('/app2app?', $app2appUrl);
+        $this->assertStringContainsString('deviceLinkType=QR', $qrUrl);
+        $this->assertStringContainsString('deviceLinkType=Web2App', $web2appUrl);
+        $this->assertStringContainsString('deviceLinkType=App2App', $app2appUrl);
     }
 
     #[Test]
@@ -197,7 +203,7 @@ class DeviceLinkBuilderTest extends TestCase
     }
 
     #[Test]
-    public function withUnprotectedLinkChangesAuthCode(): void
+    public function withSchemeNameChangesAuthCode(): void
     {
         $builder = new DeviceLinkBuilder(
             $this->response,
@@ -206,10 +212,10 @@ class DeviceLinkBuilderTest extends TestCase
             $this->interactions,
         );
 
-        $urlProtected = $builder->withUnprotectedLink(false)->buildQrCodeUrl();
-        $urlUnprotected = $builder->withUnprotectedLink(true)->buildQrCodeUrl();
+        $urlProduction = $builder->buildQrCodeUrl();
+        $urlDemo = $builder->withDemoEnvironment()->buildQrCodeUrl();
 
-        $this->assertNotSame($urlProtected, $urlUnprotected);
+        $this->assertNotSame($urlProduction, $urlDemo);
     }
 
     #[Test]
@@ -244,6 +250,6 @@ class DeviceLinkBuilderTest extends TestCase
             ->withUnprotectedLink(false)
             ->buildQrCodeUrl();
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/qr?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=QR&', $url);
     }
 }

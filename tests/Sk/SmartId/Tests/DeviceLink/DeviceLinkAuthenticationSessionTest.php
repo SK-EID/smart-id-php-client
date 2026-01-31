@@ -137,7 +137,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
         $url = $session->buildQrCodeUrl();
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/qr?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=QR&', $url);
     }
 
     #[Test]
@@ -153,7 +153,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
         $url = $session->buildQrCodeUrl(5);
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/qr?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=QR&', $url);
     }
 
     #[Test]
@@ -169,7 +169,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
         $url = $session->buildWeb2AppUrl();
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/web2app?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=Web2App&', $url);
     }
 
     #[Test]
@@ -185,7 +185,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
         $url = $session->buildWeb2AppUrl(10);
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/web2app?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=Web2App&', $url);
     }
 
     #[Test]
@@ -201,7 +201,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
         $url = $session->buildApp2AppUrl();
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/app2app?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=App2App&', $url);
     }
 
     #[Test]
@@ -217,6 +217,6 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
         $url = $session->buildApp2AppUrl(15);
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device/app2app?', $url);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=App2App&', $url);
     }
 }

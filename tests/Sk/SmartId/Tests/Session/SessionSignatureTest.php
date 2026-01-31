@@ -14,10 +14,10 @@ class SessionSignatureTest extends TestCase
     #[Test]
     public function constructorSetsProperties(): void
     {
-        $sig = new SessionSignature('signatureValue', 'SHA512WithRSA');
+        $sig = new SessionSignature('signatureValue', 'sha512WithRSAEncryption');
 
         $this->assertSame('signatureValue', $sig->getValue());
-        $this->assertSame('SHA512WithRSA', $sig->getAlgorithm());
+        $this->assertSame('sha512WithRSAEncryption', $sig->getSignatureAlgorithm());
     }
 
     #[Test]
@@ -25,13 +25,19 @@ class SessionSignatureTest extends TestCase
     {
         $data = [
             'value' => 'base64SignatureValue',
-            'algorithm' => 'SHA256WithRSA',
+            'signatureAlgorithm' => 'sha256WithRSAEncryption',
+            'serverRandom' => 'randomValue',
+            'userChallenge' => 'challengeValue',
+            'flowType' => 'QR',
         ];
 
         $sig = SessionSignature::fromArray($data);
 
         $this->assertSame('base64SignatureValue', $sig->getValue());
-        $this->assertSame('SHA256WithRSA', $sig->getAlgorithm());
+        $this->assertSame('sha256WithRSAEncryption', $sig->getSignatureAlgorithm());
+        $this->assertSame('randomValue', $sig->getServerRandom());
+        $this->assertSame('challengeValue', $sig->getUserChallenge());
+        $this->assertSame('QR', $sig->getFlowType());
     }
 
     #[Test]
@@ -39,7 +45,7 @@ class SessionSignatureTest extends TestCase
     {
         $originalValue = 'test signature data';
         $base64Value = base64_encode($originalValue);
-        $sig = new SessionSignature($base64Value, 'SHA512WithRSA');
+        $sig = new SessionSignature($base64Value, 'sha512WithRSAEncryption');
 
         $decoded = $sig->getDecodedValue();
 
@@ -49,7 +55,7 @@ class SessionSignatureTest extends TestCase
     #[Test]
     public function getDecodedValueThrowsOnInvalidBase64(): void
     {
-        $sig = new SessionSignature('not-valid-base64!!!', 'SHA512WithRSA');
+        $sig = new SessionSignature('not-valid-base64!!!', 'sha512WithRSAEncryption');
 
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Invalid base64 encoded signature value');

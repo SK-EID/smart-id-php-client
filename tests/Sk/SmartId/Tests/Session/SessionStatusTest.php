@@ -84,7 +84,7 @@ class SessionStatusTest extends TestCase
             ],
             'signature' => [
                 'value' => 'signatureValue',
-                'algorithm' => 'SHA512WithRSA',
+                'signatureAlgorithm' => 'sha512WithRSAEncryption',
             ],
             'deviceIpAddress' => '192.168.1.1',
         ]);
@@ -95,7 +95,7 @@ class SessionStatusTest extends TestCase
 
         $this->assertNotNull($status->getSignature());
         $this->assertSame('signatureValue', $status->getSignature()->getValue());
-        $this->assertSame('SHA512WithRSA', $status->getSignature()->getAlgorithm());
+        $this->assertSame('sha512WithRSAEncryption', $status->getSignature()->getSignatureAlgorithm());
 
         $this->assertSame('192.168.1.1', $status->getDeviceIpAddress());
     }
@@ -105,7 +105,7 @@ class SessionStatusTest extends TestCase
     {
         $result = new SessionResult('OK');
         $cert = new SessionCertificate('certValue', 'QUALIFIED');
-        $signature = new SessionSignature('sigValue', 'SHA512WithRSA');
+        $signature = new SessionSignature('sigValue', 'sha512WithRSAEncryption');
 
         $status = new SessionStatus('COMPLETE', $result, $cert, $signature, '10.0.0.1');
 

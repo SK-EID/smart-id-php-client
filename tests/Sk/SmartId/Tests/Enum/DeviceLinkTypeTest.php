@@ -13,18 +13,18 @@ class DeviceLinkTypeTest extends TestCase
     #[Test]
     public function qrHasCorrectValue(): void
     {
-        $this->assertSame('qr', DeviceLinkType::QR->value);
+        $this->assertSame('QR', DeviceLinkType::QR->value);
     }
 
     #[Test]
     public function web2appHasCorrectValue(): void
     {
-        $this->assertSame('web2app', DeviceLinkType::WEB2APP->value);
+        $this->assertSame('Web2App', DeviceLinkType::WEB2APP->value);
     }
 
     #[Test]
     public function app2appHasCorrectValue(): void
     {
-        $this->assertSame('app2app', DeviceLinkType::APP2APP->value);
+        $this->assertSame('App2App', DeviceLinkType::APP2APP->value);
     }
 }

@@ -138,7 +138,7 @@ class AuthenticationResponseValidator
             throw new ValidationException('Invalid base64 encoded rpChallenge');
         }
 
-        $algorithm = $this->mapSignatureAlgorithm($signature->getAlgorithm());
+        $algorithm = $this->mapSignatureAlgorithm($signature->getSignatureAlgorithm());
 
         $signatureValue = $signature->getDecodedValue();
 

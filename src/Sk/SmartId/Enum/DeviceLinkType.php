@@ -6,7 +6,7 @@ namespace Sk\SmartId\Enum;
 
 enum DeviceLinkType: string
 {
-    case QR = 'qr';
-    case WEB2APP = 'web2app';
-    case APP2APP = 'app2app';
+    case QR = 'QR';
+    case WEB2APP = 'Web2App';
+    case APP2APP = 'App2App';
 }

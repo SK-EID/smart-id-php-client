@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Sk\SmartId\DeviceLink;
 
 use Sk\SmartId\Enum\DeviceLinkType;
+use Sk\SmartId\Enum\SessionType;
 use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Util\AuthCodeCalculator;
 
@@ -26,6 +27,14 @@ class DeviceLinkBuilder
     private ?string $brokeredRpName = null;
 
     private bool $unprotectedLink = false;
+
+    private SessionType $sessionType = SessionType::AUTHENTICATION;
+
+    private string $version = '1.0';
+
+    private string $lang = 'eng';
+
+    private string $schemeName = AuthCodeCalculator::SCHEME_NAME_PRODUCTION;
 
     /**
      * @param Interaction[] $interactions
@@ -74,6 +83,40 @@ class DeviceLinkBuilder
         return $clone;
     }
 
+    public function withSessionType(SessionType $sessionType): self
+    {
+        $clone = clone $this;
+        $clone->sessionType = $sessionType;
+
+        return $clone;
+    }
+
+    public function withLang(string $lang): self
+    {
+        $clone = clone $this;
+        $clone->lang = $lang;
+
+        return $clone;
+    }
+
+    public function withSchemeName(string $schemeName): self
+    {
+        $clone = clone $this;
+        $clone->schemeName = $schemeName;
+
+        return $clone;
+    }
+
+    public function withDemoEnvironment(): self
+    {
+        return $this->withSchemeName(AuthCodeCalculator::SCHEME_NAME_DEMO);
+    }
+
+    public function withProductionEnvironment(): self
+    {
+        return $this->withSchemeName(AuthCodeCalculator::SCHEME_NAME_PRODUCTION);
+    }
+
     public function buildQrCodeUrl(): string
     {
         return $this->buildUrl(DeviceLinkType::QR);
@@ -91,22 +134,39 @@ class DeviceLinkBuilder
 
     public function buildUrl(DeviceLinkType $type): string
     {
+        $unprotectedDeviceLink = $this->buildUnprotectedDeviceLink($type);
+
         $authCode = AuthCodeCalculator::calculate(
             $this->response->getSessionSecret(),
             $this->rpChallenge,
             $this->rpName,
             $this->interactions,
-            $this->elapsedSeconds,
             $this->callbackUrl,
             $this->brokeredRpName,
-            $this->unprotectedLink,
+            $unprotectedDeviceLink,
+            $this->schemeName,
         );
 
-        $params = [
-            'sessionToken' => $this->response->getSessionToken(),
-            'authCode' => $authCode,
-        ];
+        return $unprotectedDeviceLink . '&authCode=' . $authCode;
+    }
 
-        return $this->response->getDeviceLinkBase() . '/' . $type->value . '?' . http_build_query($params);
+    private function buildUnprotectedDeviceLink(DeviceLinkType $type): string
+    {
+        $params = 'deviceLinkType=' . $type->value;
+
+        if ($type === DeviceLinkType::QR) {
+            $params .= '&elapsedSeconds=' . $this->elapsedSeconds;
+        }
+
+        $params .= '&sessionToken=' . $this->response->getSessionToken();
+        $params .= '&sessionType=' . $this->sessionType->value;
+        $params .= '&version=' . $this->version;
+        $params .= '&lang=' . $this->lang;
+
+        if ($type !== DeviceLinkType::QR && $this->callbackUrl !== null) {
+            $params .= '&initialCallbackUrl=' . $this->callbackUrl;
+        }
+
+        return $this->response->getDeviceLinkBase() . '?' . $params;
     }
 }
