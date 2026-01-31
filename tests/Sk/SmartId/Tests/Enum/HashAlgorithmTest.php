@@ -13,19 +13,19 @@ class HashAlgorithmTest extends TestCase
     #[Test]
     public function sha256HasCorrectValue(): void
     {
-        $this->assertSame('SHA256', HashAlgorithm::SHA256->value);
+        $this->assertSame('SHA-256', HashAlgorithm::SHA256->value);
     }
 
     #[Test]
     public function sha384HasCorrectValue(): void
     {
-        $this->assertSame('SHA384', HashAlgorithm::SHA384->value);
+        $this->assertSame('SHA-384', HashAlgorithm::SHA384->value);
     }
 
     #[Test]
     public function sha512HasCorrectValue(): void
     {
-        $this->assertSame('SHA512', HashAlgorithm::SHA512->value);
+        $this->assertSame('SHA-512', HashAlgorithm::SHA512->value);
     }
 
     #[Test]

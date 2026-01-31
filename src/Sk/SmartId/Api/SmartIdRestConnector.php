@@ -6,6 +6,7 @@ namespace Sk\SmartId\Api;
 
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationResponse;
@@ -68,6 +69,7 @@ class SmartIdRestConnector implements SmartIdConnector
     }
 
     /**
+     * @param array<string, mixed> $body
      * @return array<string, mixed>
      * @throws SmartIdException
      */
@@ -78,19 +80,8 @@ class SmartIdRestConnector implements SmartIdConnector
             ->withBody($this->streamFactory->createStream(json_encode($body, JSON_THROW_ON_ERROR)));
 
         $response = $this->httpClient->sendRequest($request);
-        $statusCode = $response->getStatusCode();
 
-        if ($statusCode === 404) {
-            throw new SessionNotFoundException('Session not found');
-        }
-
-        if ($statusCode < 200 || $statusCode >= 300) {
-            throw new SmartIdException('Smart-ID API error: HTTP ' . $statusCode);
-        }
-
-        $contents = $response->getBody()->getContents();
-
-        return json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        return $this->handleResponse($response, $url);
     }
 
     /**
@@ -103,17 +94,26 @@ class SmartIdRestConnector implements SmartIdConnector
             ->withHeader('Accept', 'application/json');
 
         $response = $this->httpClient->sendRequest($request);
+
+        return $this->handleResponse($response, $url);
+    }
+
+    /**
+     * @return array<string, mixed>
+     * @throws SmartIdException
+     */
+    private function handleResponse(ResponseInterface $response, string $url): array
+    {
         $statusCode = $response->getStatusCode();
+        $contents = $response->getBody()->getContents();
 
         if ($statusCode === 404) {
-            throw new SessionNotFoundException('Session not found');
+            throw new SessionNotFoundException("Session not found for URL: {$url}");
         }
 
         if ($statusCode < 200 || $statusCode >= 300) {
-            throw new SmartIdException('Smart-ID API error: HTTP ' . $statusCode);
+            throw new SmartIdException("Smart-ID API error: HTTP {$statusCode} for URL: {$url}. Response: {$contents}");
         }
-
-        $contents = $response->getBody()->getContents();
 
         return json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
     }

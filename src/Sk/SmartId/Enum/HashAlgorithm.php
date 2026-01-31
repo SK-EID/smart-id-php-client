@@ -6,9 +6,9 @@ namespace Sk\SmartId\Enum;
 
 enum HashAlgorithm: string
 {
-    case SHA256 = 'SHA256';
-    case SHA384 = 'SHA384';
-    case SHA512 = 'SHA512';
+    case SHA256 = 'SHA-256';
+    case SHA384 = 'SHA-384';
+    case SHA512 = 'SHA-512';
 
     public function getDigestAlgorithm(): string
     {

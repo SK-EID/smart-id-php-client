@@ -66,4 +66,29 @@ class SessionResult
     {
         return $this->endResult === self::END_RESULT_OK;
     }
+
+    public function isUserRefused(): bool
+    {
+        return str_starts_with($this->endResult, self::END_RESULT_USER_REFUSED);
+    }
+
+    public function isTimeout(): bool
+    {
+        return $this->endResult === self::END_RESULT_TIMEOUT;
+    }
+
+    public function isDocumentUnusable(): bool
+    {
+        return $this->endResult === self::END_RESULT_DOCUMENT_UNUSABLE;
+    }
+
+    public function isWrongVC(): bool
+    {
+        return $this->endResult === self::END_RESULT_WRONG_VC;
+    }
+
+    public function isRequiredInteractionNotSupported(): bool
+    {
+        return $this->endResult === self::END_RESULT_REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP;
+    }
 }

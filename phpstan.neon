@@ -6,31 +6,7 @@ parameters:
         - vendor
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
-        # PropertyMapper uses dynamic property/method access intentionally
-        - '#Access to an undefined property#'
-        - '#Call to an undefined method#'
-        # Array type specifications - too verbose to specify everywhere
+        # Array type specifications - PHPStan level 6 requires verbose generics
         - identifier: missingType.iterableValue
-        # Missing return types on setters/validators - not critical
-        - identifier: missingType.return
-        # isset() checks on non-nullable - defensive coding pattern
+        # isset() on array keys from external data (API responses)
         - identifier: isset.property
-        # Unreachable code after throw - defensive coding
-        - '#Unreachable statement#'
-        # Condition always true/false - defensive coding patterns
-        - '#Result of .* is always (true|false)#'
-        - '#will always evaluate to (true|false)#'
-        - '#(Left|Right) side of .* is always (true|false)#'
-        - '#If condition is always (true|false)#'
-        # PHPDoc type mismatch in legacy code
-        - '#PHPDoc tag @var#'
-        # Method never returns null warnings
-        - '#never returns null so it can be removed#'
-        # Missing parameter types
-        - identifier: missingType.parameter
-        # Missing property types
-        - identifier: missingType.property
-        # Unused methods (may be used via reflection/dynamic calls)
-        - '#is unused#'
-        # Call has no effect warnings
-        - '#has no effect#'

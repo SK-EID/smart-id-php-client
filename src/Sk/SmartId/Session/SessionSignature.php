@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Session;
 
+use Sk\SmartId\Exception\ValidationException;
+
 class SessionSignature
 {
     public function __construct(
@@ -37,7 +39,7 @@ class SessionSignature
     {
         $decoded = base64_decode($this->value, true);
         if ($decoded === false) {
-            throw new \RuntimeException('Invalid base64 encoded signature value');
+            throw new ValidationException('Invalid base64 encoded signature value');
         }
 
         return $decoded;

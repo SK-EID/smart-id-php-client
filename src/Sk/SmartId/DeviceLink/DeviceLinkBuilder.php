@@ -27,6 +27,9 @@ class DeviceLinkBuilder
 
     private bool $unprotectedLink = false;
 
+    /**
+     * @param Interaction[] $interactions
+     */
     public function __construct(
         DeviceLinkAuthenticationResponse $response,
         string $rpChallenge,

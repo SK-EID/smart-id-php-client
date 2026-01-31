@@ -9,6 +9,7 @@ use Sk\SmartId\Enum\InteractionType;
 class Interaction
 {
     public const MAX_DISPLAY_TEXT_60 = 60;
+
     public const MAX_DISPLAY_TEXT_200 = 200;
 
     public function __construct(

@@ -50,41 +50,24 @@ class DeviceLinkAuthenticationSession
 
     public function buildQrCodeUrl(?int $elapsedSeconds = null): string
     {
-        $builder = $this->createDeviceLinkBuilder();
-
-        if ($elapsedSeconds !== null) {
-            $builder = $builder->withElapsedSeconds($elapsedSeconds);
-        } else {
-            $builder = $builder->withElapsedSeconds($this->getElapsedSeconds());
-        }
-
-        return $builder->buildQrCodeUrl();
+        return $this->buildUrlWithElapsed($elapsedSeconds)->buildQrCodeUrl();
     }
 
     public function buildWeb2AppUrl(?int $elapsedSeconds = null): string
     {
-        $builder = $this->createDeviceLinkBuilder();
-
-        if ($elapsedSeconds !== null) {
-            $builder = $builder->withElapsedSeconds($elapsedSeconds);
-        } else {
-            $builder = $builder->withElapsedSeconds($this->getElapsedSeconds());
-        }
-
-        return $builder->buildWeb2AppUrl();
+        return $this->buildUrlWithElapsed($elapsedSeconds)->buildWeb2AppUrl();
     }
 
     public function buildApp2AppUrl(?int $elapsedSeconds = null): string
     {
+        return $this->buildUrlWithElapsed($elapsedSeconds)->buildApp2AppUrl();
+    }
+
+    private function buildUrlWithElapsed(?int $elapsedSeconds): DeviceLinkBuilder
+    {
         $builder = $this->createDeviceLinkBuilder();
 
-        if ($elapsedSeconds !== null) {
-            $builder = $builder->withElapsedSeconds($elapsedSeconds);
-        } else {
-            $builder = $builder->withElapsedSeconds($this->getElapsedSeconds());
-        }
-
-        return $builder->buildApp2AppUrl();
+        return $builder->withElapsedSeconds($elapsedSeconds ?? $this->getElapsedSeconds());
     }
 
     public function getRpChallenge(): string

@@ -6,6 +6,7 @@ namespace Sk\SmartId\Tests\Session;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Sk\SmartId\Exception\ValidationException;
 use Sk\SmartId\Session\SessionSignature;
 
 class SessionSignatureTest extends TestCase
@@ -50,7 +51,7 @@ class SessionSignatureTest extends TestCase
     {
         $sig = new SessionSignature('not-valid-base64!!!', 'SHA512WithRSA');
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Invalid base64 encoded signature value');
 
         $sig->getDecodedValue();

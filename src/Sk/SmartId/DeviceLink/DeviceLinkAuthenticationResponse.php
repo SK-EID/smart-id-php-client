@@ -16,9 +16,17 @@ class DeviceLinkAuthenticationResponse
 
     /**
      * @param array<string, string> $data
+     * @throws \InvalidArgumentException
      */
     public static function fromArray(array $data): self
     {
+        $requiredKeys = ['sessionID', 'sessionToken', 'sessionSecret', 'deviceLinkBase'];
+        foreach ($requiredKeys as $key) {
+            if (!array_key_exists($key, $data)) {
+                throw new \InvalidArgumentException("Missing required key: {$key}");
+            }
+        }
+
         return new self(
             $data['sessionID'],
             $data['sessionToken'],

@@ -6,7 +6,7 @@ namespace Sk\SmartId\Util;
 
 class CallbackUrlValidator
 {
-    public static function validate(string $url): bool
+    public static function validate(string $url, bool $requireHttps = false): bool
     {
         $parsed = parse_url($url);
 
@@ -14,17 +14,29 @@ class CallbackUrlValidator
             return false;
         }
 
-        if (!in_array($parsed['scheme'], ['http', 'https'], true)) {
+        $allowedSchemes = $requireHttps ? ['https'] : ['http', 'https'];
+
+        if (!in_array($parsed['scheme'], $allowedSchemes, true)) {
             return false;
         }
 
         return true;
     }
 
-    public static function validateOrThrow(string $url): void
+    public static function isHttps(string $url): bool
     {
-        if (!self::validate($url)) {
-            throw new \InvalidArgumentException('Invalid callback URL: ' . $url);
+        $parsed = parse_url($url);
+
+        return $parsed !== false && isset($parsed['scheme']) && $parsed['scheme'] === 'https';
+    }
+
+    public static function validateOrThrow(string $url, bool $requireHttps = false): void
+    {
+        if (!self::validate($url, $requireHttps)) {
+            $message = $requireHttps
+                ? 'Invalid callback URL (HTTPS required): '
+                : 'Invalid callback URL: ';
+            throw new \InvalidArgumentException($message . $url);
         }
     }
 }

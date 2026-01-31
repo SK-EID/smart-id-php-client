@@ -69,10 +69,14 @@ class DeviceLinkAuthenticationRequestTest extends TestCase
 
         $this->assertSame('rp-uuid', $array['relyingPartyUUID']);
         $this->assertSame('Test RP', $array['relyingPartyName']);
-        $this->assertSame('dGVzdC1jaGFsbGVuZ2U=', $array['rpChallenge']);
-        $this->assertSame('SHA512', $array['hashAlgorithm']);
         $this->assertSame('ACSP_V2', $array['signatureProtocol']);
-        $this->assertCount(2, $array['allowedInteractionsOrder']);
+        $this->assertArrayHasKey('signatureProtocolParameters', $array);
+        $this->assertSame('dGVzdC1jaGFsbGVuZ2U=', $array['signatureProtocolParameters']['rpChallenge']);
+        $this->assertSame('rsassa-pss', $array['signatureProtocolParameters']['signatureAlgorithm']);
+        $this->assertSame('SHA-512', $array['signatureProtocolParameters']['signatureAlgorithmParameters']['hashAlgorithm']);
+        $this->assertArrayHasKey('interactions', $array);
+        $decodedInteractions = json_decode(base64_decode($array['interactions']), true);
+        $this->assertCount(2, $decodedInteractions);
         $this->assertArrayNotHasKey('certificateLevel', $array);
         $this->assertArrayNotHasKey('nonce', $array);
         $this->assertArrayNotHasKey('capabilities', $array);

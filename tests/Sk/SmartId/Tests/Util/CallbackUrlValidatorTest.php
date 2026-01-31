@@ -106,4 +106,50 @@ class CallbackUrlValidatorTest extends TestCase
     {
         $this->assertSame($expected, CallbackUrlValidator::validate($url));
     }
+
+    #[Test]
+    public function validateWithRequireHttpsReturnsFalseForHttp(): void
+    {
+        $this->assertFalse(CallbackUrlValidator::validate('http://example.com/callback', true));
+    }
+
+    #[Test]
+    public function validateWithRequireHttpsReturnsTrueForHttps(): void
+    {
+        $this->assertTrue(CallbackUrlValidator::validate('https://example.com/callback', true));
+    }
+
+    #[Test]
+    public function isHttpsReturnsTrueForHttpsUrl(): void
+    {
+        $this->assertTrue(CallbackUrlValidator::isHttps('https://example.com/callback'));
+    }
+
+    #[Test]
+    public function isHttpsReturnsFalseForHttpUrl(): void
+    {
+        $this->assertFalse(CallbackUrlValidator::isHttps('http://example.com/callback'));
+    }
+
+    #[Test]
+    public function isHttpsReturnsFalseForInvalidUrl(): void
+    {
+        $this->assertFalse(CallbackUrlValidator::isHttps('not a valid url'));
+    }
+
+    #[Test]
+    public function validateOrThrowWithRequireHttpsThrowsForHttp(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid callback URL (HTTPS required)');
+
+        CallbackUrlValidator::validateOrThrow('http://example.com/callback', true);
+    }
+
+    #[Test]
+    public function validateOrThrowWithRequireHttpsDoesNotThrowForHttps(): void
+    {
+        CallbackUrlValidator::validateOrThrow('https://example.com/callback', true);
+        $this->assertTrue(true);
+    }
 }

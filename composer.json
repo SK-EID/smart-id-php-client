@@ -13,7 +13,6 @@
   "authors": [],
   "require": {
     "php": ">=8.4",
-    "ext-curl": "*",
     "ext-json": "*",
     "ext-openssl": "*",
     "phpseclib/phpseclib": "~3.0",
@@ -21,11 +20,11 @@
     "psr/http-factory": "^1.0"
   },
   "require-dev": {
-    "phpunit/phpunit": "12.5.*",
-    "friendsofphp/php-cs-fixer": "dev-master",
-    "phpstan/phpstan": "2.1.x-dev"
+    "phpunit/phpunit": "^12.5",
+    "friendsofphp/php-cs-fixer": "^3.65",
+    "phpstan/phpstan": "^2.1"
   },
-  "minimum-stability": "dev",
+  "minimum-stability": "stable",
   "autoload": {
     "psr-4": {
       "Sk\\SmartId\\": "src/Sk/SmartId/"
@@ -35,5 +34,11 @@
     "psr-4": {
       "Sk\\SmartId\\Tests\\": "tests/Sk/SmartId/Tests/"
     }
+  },
+    "scripts": {
+    "test": "phpunit",
+    "cs-check": "php-cs-fixer fix --dry-run --diff",
+    "cs-fix": "php-cs-fixer fix",
+    "phpstan": "phpstan analyse"
   }
 }

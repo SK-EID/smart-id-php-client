@@ -91,23 +91,23 @@ class SessionStatusPoller
 
         $endResult = $result->getEndResult();
 
-        if (str_starts_with($endResult, 'USER_REFUSED')) {
+        if ($result->isUserRefused()) {
             throw new UserRefusedException('User refused: ' . $endResult);
         }
 
-        if ($endResult === SessionResult::END_RESULT_TIMEOUT) {
+        if ($result->isTimeout()) {
             throw new SessionTimeoutException('Session timed out');
         }
 
-        if ($endResult === SessionResult::END_RESULT_DOCUMENT_UNUSABLE) {
+        if ($result->isDocumentUnusable()) {
             throw new DocumentUnusableException('Document is unusable');
         }
 
-        if ($endResult === SessionResult::END_RESULT_WRONG_VC) {
+        if ($result->isWrongVC()) {
             throw new WrongVerificationCodeException('User selected wrong verification code');
         }
 
-        if ($endResult === SessionResult::END_RESULT_REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP) {
+        if ($result->isRequiredInteractionNotSupported()) {
             throw new RequiredInteractionNotSupportedException('Required interaction not supported by app');
         }
 
