@@ -1,0 +1,39 @@
+{
+  "name": "sk-id-solutions/smart-id-php-client",
+  "type": "library",
+  "description": "Smart-ID Relying Party PHP Api client",
+  "homepage": "https://github.com/SK-EID/smart-id-php-client",
+  "keywords": [
+    "smart-id",
+    "relying",
+    "party",
+    "api"
+  ],
+  "license": "MIT",
+  "authors": [],
+  "require": {
+    "php": ">=8.4",
+    "ext-curl": "*",
+    "ext-json": "*",
+    "ext-openssl": "*",
+    "phpseclib/phpseclib": "~3.0",
+    "psr/http-client": "^1.0",
+    "psr/http-factory": "^1.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "12.5.*",
+    "friendsofphp/php-cs-fixer": "dev-master",
+    "phpstan/phpstan": "2.1.x-dev"
+  },
+  "minimum-stability": "dev",
+  "autoload": {
+    "psr-4": {
+      "Sk\\SmartId\\": "src/Sk/SmartId/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Sk\\SmartId\\Tests\\": "tests/Sk/SmartId/Tests/"
+    }
+  }
+}

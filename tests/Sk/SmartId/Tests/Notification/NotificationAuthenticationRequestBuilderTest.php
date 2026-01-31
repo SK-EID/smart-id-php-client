@@ -1,0 +1,358 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Sk\SmartId\Tests\Notification;
+
+use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+use Sk\SmartId\Api\SmartIdConnector;
+use Sk\SmartId\Enum\CertificateLevel;
+use Sk\SmartId\Enum\HashAlgorithm;
+use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Model\SemanticsIdentifier;
+use Sk\SmartId\Notification\NotificationAuthenticationRequest;
+use Sk\SmartId\Notification\NotificationAuthenticationRequestBuilder;
+use Sk\SmartId\Notification\NotificationAuthenticationResponse;
+use Sk\SmartId\Notification\NotificationAuthenticationSession;
+
+class NotificationAuthenticationRequestBuilderTest extends TestCase
+{
+    private SmartIdConnector $connector;
+
+    protected function setUp(): void
+    {
+        $this->connector = $this->createMock(SmartIdConnector::class);
+    }
+
+    #[Test]
+    public function initiateWithDocumentNumberCreatesSession(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+
+        $this->connector->expects($this->once())
+            ->method('initiateNotificationAuthentication')
+            ->with(
+                $this->isInstanceOf(NotificationAuthenticationRequest::class),
+                'PNOEE-12345678901',
+                null,
+            )
+            ->willReturn($response);
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $session = $builder->withDocumentNumber('PNOEE-12345678901')->initiate();
+
+        $this->assertInstanceOf(NotificationAuthenticationSession::class, $session);
+        $this->assertSame('session-123', $session->getSessionId());
+    }
+
+    #[Test]
+    public function initiateWithSemanticsIdentifierCreatesSession(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+        $semanticsId = SemanticsIdentifier::forPerson('EE', '12345678901');
+
+        $this->connector->expects($this->once())
+            ->method('initiateNotificationAuthentication')
+            ->with(
+                $this->isInstanceOf(NotificationAuthenticationRequest::class),
+                null,
+                'PNOEE-12345678901',
+            )
+            ->willReturn($response);
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $session = $builder->withSemanticsIdentifier($semanticsId)->initiate();
+
+        $this->assertInstanceOf(NotificationAuthenticationSession::class, $session);
+    }
+
+    #[Test]
+    public function initiateThrowsWhenNeitherDocumentNumberNorSemanticsIdentifierSet(): void
+    {
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Either documentNumber or semanticsIdentifier must be set');
+
+        $builder->initiate();
+    }
+
+    #[Test]
+    public function withDocumentNumberClearsSemanticsIdentifier(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+        $semanticsId = SemanticsIdentifier::forPerson('EE', '99999999999');
+
+        $this->connector->expects($this->once())
+            ->method('initiateNotificationAuthentication')
+            ->with(
+                $this->isInstanceOf(NotificationAuthenticationRequest::class),
+                'PNOEE-12345678901',
+                null,
+            )
+            ->willReturn($response);
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $builder
+            ->withSemanticsIdentifier($semanticsId)
+            ->withDocumentNumber('PNOEE-12345678901')
+            ->initiate();
+    }
+
+    #[Test]
+    public function withSemanticsIdentifierClearsDocumentNumber(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+        $semanticsId = SemanticsIdentifier::forPerson('EE', '12345678901');
+
+        $this->connector->expects($this->once())
+            ->method('initiateNotificationAuthentication')
+            ->with(
+                $this->isInstanceOf(NotificationAuthenticationRequest::class),
+                null,
+                'PNOEE-12345678901',
+            )
+            ->willReturn($response);
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $builder
+            ->withDocumentNumber('SOME-DOC-NUMBER')
+            ->withSemanticsIdentifier($semanticsId)
+            ->initiate();
+    }
+
+    #[Test]
+    public function withRpChallengeUsesProvidedChallenge(): void
+    {
+        $providedChallenge = base64_encode('my-custom-challenge');
+        $response = new NotificationAuthenticationResponse('session-123');
+
+        $capturedRequest = null;
+        $this->connector->method('initiateNotificationAuthentication')
+            ->willReturnCallback(function (NotificationAuthenticationRequest $request) use ($response, &$capturedRequest) {
+                $capturedRequest = $request;
+
+                return $response;
+            });
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $session = $builder
+            ->withDocumentNumber('DOC123')
+            ->withRpChallenge($providedChallenge)
+            ->initiate();
+
+        $this->assertSame($providedChallenge, $capturedRequest->getRpChallenge());
+        $this->assertSame($providedChallenge, $session->getRpChallenge());
+    }
+
+    #[Test]
+    public function withHashAlgorithmUsesProvidedAlgorithm(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+
+        $capturedRequest = null;
+        $this->connector->method('initiateNotificationAuthentication')
+            ->willReturnCallback(function (NotificationAuthenticationRequest $request) use ($response, &$capturedRequest) {
+                $capturedRequest = $request;
+
+                return $response;
+            });
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $builder
+            ->withDocumentNumber('DOC123')
+            ->withHashAlgorithm(HashAlgorithm::SHA256)
+            ->initiate();
+
+        $this->assertSame(HashAlgorithm::SHA256, $capturedRequest->getHashAlgorithm());
+    }
+
+    #[Test]
+    public function withCertificateLevelUsesProvidedLevel(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+
+        $capturedRequest = null;
+        $this->connector->method('initiateNotificationAuthentication')
+            ->willReturnCallback(function (NotificationAuthenticationRequest $request) use ($response, &$capturedRequest) {
+                $capturedRequest = $request;
+
+                return $response;
+            });
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $builder
+            ->withDocumentNumber('DOC123')
+            ->withCertificateLevel(CertificateLevel::QUALIFIED)
+            ->initiate();
+
+        $this->assertSame(CertificateLevel::QUALIFIED, $capturedRequest->getCertificateLevel());
+    }
+
+    #[Test]
+    public function withNonceIncludesNonceInRequest(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+
+        $capturedRequest = null;
+        $this->connector->method('initiateNotificationAuthentication')
+            ->willReturnCallback(function (NotificationAuthenticationRequest $request) use ($response, &$capturedRequest) {
+                $capturedRequest = $request;
+
+                return $response;
+            });
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $builder
+            ->withDocumentNumber('DOC123')
+            ->withNonce('test-nonce')
+            ->initiate();
+
+        $array = $capturedRequest->toArray();
+        $this->assertSame('test-nonce', $array['nonce']);
+    }
+
+    #[Test]
+    public function withCapabilitiesIncludesCapabilitiesInRequest(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+
+        $capturedRequest = null;
+        $this->connector->method('initiateNotificationAuthentication')
+            ->willReturnCallback(function (NotificationAuthenticationRequest $request) use ($response, &$capturedRequest) {
+                $capturedRequest = $request;
+
+                return $response;
+            });
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $builder
+            ->withDocumentNumber('DOC123')
+            ->withCapabilities(['ADVANCED'])
+            ->initiate();
+
+        $array = $capturedRequest->toArray();
+        $this->assertSame(['ADVANCED'], $array['capabilities']);
+    }
+
+    #[Test]
+    public function withAllowedInteractionsOrderUsesProvidedInteractions(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+
+        $interactions = [
+            Interaction::displayTextAndPin('Please confirm'),
+            Interaction::verificationCodeChoice(),
+        ];
+
+        $capturedRequest = null;
+        $this->connector->method('initiateNotificationAuthentication')
+            ->willReturnCallback(function (NotificationAuthenticationRequest $request) use ($response, &$capturedRequest) {
+                $capturedRequest = $request;
+
+                return $response;
+            });
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $builder
+            ->withDocumentNumber('DOC123')
+            ->withAllowedInteractionsOrder($interactions)
+            ->initiate();
+
+        $this->assertSame($interactions, $capturedRequest->getAllowedInteractionsOrder());
+    }
+
+    #[Test]
+    public function initiateGeneratesVerificationCode(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+
+        $this->connector->method('initiateNotificationAuthentication')->willReturn($response);
+
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $session = $builder->withDocumentNumber('DOC123')->initiate();
+
+        $this->assertSame(4, strlen($session->getVerificationCode()));
+        $this->assertMatchesRegularExpression('/^\d{4}$/', $session->getVerificationCode());
+    }
+
+    #[Test]
+    public function builderMethodsReturnSelf(): void
+    {
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $this->assertSame($builder, $builder->withDocumentNumber('DOC'));
+        $this->assertSame($builder, $builder->withSemanticsIdentifier(SemanticsIdentifier::forPerson('EE', '123')));
+        $this->assertSame($builder, $builder->withRpChallenge('challenge'));
+        $this->assertSame($builder, $builder->withHashAlgorithm(HashAlgorithm::SHA512));
+        $this->assertSame($builder, $builder->withCertificateLevel(CertificateLevel::QUALIFIED));
+        $this->assertSame($builder, $builder->withNonce('nonce'));
+        $this->assertSame($builder, $builder->withCapabilities([]));
+        $this->assertSame($builder, $builder->withAllowedInteractionsOrder([]));
+    }
+}

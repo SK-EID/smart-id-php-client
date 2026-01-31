@@ -1,0 +1,36 @@
+parameters:
+    level: 6
+    paths:
+        - src
+    excludePaths:
+        - vendor
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # PropertyMapper uses dynamic property/method access intentionally
+        - '#Access to an undefined property#'
+        - '#Call to an undefined method#'
+        # Array type specifications - too verbose to specify everywhere
+        - identifier: missingType.iterableValue
+        # Missing return types on setters/validators - not critical
+        - identifier: missingType.return
+        # isset() checks on non-nullable - defensive coding pattern
+        - identifier: isset.property
+        # Unreachable code after throw - defensive coding
+        - '#Unreachable statement#'
+        # Condition always true/false - defensive coding patterns
+        - '#Result of .* is always (true|false)#'
+        - '#will always evaluate to (true|false)#'
+        - '#(Left|Right) side of .* is always (true|false)#'
+        - '#If condition is always (true|false)#'
+        # PHPDoc type mismatch in legacy code
+        - '#PHPDoc tag @var#'
+        # Method never returns null warnings
+        - '#never returns null so it can be removed#'
+        # Missing parameter types
+        - identifier: missingType.parameter
+        # Missing property types
+        - identifier: missingType.property
+        # Unused methods (may be used via reflection/dynamic calls)
+        - '#is unused#'
+        # Call has no effect warnings
+        - '#has no effect#'

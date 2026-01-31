@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+    cacheDirectory=".phpunit.cache"
+    backupGlobals="false"
+    colors="true"
+    processIsolation="false"
+    stopOnFailure="false"
+    bootstrap="./tests/bootstrap.php.dist">
+
+  <php>
+    <var name="host_url" value=""/>
+    <var name="relying_party_uuid" value=""/>
+    <var name="relying_party_name" value=""/>
+    <var name="document_number" value=""/>
+    <var name="national_identity_number" value=""/>
+    <var name="country_code" value=""/>
+    <var name="certificate_level" value=""/>
+    <var name="data_to_sign" value=""/>
+  </php>
+
+  <testsuites>
+    <testsuite name="UnitTest">
+      <directory>./tests</directory>
+    </testsuite>
+  </testsuites>
+
+  <source>
+    <include>
+      <directory suffix=".php">src</directory>
+    </include>
+  </source>
+</phpunit>
