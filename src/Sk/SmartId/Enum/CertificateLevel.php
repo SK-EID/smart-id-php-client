@@ -34,4 +34,22 @@ enum CertificateLevel: string
 {
     case QUALIFIED = 'QUALIFIED';
     case ADVANCED = 'ADVANCED';
+
+    public function meetsRequirement(CertificateLevel $required): bool
+    {
+        if ($required === self::ADVANCED) {
+            return true;
+        }
+
+        return $this === self::QUALIFIED;
+    }
+
+    public static function tryFromString(string $value): ?self
+    {
+        return match (strtoupper($value)) {
+            'QUALIFIED' => self::QUALIFIED,
+            'ADVANCED' => self::ADVANCED,
+            default => null,
+        };
+    }
 }

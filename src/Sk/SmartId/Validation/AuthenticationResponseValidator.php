@@ -30,6 +30,7 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Validation;
 
+use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\ValidationException;
 use Sk\SmartId\Model\AuthenticationIdentity;
@@ -70,8 +71,11 @@ class AuthenticationResponseValidator
      * @throws SmartIdException
      * @throws ValidationException
      */
-    public function validate(SessionStatus $sessionStatus, string $rpChallenge): AuthenticationIdentity
-    {
+    public function validate(
+        SessionStatus $sessionStatus,
+        string $rpChallenge,
+        ?CertificateLevel $requiredCertificateLevel = null,
+    ): AuthenticationIdentity {
         if (!$sessionStatus->isComplete()) {
             throw new ValidationException('Cannot validate incomplete session');
         }
@@ -91,10 +95,38 @@ class AuthenticationResponseValidator
             throw new ValidationException('Signature is missing from session response');
         }
 
+        if ($requiredCertificateLevel !== null) {
+            $this->verifyCertificateLevel($cert, $requiredCertificateLevel);
+        }
+
         $this->verifyCertificateTrust($cert);
         $this->verifySignature($sessionStatus, $rpChallenge);
 
         return $this->extractIdentity($cert);
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function verifyCertificateLevel(SessionCertificate $cert, CertificateLevel $required): void
+    {
+        $actualLevel = CertificateLevel::tryFromString($cert->getCertificateLevel());
+
+        if ($actualLevel === null) {
+            throw new ValidationException(
+                sprintf('Unknown certificate level: %s', $cert->getCertificateLevel())
+            );
+        }
+
+        if (!$actualLevel->meetsRequirement($required)) {
+            throw new ValidationException(
+                sprintf(
+                    'Certificate level %s does not meet required level %s',
+                    $actualLevel->value,
+                    $required->value,
+                )
+            );
+        }
     }
 
     /**

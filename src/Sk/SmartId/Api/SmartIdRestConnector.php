@@ -36,8 +36,11 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationResponse;
+use Sk\SmartId\Exception\InvalidParametersException;
 use Sk\SmartId\Exception\SessionNotFoundException;
 use Sk\SmartId\Exception\SmartIdException;
+use Sk\SmartId\Exception\UnauthorizedException;
+use Sk\SmartId\Exception\UserAccountException;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
 use Sk\SmartId\Notification\NotificationAuthenticationResponse;
 use Sk\SmartId\Session\SessionStatus;
@@ -133,14 +136,67 @@ class SmartIdRestConnector implements SmartIdConnector
         $statusCode = $response->getStatusCode();
         $contents = $response->getBody()->getContents();
 
-        if ($statusCode === 404) {
-            throw new SessionNotFoundException("Session not found for URL: {$url}");
+        if ($statusCode >= 200 && $statusCode < 300) {
+            return json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
         }
 
-        if ($statusCode < 200 || $statusCode >= 300) {
-            throw new SmartIdException("Smart-ID API error: HTTP {$statusCode} for URL: {$url}. Response: {$contents}");
+        $this->throwExceptionForStatusCode($statusCode, $url, $contents);
+    }
+
+    /**
+     * @throws SmartIdException
+     * @return never
+     */
+    private function throwExceptionForStatusCode(int $statusCode, string $url, string $contents): never
+    {
+        $message = $this->extractErrorMessage($contents);
+
+        match ($statusCode) {
+            400 => throw new InvalidParametersException(
+                "Invalid request parameters: {$message}"
+            ),
+            401 => throw new UnauthorizedException(
+                "Authentication failed - invalid Relying Party credentials"
+            ),
+            403 => throw new UnauthorizedException(
+                "Forbidden - user not found or certificate level mismatch: {$message}"
+            ),
+            404 => throw new SessionNotFoundException(
+                "Session not found for URL: {$url}"
+            ),
+            471 => throw new UserAccountException(
+                "No suitable account of requested type found for the user",
+                UserAccountException::NO_SUITABLE_ACCOUNT
+            ),
+            472 => throw new UserAccountException(
+                "Person should view Smart-ID app or Smart-ID self-service portal",
+                UserAccountException::PERSON_SHOULD_VIEW_APP
+            ),
+            480 => throw new UserAccountException(
+                "Client-side API is too old and not supported anymore",
+                UserAccountException::CLIENT_TOO_OLD
+            ),
+            500, 502, 503, 504 => throw new SmartIdException(
+                "Smart-ID service temporarily unavailable: HTTP {$statusCode}"
+            ),
+            default => throw new SmartIdException(
+                "Smart-ID API error: HTTP {$statusCode} for URL: {$url}. Response: {$contents}"
+            ),
+        };
+    }
+
+    private function extractErrorMessage(string $contents): string
+    {
+        if (empty($contents)) {
+            return 'No details provided';
         }
 
-        return json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        try {
+            $data = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+
+            return $data['message'] ?? $data['error'] ?? $contents;
+        } catch (\JsonException) {
+            return $contents;
+        }
     }
 }

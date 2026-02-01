@@ -28,44 +28,41 @@
 
 declare(strict_types=1);
 
-namespace Sk\SmartId\Tests\Api;
+namespace Sk\SmartId\Exception;
 
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
-use Sk\SmartId\Api\ApiEndpoints;
-
-class ApiEndpointsTest extends TestCase
+class UserAccountException extends SmartIdException
 {
-    #[Test]
-    public function deviceLinkAnonymousAuthenticationHasCorrectValue(): void
-    {
-        $this->assertSame(
-            '/authentication/device-link/anonymous',
-            ApiEndpoints::DEVICE_LINK_ANONYMOUS_AUTHENTICATION,
-        );
+    public const NO_SUITABLE_ACCOUNT = 471;
+
+    public const PERSON_SHOULD_VIEW_APP = 472;
+
+    public const CLIENT_TOO_OLD = 480;
+
+    public function __construct(
+        string $message,
+        private readonly int $errorCode,
+        ?\Throwable $previous = null,
+    ) {
+        parent::__construct($message, $errorCode, $previous);
     }
 
-    #[Test]
-    public function notificationAuthenticationByDocumentNumberHasCorrectValue(): void
+    public function getErrorCode(): int
     {
-        $this->assertSame(
-            '/authentication/notification/document/%s',
-            ApiEndpoints::NOTIFICATION_AUTHENTICATION_BY_DOCUMENT_NUMBER,
-        );
+        return $this->errorCode;
     }
 
-    #[Test]
-    public function notificationAuthenticationBySemanticsIdentifierHasCorrectValue(): void
+    public function isNoSuitableAccount(): bool
     {
-        $this->assertSame(
-            '/authentication/notification/etsi/%s',
-            ApiEndpoints::NOTIFICATION_AUTHENTICATION_BY_SEMANTICS_IDENTIFIER,
-        );
+        return $this->errorCode === self::NO_SUITABLE_ACCOUNT;
     }
 
-    #[Test]
-    public function sessionStatusHasCorrectValue(): void
+    public function isPersonShouldViewApp(): bool
     {
-        $this->assertSame('/session/%s', ApiEndpoints::SESSION_STATUS);
+        return $this->errorCode === self::PERSON_SHOULD_VIEW_APP;
+    }
+
+    public function isClientTooOld(): bool
+    {
+        return $this->errorCode === self::CLIENT_TOO_OLD;
     }
 }

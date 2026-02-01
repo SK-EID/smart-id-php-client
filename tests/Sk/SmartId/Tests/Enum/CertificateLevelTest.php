@@ -47,4 +47,49 @@ class CertificateLevelTest extends TestCase
     {
         $this->assertSame('ADVANCED', CertificateLevel::ADVANCED->value);
     }
+
+    #[Test]
+    public function qualifiedMeetsQualifiedRequirement(): void
+    {
+        $this->assertTrue(CertificateLevel::QUALIFIED->meetsRequirement(CertificateLevel::QUALIFIED));
+    }
+
+    #[Test]
+    public function qualifiedMeetsAdvancedRequirement(): void
+    {
+        $this->assertTrue(CertificateLevel::QUALIFIED->meetsRequirement(CertificateLevel::ADVANCED));
+    }
+
+    #[Test]
+    public function advancedMeetsAdvancedRequirement(): void
+    {
+        $this->assertTrue(CertificateLevel::ADVANCED->meetsRequirement(CertificateLevel::ADVANCED));
+    }
+
+    #[Test]
+    public function advancedDoesNotMeetQualifiedRequirement(): void
+    {
+        $this->assertFalse(CertificateLevel::ADVANCED->meetsRequirement(CertificateLevel::QUALIFIED));
+    }
+
+    #[Test]
+    public function tryFromStringReturnsQualified(): void
+    {
+        $this->assertSame(CertificateLevel::QUALIFIED, CertificateLevel::tryFromString('QUALIFIED'));
+        $this->assertSame(CertificateLevel::QUALIFIED, CertificateLevel::tryFromString('qualified'));
+    }
+
+    #[Test]
+    public function tryFromStringReturnsAdvanced(): void
+    {
+        $this->assertSame(CertificateLevel::ADVANCED, CertificateLevel::tryFromString('ADVANCED'));
+        $this->assertSame(CertificateLevel::ADVANCED, CertificateLevel::tryFromString('advanced'));
+    }
+
+    #[Test]
+    public function tryFromStringReturnsNullForUnknown(): void
+    {
+        $this->assertNull(CertificateLevel::tryFromString('UNKNOWN'));
+        $this->assertNull(CertificateLevel::tryFromString(''));
+    }
 }

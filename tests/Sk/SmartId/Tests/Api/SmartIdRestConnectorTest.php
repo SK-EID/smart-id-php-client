@@ -41,8 +41,11 @@ use Psr\Http\Message\StreamInterface;
 use Sk\SmartId\Api\SmartIdRestConnector;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\Enum\HashAlgorithm;
+use Sk\SmartId\Exception\InvalidParametersException;
 use Sk\SmartId\Exception\SessionNotFoundException;
 use Sk\SmartId\Exception\SmartIdException;
+use Sk\SmartId\Exception\UnauthorizedException;
+use Sk\SmartId\Exception\UserAccountException;
 use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
 
@@ -242,7 +245,121 @@ class SmartIdRestConnectorTest extends TestCase
         );
 
         $this->expectException(SmartIdException::class);
-        $this->expectExceptionMessage('Smart-ID API error: HTTP 500');
+        $this->expectExceptionMessage('Smart-ID service temporarily unavailable');
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
+    #[Test]
+    public function throwsInvalidParametersExceptionFor400(): void
+    {
+        $this->setupMockRequest('POST', '{"message":"Invalid hash"}', 400);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(InvalidParametersException::class);
+        $this->expectExceptionMessage('Invalid request parameters: Invalid hash');
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
+    #[Test]
+    public function throwsUnauthorizedExceptionFor401(): void
+    {
+        $this->setupMockRequest('POST', '', 401);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(UnauthorizedException::class);
+        $this->expectExceptionMessage('invalid Relying Party credentials');
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
+    #[Test]
+    public function throwsUnauthorizedExceptionFor403(): void
+    {
+        $this->setupMockRequest('POST', '', 403);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(UnauthorizedException::class);
+        $this->expectExceptionMessage('Forbidden');
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
+    #[Test]
+    public function throwsUserAccountExceptionFor471(): void
+    {
+        $this->setupMockRequest('POST', '', 471);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(UserAccountException::class);
+        $this->expectExceptionMessage('No suitable account');
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
+    #[Test]
+    public function throwsUserAccountExceptionFor472(): void
+    {
+        $this->setupMockRequest('POST', '', 472);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(UserAccountException::class);
+        $this->expectExceptionMessage('Person should view Smart-ID app');
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
+    #[Test]
+    public function throwsUserAccountExceptionFor480(): void
+    {
+        $this->setupMockRequest('POST', '', 480);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(UserAccountException::class);
+        $this->expectExceptionMessage('Client-side API is too old');
 
         $this->connector->initiateDeviceLinkAuthentication($request);
     }

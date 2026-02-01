@@ -32,6 +32,7 @@ namespace Sk\SmartId\Tests\Validation;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Exception\ValidationException;
 use Sk\SmartId\Session\SessionCertificate;
 use Sk\SmartId\Session\SessionResult;
@@ -157,5 +158,37 @@ class AuthenticationResponseValidatorTest extends TestCase
         $this->expectExceptionMessage('No trusted CA certificates configured');
 
         $validator->validate($status, base64_encode('challenge'));
+    }
+
+    #[Test]
+    public function validateThrowsWhenCertificateLevelDoesNotMeetRequirement(): void
+    {
+        $validator = new AuthenticationResponseValidator();
+        $validator->setTrustedCaCertificates(['dummy-cert']);
+        $result = new SessionResult('OK', 'DOC123');
+        $cert = new SessionCertificate('certValue', 'ADVANCED');
+        $signature = new SessionSignature(base64_encode('sig'), 'SHA512WithRSA');
+        $status = new SessionStatus('COMPLETE', $result, $cert, $signature);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Certificate level ADVANCED does not meet required level QUALIFIED');
+
+        $validator->validate($status, base64_encode('challenge'), CertificateLevel::QUALIFIED);
+    }
+
+    #[Test]
+    public function validateThrowsForUnknownCertificateLevel(): void
+    {
+        $validator = new AuthenticationResponseValidator();
+        $validator->setTrustedCaCertificates(['dummy-cert']);
+        $result = new SessionResult('OK', 'DOC123');
+        $cert = new SessionCertificate('certValue', 'UNKNOWN_LEVEL');
+        $signature = new SessionSignature(base64_encode('sig'), 'SHA512WithRSA');
+        $status = new SessionStatus('COMPLETE', $result, $cert, $signature);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Unknown certificate level: UNKNOWN_LEVEL');
+
+        $validator->validate($status, base64_encode('challenge'), CertificateLevel::QUALIFIED);
     }
 }

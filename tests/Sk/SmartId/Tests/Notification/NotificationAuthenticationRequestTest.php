@@ -100,7 +100,8 @@ class NotificationAuthenticationRequestTest extends TestCase
         $this->assertSame('dGVzdC1jaGFsbGVuZ2U=', $array['signatureProtocolParameters']['rpChallenge']);
         $this->assertSame('rsassa-pss', $array['signatureProtocolParameters']['signatureAlgorithm']);
         $this->assertSame('SHA-512', $array['signatureProtocolParameters']['signatureAlgorithmParameters']['hashAlgorithm']);
-        $this->assertCount(2, $array['allowedInteractionsOrder']);
+        $this->assertArrayHasKey('interactions', $array);
+        $this->assertSame('numeric4', $array['vcType']);
         $this->assertArrayNotHasKey('certificateLevel', $array);
         $this->assertArrayNotHasKey('nonce', $array);
         $this->assertArrayNotHasKey('capabilities', $array);
