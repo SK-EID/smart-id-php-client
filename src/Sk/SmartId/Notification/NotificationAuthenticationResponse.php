@@ -38,11 +38,16 @@ class NotificationAuthenticationResponse
     }
 
     /**
-     * @param array<string, string> $data
+     * @param array<string, mixed> $data
      */
     public static function fromArray(array $data): self
     {
-        return new self($data['sessionID']);
+        $sessionID = $data['sessionID'] ?? null;
+        if (!is_string($sessionID)) {
+            throw new \InvalidArgumentException('sessionID must be a string');
+        }
+
+        return new self($sessionID);
     }
 
     public function getSessionID(): string

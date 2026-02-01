@@ -66,10 +66,18 @@ class SessionResult
      */
     public static function fromArray(array $data): self
     {
+        $endResult = $data['endResult'];
+        if (!is_string($endResult)) {
+            throw new \InvalidArgumentException('endResult must be a string');
+        }
+
+        $documentNumber = $data['documentNumber'] ?? null;
+        $interactionFlowUsed = $data['interactionFlowUsed'] ?? null;
+
         return new self(
-            $data['endResult'],
-            $data['documentNumber'] ?? null,
-            $data['interactionFlowUsed'] ?? null,
+            $endResult,
+            is_string($documentNumber) ? $documentNumber : null,
+            is_string($interactionFlowUsed) ? $interactionFlowUsed : null,
         );
     }
 

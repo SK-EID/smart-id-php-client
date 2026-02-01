@@ -39,7 +39,12 @@ class VerificationCodeCalculator
         $hash = self::ensureBinaryHash($hash);
 
         $integralBytes = substr($hash, -2);
-        $integralValue = unpack('n', $integralBytes)[1];
+        $unpacked = unpack('n', $integralBytes);
+        if ($unpacked === false) {
+            throw new \InvalidArgumentException('Failed to unpack hash bytes');
+        }
+        /** @var int $integralValue */
+        $integralValue = $unpacked[1];
         $code = $integralValue % 10000;
 
         return str_pad((string) $code, 4, '0', STR_PAD_LEFT);
@@ -63,13 +68,19 @@ class VerificationCodeCalculator
     private static function ensureBinaryHash(string $hash): string
     {
         if (strlen($hash) === 64 && ctype_xdigit($hash)) {
-            return hex2bin($hash);
+            $binary = hex2bin($hash);
+
+            return $binary !== false ? $binary : $hash;
         }
         if (strlen($hash) === 96 && ctype_xdigit($hash)) {
-            return hex2bin($hash);
+            $binary = hex2bin($hash);
+
+            return $binary !== false ? $binary : $hash;
         }
         if (strlen($hash) === 128 && ctype_xdigit($hash)) {
-            return hex2bin($hash);
+            $binary = hex2bin($hash);
+
+            return $binary !== false ? $binary : $hash;
         }
 
         return $hash;

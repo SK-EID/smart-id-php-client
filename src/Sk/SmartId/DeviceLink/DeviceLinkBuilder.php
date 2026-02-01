@@ -52,8 +52,6 @@ class DeviceLinkBuilder
 
     private ?string $brokeredRpName = null;
 
-    private bool $unprotectedLink = false;
-
     private SessionType $sessionType = SessionType::AUTHENTICATION;
 
     private string $version = '1.0';
@@ -97,14 +95,6 @@ class DeviceLinkBuilder
     {
         $clone = clone $this;
         $clone->brokeredRpName = $brokeredRpName;
-
-        return $clone;
-    }
-
-    public function withUnprotectedLink(bool $unprotectedLink): self
-    {
-        $clone = clone $this;
-        $clone->unprotectedLink = $unprotectedLink;
 
         return $clone;
     }

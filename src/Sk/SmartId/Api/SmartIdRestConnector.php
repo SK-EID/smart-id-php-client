@@ -137,7 +137,10 @@ class SmartIdRestConnector implements SmartIdConnector
         $contents = $response->getBody()->getContents();
 
         if ($statusCode >= 200 && $statusCode < 300) {
-            return json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+            /** @var array<string, mixed> $decoded */
+            $decoded = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+
+            return $decoded;
         }
 
         $this->throwExceptionForStatusCode($statusCode, $url, $contents);
@@ -153,34 +156,34 @@ class SmartIdRestConnector implements SmartIdConnector
 
         match ($statusCode) {
             400 => throw new InvalidParametersException(
-                "Invalid request parameters: {$message}"
+                "Invalid request parameters: {$message}",
             ),
             401 => throw new UnauthorizedException(
-                "Authentication failed - invalid Relying Party credentials"
+                'Authentication failed - invalid Relying Party credentials',
             ),
             403 => throw new UnauthorizedException(
-                "Forbidden - user not found or certificate level mismatch: {$message}"
+                "Forbidden - user not found or certificate level mismatch: {$message}",
             ),
             404 => throw new SessionNotFoundException(
-                "Session not found for URL: {$url}"
+                "Session not found for URL: {$url}",
             ),
             471 => throw new UserAccountException(
-                "No suitable account of requested type found for the user",
-                UserAccountException::NO_SUITABLE_ACCOUNT
+                'No suitable account of requested type found for the user',
+                UserAccountException::NO_SUITABLE_ACCOUNT,
             ),
             472 => throw new UserAccountException(
-                "Person should view Smart-ID app or Smart-ID self-service portal",
-                UserAccountException::PERSON_SHOULD_VIEW_APP
+                'Person should view Smart-ID app or Smart-ID self-service portal',
+                UserAccountException::PERSON_SHOULD_VIEW_APP,
             ),
             480 => throw new UserAccountException(
-                "Client-side API is too old and not supported anymore",
-                UserAccountException::CLIENT_TOO_OLD
+                'Client-side API is too old and not supported anymore',
+                UserAccountException::CLIENT_TOO_OLD,
             ),
             500, 502, 503, 504 => throw new SmartIdException(
-                "Smart-ID service temporarily unavailable: HTTP {$statusCode}"
+                "Smart-ID service temporarily unavailable: HTTP {$statusCode}",
             ),
             default => throw new SmartIdException(
-                "Smart-ID API error: HTTP {$statusCode} for URL: {$url}. Response: {$contents}"
+                "Smart-ID API error: HTTP {$statusCode} for URL: {$url}. Response: {$contents}",
             ),
         };
     }
@@ -194,7 +197,13 @@ class SmartIdRestConnector implements SmartIdConnector
         try {
             $data = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
 
-            return $data['message'] ?? $data['error'] ?? $contents;
+            if (is_array($data)) {
+                $message = $data['message'] ?? $data['error'] ?? null;
+
+                return is_string($message) ? $message : $contents;
+            }
+
+            return $contents;
         } catch (\JsonException) {
             return $contents;
         }

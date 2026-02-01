@@ -41,7 +41,7 @@ class DeviceLinkAuthenticationResponse
     }
 
     /**
-     * @param array<string, string> $data
+     * @param array<string, mixed> $data
      * @throws \InvalidArgumentException
      */
     public static function fromArray(array $data): self
@@ -53,12 +53,16 @@ class DeviceLinkAuthenticationResponse
             }
         }
 
-        return new self(
-            $data['sessionID'],
-            $data['sessionToken'],
-            $data['sessionSecret'],
-            $data['deviceLinkBase'],
-        );
+        $sessionID = $data['sessionID'];
+        $sessionToken = $data['sessionToken'];
+        $sessionSecret = $data['sessionSecret'];
+        $deviceLinkBase = $data['deviceLinkBase'];
+
+        if (!is_string($sessionID) || !is_string($sessionToken) || !is_string($sessionSecret) || !is_string($deviceLinkBase)) {
+            throw new \InvalidArgumentException('All response fields must be strings');
+        }
+
+        return new self($sessionID, $sessionToken, $sessionSecret, $deviceLinkBase);
     }
 
     public function getSessionID(): string

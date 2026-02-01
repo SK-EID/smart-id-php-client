@@ -52,13 +52,27 @@ class SessionSignature
      */
     public static function fromArray(array $data): self
     {
+        $value = $data['value'];
+        $signatureAlgorithm = $data['signatureAlgorithm'];
+
+        if (!is_string($value) || !is_string($signatureAlgorithm)) {
+            throw new \InvalidArgumentException('value and signatureAlgorithm must be strings');
+        }
+
+        $serverRandom = $data['serverRandom'] ?? null;
+        $userChallenge = $data['userChallenge'] ?? null;
+        $flowType = $data['flowType'] ?? null;
+
+        /** @var array<string, string>|null $algorithmParams */
+        $algorithmParams = $data['signatureAlgorithmParameters'] ?? null;
+
         return new self(
-            $data['value'],
-            $data['signatureAlgorithm'],
-            $data['serverRandom'] ?? null,
-            $data['userChallenge'] ?? null,
-            $data['flowType'] ?? null,
-            $data['signatureAlgorithmParameters'] ?? null,
+            $value,
+            $signatureAlgorithm,
+            is_string($serverRandom) ? $serverRandom : null,
+            is_string($userChallenge) ? $userChallenge : null,
+            is_string($flowType) ? $flowType : null,
+            $algorithmParams,
         );
     }
 

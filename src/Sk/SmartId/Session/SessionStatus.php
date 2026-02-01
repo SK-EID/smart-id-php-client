@@ -51,26 +51,39 @@ class SessionStatus
     public static function fromArray(array $data): self
     {
         $result = null;
-        if (isset($data['result'])) {
-            $result = SessionResult::fromArray($data['result']);
+        if (isset($data['result']) && is_array($data['result'])) {
+            /** @var array<string, mixed> $resultData */
+            $resultData = $data['result'];
+            $result = SessionResult::fromArray($resultData);
         }
 
         $cert = null;
-        if (isset($data['cert'])) {
-            $cert = SessionCertificate::fromArray($data['cert']);
+        if (isset($data['cert']) && is_array($data['cert'])) {
+            /** @var array<string, string> $certData */
+            $certData = $data['cert'];
+            $cert = SessionCertificate::fromArray($certData);
         }
 
         $signature = null;
-        if (isset($data['signature'])) {
-            $signature = SessionSignature::fromArray($data['signature']);
+        if (isset($data['signature']) && is_array($data['signature'])) {
+            /** @var array<string, mixed> $signatureData */
+            $signatureData = $data['signature'];
+            $signature = SessionSignature::fromArray($signatureData);
         }
 
+        $state = $data['state'];
+        if (!is_string($state)) {
+            throw new \InvalidArgumentException('state must be a string');
+        }
+
+        $deviceIpAddress = $data['deviceIpAddress'] ?? null;
+
         return new self(
-            $data['state'],
+            $state,
             $result,
             $cert,
             $signature,
-            $data['deviceIpAddress'] ?? null,
+            is_string($deviceIpAddress) ? $deviceIpAddress : null,
         );
     }
 

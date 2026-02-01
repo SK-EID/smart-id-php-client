@@ -41,6 +41,10 @@ class RpChallengeGenerator
      */
     public static function generate(int $length = self::DEFAULT_CHALLENGE_LENGTH): string
     {
+        if ($length < 1) {
+            throw new \InvalidArgumentException('Length must be at least 1');
+        }
+
         return base64_encode(random_bytes($length));
     }
 }

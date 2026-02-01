@@ -53,6 +53,8 @@ use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
+use Sk\SmartId\Validation\AuthenticationResponseValidator;
+use Sk\SmartId\Validation\TrustedCACertificateStore;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 
@@ -62,7 +64,8 @@ session_start();
 // CONFIGURATION
 // ============================================================================
 
-// Create HTTP client (disable SSL verification for demo only - enable in production!)
+// Create HTTP client (SSL verification disabled for local testing)
+// For production, configure proper CA bundle or set verify => true
 $httpClient = new Client(['verify' => false]);
 $httpFactory = new HttpFactory();
 
@@ -207,6 +210,54 @@ if (isset($_GET['action'])) {
 
         if ($status->isComplete() && $status->getResult() !== null) {
             $response['endResult'] = $status->getResult()->getEndResult();
+
+            // =========================================================
+            // EXTRACT USER INFORMATION FROM AUTHENTICATION RESPONSE
+            // =========================================================
+            if ($status->getResult()->isOk()) {
+                try {
+                    // Create validator with trusted CA certificates
+                    $validator = new AuthenticationResponseValidator();
+
+                    // For DEMO environment (sid.demo.sk.ee) - use TEST certificates
+                    TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
+
+                    // For PRODUCTION environment - use production certificates:
+                    // TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
+
+                    // Skip signature verification for quick local testing
+                    // WARNING: Enable signature verification in production!
+                    $validator->setSkipSignatureVerification(true);
+
+                    // Validate the authentication response and extract user identity
+                    // This verifies:
+                    // - Certificate is signed by a trusted CA
+                    // - Certificate is not expired
+                    // - Signature is valid
+                    // - Optionally: certificate level meets requirements
+                    $identity = $validator->validate(
+                        $status,
+                        $_SESSION['auth']['rpChallenge'],
+                        CertificateLevel::QUALIFIED, // Optional: require QUALIFIED level
+                    );
+
+                    // User information extracted from the certificate
+                    $response['user'] = [
+                        'givenName' => $identity->getGivenName(),
+                        'surname' => $identity->getSurname(),
+                        'identityCode' => $identity->getIdentityCode(),
+                        'country' => $identity->getCountry(),
+                    ];
+
+                    // You can also get the document number for future authentications
+                    $response['documentNumber'] = $status->getResult()->getDocumentNumber();
+
+                } catch (\Sk\SmartId\Exception\ValidationException $e) {
+                    // Validation failed - do not trust this authentication!
+                    $response['endResult'] = 'VALIDATION_ERROR';
+                    $response['error'] = $e->getMessage();
+                }
+            }
         }
 
         echo json_encode($response);
@@ -313,6 +364,24 @@ if (isset($_GET['action'])) {
             width: 24px;
             height: 24px;
         }
+        .user-info {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--smart-id-green-light);
+            border-radius: 12px;
+            text-align: left;
+        }
+        .user-info p {
+            margin: 8px 0;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        .user-info p:first-child {
+            margin-top: 0;
+        }
+        .user-info p:last-child {
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -362,14 +431,22 @@ if (isset($_GET['action'])) {
                 const statusEl = document.getElementById('status');
                 statusEl.className = 'status';
 
-                if (data.endResult === 'OK') {
+                if (data.endResult === 'OK' && data.user) {
+                    // Display user information after successful authentication
                     statusEl.innerHTML = `
                         <span class="success">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                             Authentication successful!
-                        </span>`;
+                        </span>
+                        <div class="user-info">
+                            <p><strong>Name:</strong> ${data.user.givenName} ${data.user.surname}</p>
+                            <p><strong>Identity Code:</strong> ${data.user.identityCode}</p>
+                            <p><strong>Country:</strong> ${data.user.country}</p>
+                        </div>`;
+                } else if (data.endResult === 'VALIDATION_ERROR') {
+                    statusEl.innerHTML = `<span style="color: #dc2626;">Validation failed: ${data.error || 'Unknown error'}</span>`;
                 } else {
                     statusEl.innerHTML = `<span style="color: #dc2626;">Authentication failed: ${data.endResult || 'Unknown error'}</span>`;
                 }

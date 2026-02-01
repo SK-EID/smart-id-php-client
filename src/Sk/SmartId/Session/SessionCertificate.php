@@ -39,10 +39,18 @@ class SessionCertificate
     }
 
     /**
-     * @param array<string, string> $data
+     * @param array<string, mixed> $data
      */
     public static function fromArray(array $data): self
     {
+        if (!isset($data['value']) || !is_string($data['value'])) {
+            throw new \InvalidArgumentException('Certificate value is required and must be a string');
+        }
+
+        if (!isset($data['certificateLevel']) || !is_string($data['certificateLevel'])) {
+            throw new \InvalidArgumentException('Certificate level is required and must be a string');
+        }
+
         return new self(
             $data['value'],
             $data['certificateLevel'],

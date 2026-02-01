@@ -138,13 +138,13 @@ abstract class AbstractAuthenticationRequest
     }
 
     /**
-     * @return array<int, array<string, string>>
+     * @return list<array<string, string>>
      */
     protected function mapInteractionsToArray(): array
     {
-        return array_map(
+        return array_values(array_map(
             fn (Interaction $i) => $i->toArray(),
             $this->allowedInteractionsOrder,
-        );
+        ));
     }
 }

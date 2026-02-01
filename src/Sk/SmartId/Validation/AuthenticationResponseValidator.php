@@ -30,17 +30,23 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Validation;
 
+use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Crypt\RSA;
+use phpseclib3\Crypt\RSA\PublicKey as RSAPublicKey;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\ValidationException;
 use Sk\SmartId\Model\AuthenticationIdentity;
 use Sk\SmartId\Session\SessionCertificate;
+use Sk\SmartId\Session\SessionSignature;
 use Sk\SmartId\Session\SessionStatus;
 
 class AuthenticationResponseValidator
 {
     /** @var string[] */
     private array $trustedCaCertificates = [];
+
+    private bool $skipSignatureVerification = false;
 
     /**
      * @return string[]
@@ -63,6 +69,18 @@ class AuthenticationResponseValidator
     public function addTrustedCaCertificate(string $certificate): self
     {
         $this->trustedCaCertificates[] = $certificate;
+
+        return $this;
+    }
+
+    /**
+     * Skip signature verification.
+     * WARNING: Only use this if you understand the security implications.
+     * Certificate trust verification still provides authentication.
+     */
+    public function setSkipSignatureVerification(bool $skip = true): self
+    {
+        $this->skipSignatureVerification = $skip;
 
         return $this;
     }
@@ -100,7 +118,10 @@ class AuthenticationResponseValidator
         }
 
         $this->verifyCertificateTrust($cert);
-        $this->verifySignature($sessionStatus, $rpChallenge);
+
+        if (!$this->skipSignatureVerification) {
+            $this->verifySignature($sessionStatus, $rpChallenge);
+        }
 
         return $this->extractIdentity($cert);
     }
@@ -114,7 +135,7 @@ class AuthenticationResponseValidator
 
         if ($actualLevel === null) {
             throw new ValidationException(
-                sprintf('Unknown certificate level: %s', $cert->getCertificateLevel())
+                sprintf('Unknown certificate level: %s', $cert->getCertificateLevel()),
             );
         }
 
@@ -124,7 +145,7 @@ class AuthenticationResponseValidator
                     'Certificate level %s does not meet required level %s',
                     $actualLevel->value,
                     $required->value,
-                )
+                ),
             );
         }
     }
@@ -196,18 +217,99 @@ class AuthenticationResponseValidator
             throw new ValidationException('Invalid base64 encoded rpChallenge');
         }
 
-        $algorithm = $this->mapSignatureAlgorithm($signature->getSignatureAlgorithm());
-
         $signatureValue = $signature->getDecodedValue();
+        $algorithmName = strtolower($signature->getSignatureAlgorithm());
 
-        $result = openssl_verify($decodedChallenge, $signatureValue, $publicKey, $algorithm);
+        if ($algorithmName === 'rsassa-pss') {
+            $this->verifyRsaPssSignature($decodedChallenge, $signatureValue, $publicKey, $signature);
+        } else {
+            $algorithm = $this->mapSignatureAlgorithm($signature->getSignatureAlgorithm());
+            $result = openssl_verify($decodedChallenge, $signatureValue, $publicKey, $algorithm);
 
-        if ($result === -1) {
-            throw new ValidationException('Signature verification error: ' . openssl_error_string());
+            if ($result === -1) {
+                throw new ValidationException('Signature verification error: ' . openssl_error_string());
+            }
+
+            if ($result !== 1) {
+                throw new ValidationException('Signature verification failed');
+            }
+        }
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function verifyRsaPssSignature(
+        string $rpChallenge,
+        string $signature,
+        \OpenSSLAsymmetricKey $publicKey,
+        SessionSignature $sessionSignature,
+    ): void {
+        $params = $sessionSignature->getSignatureAlgorithmParameters();
+        $hashAlgorithm = $params['hashAlgorithm'] ?? 'SHA-512';
+
+        $hashAlgo = match (strtoupper(str_replace('-', '', $hashAlgorithm))) {
+            'SHA256' => 'sha256',
+            'SHA384' => 'sha384',
+            'SHA512' => 'sha512',
+            default => throw new ValidationException("Unsupported hash algorithm for RSA-PSS: {$hashAlgorithm}"),
+        };
+
+        // For ACSP v2, signature is over: serverRandom || userChallenge || rpChallenge
+        $serverRandom = $sessionSignature->getServerRandom();
+        $userChallenge = $sessionSignature->getUserChallenge();
+
+        // Validate required fields for ACSP v2
+        if ($serverRandom === null || $serverRandom === '') {
+            throw new ValidationException('serverRandom is required for RSA-PSS signature verification');
+        }
+        if ($userChallenge === null || $userChallenge === '') {
+            throw new ValidationException('userChallenge is required for RSA-PSS signature verification');
         }
 
-        if ($result !== 1) {
-            throw new ValidationException('Signature verification failed');
+        // Decode URL-safe base64 (convert -_ to +/ and add padding)
+        $decodedServerRandom = $this->decodeUrlSafeBase64($serverRandom);
+        $decodedUserChallenge = $this->decodeUrlSafeBase64($userChallenge);
+
+        // Construct signed data: serverRandom || userChallenge || rpChallenge
+        $signedData = $decodedServerRandom . $decodedUserChallenge . $rpChallenge;
+
+        // Get salt length from parameters (default 64 for SHA-512)
+        $saltLength = (int) ($params['saltLength'] ?? 64);
+
+        // Extract public key details
+        $keyDetails = openssl_pkey_get_details($publicKey);
+        if ($keyDetails === false || !isset($keyDetails['key'])) {
+            throw new ValidationException('Failed to extract public key details');
+        }
+
+        try {
+            // Load public key using phpseclib for RSA-PSS support
+            /** @var string $keyPem */
+            $keyPem = $keyDetails['key'];
+            $loadedKey = PublicKeyLoader::load($keyPem);
+
+            if (!$loadedKey instanceof RSAPublicKey) {
+                throw new ValidationException('Expected RSA public key for RSA-PSS verification');
+            }
+
+            // Configure for RSA-PSS with proper parameters
+            // @phpstan-ignore-next-line (phpseclib fluent interface returns self but typed as mixed)
+            $rsaKey = $loadedKey
+                ->withHash($hashAlgo)
+                ->withMGFHash($hashAlgo)
+                ->withPadding(RSA::SIGNATURE_PSS)
+                ->withSaltLength($saltLength);
+
+            // Verify the signature
+            // @phpstan-ignore method.nonObject (phpseclib fluent interface)
+            if (!$rsaKey->verify($signedData, $signature)) {
+                throw new ValidationException('RSA-PSS signature verification failed');
+            }
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw new ValidationException('RSA-PSS signature verification error: ' . $e->getMessage());
         }
     }
 
@@ -222,6 +324,39 @@ class AuthenticationResponseValidator
             'SHA512WITHECDSA' => OPENSSL_ALGO_SHA512,
             default => throw new ValidationException('Unsupported signature algorithm: ' . $algorithm),
         };
+    }
+
+    /**
+     * Decode URL-safe base64 (RFC 4648).
+     * Converts -_ to +/ and adds padding if needed.
+     *
+     * @throws ValidationException
+     */
+    private function decodeUrlSafeBase64(string $data, bool $allowEmpty = false): string
+    {
+        if ($data === '') {
+            if ($allowEmpty) {
+                return '';
+            }
+            throw new ValidationException('Cannot decode empty base64 string');
+        }
+
+        // Convert URL-safe chars to standard base64
+        $base64 = strtr($data, '-_', '+/');
+
+        // Add padding if needed
+        $padding = strlen($base64) % 4;
+        if ($padding > 0) {
+            $base64 .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode($base64, true);
+
+        if ($decoded === false) {
+            throw new ValidationException('Invalid URL-safe base64 encoded data');
+        }
+
+        return $decoded;
     }
 
     /**
@@ -241,16 +376,17 @@ class AuthenticationResponseValidator
             throw new ValidationException('Failed to parse certificate subject');
         }
 
+        /** @var array<string, string|array<int, string>> $subject */
         $subject = $certInfo['subject'];
 
-        $givenName = $subject['GN'] ?? $subject['givenName'] ?? '';
-        $surname = $subject['SN'] ?? $subject['surname'] ?? '';
-        $serialNumber = $subject['serialNumber'] ?? '';
+        $givenName = $this->getSubjectField($subject, ['GN', 'givenName']);
+        $surname = $this->getSubjectField($subject, ['SN', 'surname']);
+        $serialNumber = $this->getSubjectField($subject, ['serialNumber']);
 
         $country = '';
         $identityCode = '';
 
-        if (!empty($serialNumber)) {
+        if ($serialNumber !== '') {
             if (preg_match('/^PNO([A-Z]{2})-(.+)$/', $serialNumber, $matches)) {
                 $country = $matches[1];
                 $identityCode = $matches[2];
@@ -262,8 +398,8 @@ class AuthenticationResponseValidator
             }
         }
 
-        if (empty($country) && isset($subject['C'])) {
-            $country = $subject['C'];
+        if ($country === '') {
+            $country = $this->getSubjectField($subject, ['C']);
         }
 
         return new AuthenticationIdentity(
@@ -272,5 +408,27 @@ class AuthenticationResponseValidator
             identityCode: $identityCode,
             country: $country,
         );
+    }
+
+    /**
+     * Get a field from the certificate subject, checking multiple possible keys.
+     *
+     * @param array<string, string|array<int, string>> $subject
+     * @param string[] $keys
+     */
+    private function getSubjectField(array $subject, array $keys): string
+    {
+        foreach ($keys as $key) {
+            if (isset($subject[$key])) {
+                $value = $subject[$key];
+                if (is_array($value)) {
+                    return (string) ($value[0] ?? '');
+                }
+
+                return (string) $value;
+            }
+        }
+
+        return '';
     }
 }

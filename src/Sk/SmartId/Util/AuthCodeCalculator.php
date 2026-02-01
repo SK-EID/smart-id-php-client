@@ -36,6 +36,7 @@ use Sk\SmartId\Model\Interaction;
 class AuthCodeCalculator
 {
     public const SCHEME_NAME_PRODUCTION = 'smart-id';
+
     public const SCHEME_NAME_DEMO = 'smart-id-demo';
 
     /**

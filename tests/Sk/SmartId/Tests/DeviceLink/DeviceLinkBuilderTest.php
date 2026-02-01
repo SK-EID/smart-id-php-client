@@ -245,21 +245,6 @@ class DeviceLinkBuilderTest extends TestCase
     }
 
     #[Test]
-    public function withUnprotectedLinkIsImmutable(): void
-    {
-        $builder = new DeviceLinkBuilder(
-            $this->response,
-            $this->rpChallenge,
-            $this->rpName,
-            $this->interactions,
-        );
-
-        $builder2 = $builder->withUnprotectedLink(true);
-
-        $this->assertNotSame($builder, $builder2);
-    }
-
-    #[Test]
     public function chainingMultipleWithMethods(): void
     {
         $builder = new DeviceLinkBuilder(
@@ -273,7 +258,6 @@ class DeviceLinkBuilderTest extends TestCase
             ->withElapsedSeconds(5)
             ->withCallbackUrl('https://example.com')
             ->withBrokeredRpName('Brokered')
-            ->withUnprotectedLink(false)
             ->buildQrCodeUrl();
 
         $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=QR&', $url);
