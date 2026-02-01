@@ -185,8 +185,12 @@ if (isset($_GET['action'])) {
                     $response['user'] = [
                         'givenName' => $identity->getGivenName(),
                         'surname' => $identity->getSurname(),
+                        'fullName' => $identity->getFullName(),
                         'identityCode' => $identity->getIdentityCode(),
                         'country' => $identity->getCountry(),
+                        'dateOfBirth' => $identity->getDateOfBirth()?->format('Y-m-d'),
+                        'gender' => $identity->getGender(),
+                        'age' => $identity->getAge(),
                     ];
 
                     // Document number for future authentications
@@ -474,9 +478,12 @@ if (isset($_GET['action'])) {
                             Authentication successful!
                         </span>
                         <div class="user-info">
-                            <p><strong>Name:</strong> ${data.user.givenName} ${data.user.surname}</p>
+                            <p><strong>Name:</strong> ${data.user.fullName}</p>
                             <p><strong>Identity Code:</strong> ${data.user.identityCode}</p>
                             <p><strong>Country:</strong> ${data.user.country}</p>
+                            ${data.user.dateOfBirth ? `<p><strong>Date of Birth:</strong> ${data.user.dateOfBirth}</p>` : ''}
+                            ${data.user.gender ? `<p><strong>Gender:</strong> ${data.user.gender === 'M' ? 'Male' : 'Female'}</p>` : ''}
+                            ${data.user.age !== null ? `<p><strong>Age:</strong> ${data.user.age}</p>` : ''}
                         </div>`;
                 } else if (data.endResult === 'VALIDATION_ERROR') {
                     statusEl.innerHTML = `<span style="color: #dc2626;">Validation failed: ${data.error || 'Unknown error'}</span>`;
