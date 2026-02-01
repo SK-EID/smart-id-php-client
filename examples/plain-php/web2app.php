@@ -63,6 +63,7 @@ use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Util\CallbackUrlValidator;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
@@ -187,14 +188,35 @@ if (isset($_GET['action'])) {
         // Override JSON content type for HTML callback page
         header('Content-Type: text/html; charset=utf-8');
         
-        // In a real app, you would validate these parameters:
-        // - sessionSecretDigest: SHA-256 hash of sessionSecret (base64url encoded)
-        // - userChallengeVerifier: Proves the user completed the flow
-        
         $sessionSecretDigest = $_GET['sessionSecretDigest'] ?? null;
         $userChallengeVerifier = $_GET['userChallengeVerifier'] ?? null;
         
-        // Show success page - in production, validate and complete the session
+        // =====================================================================
+        // VALIDATION STEP 1: Verify sessionSecretDigest
+        // This proves the callback came from Smart-ID (not spoofed)
+        // =====================================================================
+        $digestValid = false;
+        $auth = $_SESSION['auth'] ?? null;
+        if ($auth && $sessionSecretDigest) {
+            $digestValid = CallbackUrlValidator::validateSessionSecretDigest(
+                $sessionSecretDigest,
+                $auth['sessionSecret']
+            );
+        }
+        
+        // =====================================================================
+        // VALIDATION STEP 2: Verify userChallengeVerifier (after polling completes)
+        // This proves the user actually completed the authentication
+        // The userChallenge comes from session status response: signature.userChallenge
+        // =====================================================================
+        // Note: In a real app, you would:
+        // 1. Poll session status to get the final response
+        // 2. Extract signature.userChallenge from the response
+        // 3. Compare: CallbackUrlValidator::validateUserChallengeVerifier(
+        //        $userChallengeVerifier,
+        //        $sessionStatus->getSignature()->getUserChallenge()
+        //    );
+        
         ?>
         <!DOCTYPE html>
         <html>
@@ -221,14 +243,20 @@ if (isset($_GET['action'])) {
                 <div class="param">
                     <div class="label">sessionSecretDigest:</div>
                     <?= htmlspecialchars($sessionSecretDigest ?? 'N/A') ?>
+                    <div style="margin-top: 8px; color: <?= $digestValid ? '#22C55E' : '#EF4444' ?>">
+                        <?= $digestValid ? '✓ Valid' : '✗ Invalid or session expired' ?>
+                    </div>
                 </div>
                 <div class="param">
                     <div class="label">userChallengeVerifier:</div>
                     <?= htmlspecialchars($userChallengeVerifier ?? 'N/A') ?>
+                    <div style="margin-top: 8px; color: #94A3B8; font-size: 10px;">
+                        (Validated against session status response)
+                    </div>
                 </div>
                 
                 <p style="margin-top: 24px; color: #94A3B8; font-size: 13px;">
-                    In production, validate these parameters and complete the session.
+                    In production, also poll session status and validate userChallengeVerifier.
                 </p>
             </div>
         </body>

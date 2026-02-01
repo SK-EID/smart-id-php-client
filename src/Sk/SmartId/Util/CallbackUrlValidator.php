@@ -65,4 +65,47 @@ class CallbackUrlValidator
             throw new \InvalidArgumentException($message . $url);
         }
     }
+
+    /**
+     * Validates that the sessionSecretDigest from callback matches the session secret.
+     *
+     * The Smart-ID app calculates SHA-256 hash of the sessionSecret and sends it as
+     * sessionSecretDigest parameter. This proves the callback came from Smart-ID.
+     *
+     * @param string $sessionSecretDigest Base64url-encoded digest from callback URL
+     * @param string $sessionSecret Base64-encoded session secret from init response
+     * @return bool True if digest matches
+     */
+    public static function validateSessionSecretDigest(string $sessionSecretDigest, string $sessionSecret): bool
+    {
+        $decodedSecret = base64_decode($sessionSecret, true);
+        if ($decodedSecret === false) {
+            return false;
+        }
+
+        $calculatedDigest = hash('sha256', $decodedSecret, true);
+        $calculatedDigestBase64Url = self::base64UrlEncode($calculatedDigest);
+
+        return hash_equals($calculatedDigestBase64Url, $sessionSecretDigest);
+    }
+
+    /**
+     * Validates userChallengeVerifier against userChallenge from session status.
+     *
+     * For authentication flows, the Smart-ID app returns userChallengeVerifier which
+     * must match the userChallenge in the session status response signature.
+     *
+     * @param string $userChallengeVerifier From callback URL
+     * @param string $userChallenge From session status response (signature.userChallenge)
+     * @return bool True if verifier matches challenge
+     */
+    public static function validateUserChallengeVerifier(string $userChallengeVerifier, string $userChallenge): bool
+    {
+        return hash_equals($userChallenge, $userChallengeVerifier);
+    }
+
+    private static function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
 }
