@@ -30,6 +30,16 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Notification;
 
+/**
+ * Response from the Smart-ID API after initiating a push notification authentication.
+ *
+ * This class encapsulates the session ID returned by the API when a notification-based
+ * authentication request is successfully initiated. The session ID is used for polling
+ * the session status to retrieve the authentication result once the user completes
+ * the authentication in their Smart-ID app.
+ *
+ * @see NotificationAuthenticationSession which wraps this response with additional context
+ */
 class NotificationAuthenticationResponse
 {
     public function __construct(

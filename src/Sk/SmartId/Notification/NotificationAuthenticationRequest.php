@@ -35,6 +35,16 @@ use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Model\Interaction;
 
+/**
+ * Request data transfer object for push notification-based authentication.
+ *
+ * This class represents the request payload sent to the Smart-ID API when initiating
+ * authentication via push notifications. Push notification flow is used when the user's
+ * identity (document number or semantics identifier) is already known to the relying party.
+ * The Smart-ID app receives a push notification prompting the user to authenticate.
+ *
+ * @see NotificationAuthenticationRequestBuilder for building instances of this class
+ */
 class NotificationAuthenticationRequest extends AbstractAuthenticationRequest
 {
     /**

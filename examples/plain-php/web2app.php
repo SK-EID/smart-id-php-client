@@ -27,28 +27,30 @@
  */
 
 /**
- * Smart-ID QR Code Authentication Example
+ * Smart-ID Web2App Authentication Example
  *
- * This example demonstrates how to implement QR code-based authentication
- * using the Smart-ID Device Link flow. The QR code must be refreshed every
- * second because it contains a time-based authentication code.
+ * This example demonstrates how to implement deep link-based authentication
+ * for MOBILE WEB BROWSERS. When the user clicks the authentication button,
+ * the Smart-ID app opens directly on their phone.
  *
  * Use Case:
- * - User is on a DESKTOP computer browser
- * - User scans the QR code with their phone camera
- * - Smart-ID app opens on the phone
+ * - User visits your website on their mobile phone browser
+ * - User clicks "Log in with Smart-ID" button
+ * - Smart-ID app opens automatically
  * - User authenticates in the app
+ * - User returns to the browser (manually or via callback)
  *
- * Other Device Link Examples:
- * - web2app.php - For mobile web browsers (deep link button)
- * - app2app.php - For native mobile apps (backend API)
+ * Key Difference from QR Code:
+ * - No QR code needed (user is already on their phone)
+ * - No elapsed seconds tracking required
+ * - Single click to open Smart-ID app
  *
  * Flow:
  * 1. User loads the page -> authentication session is initiated
- * 2. QR code is displayed and refreshed every second
- * 3. User scans QR code with Smart-ID app
+ * 2. Deep link button is displayed
+ * 3. User taps the button -> Smart-ID app opens
  * 4. User confirms authentication in the app
- * 5. Page detects completion and shows success message
+ * 5. Page polls for completion and shows success message
  */
 
 require_once __DIR__ . '/vendor/autoload.php';
@@ -65,8 +67,6 @@ use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
-use chillerlan\QRCode\QRCode;
-use chillerlan\QRCode\QROptions;
 
 session_start();
 
@@ -74,18 +74,13 @@ session_start();
 // CONFIGURATION
 // ============================================================================
 
-// Create HTTP client (SSL verification disabled for local testing)
-// For production, configure proper CA bundle or set verify => true
 $httpClient = new Client(['verify' => false]);
 $httpFactory = new HttpFactory();
 
-// Smart-ID API endpoint (use production URL for live environment)
 $baseUrl = 'https://sid.demo.sk.ee/smart-id-rp/v3';
-// Demo Relying Party credentials (replace with your own for production)
 $relyingPartyUUID = '00000000-0000-4000-8000-000000000000';
 $relyingPartyName = 'DEMO';
 
-// Initialize the Smart-ID connector with PSR-18 HTTP client and PSR-17 factories
 $connector = new SmartIdRestConnector(
     $baseUrl,
     $httpClient,
@@ -103,11 +98,13 @@ if (isset($_GET['action'])) {
     // ACTION: init - Start a new authentication session
     // -------------------------------------------------------------------------
     if ($_GET['action'] === 'init') {
-        // Generate a random challenge (32 bytes, base64 encoded)
-        // This is used to create the authentication request and verify the response
         $rpChallenge = RpChallengeGenerator::generate();
 
-        // Build the authentication request
+        // For Web2App, the callback URL must be sent to API during session init!
+        // This is required so the Smart-ID backend can validate the authCode
+        // IMPORTANT: The API requires HTTPS for callback URL - use ngrok or similar for local testing
+        $callbackUrl = 'https://' . $_SERVER['HTTP_HOST'] . strtok($_SERVER['REQUEST_URI'], '?') . '?action=callback';
+
         $request = new DeviceLinkAuthenticationRequest(
             relyingPartyUUID: $relyingPartyUUID,
             relyingPartyName: $relyingPartyName,
@@ -117,16 +114,12 @@ if (isset($_GET['action'])) {
                 Interaction::displayTextAndPin('Test login'),
             ],
             certificateLevel: CertificateLevel::QUALIFIED,
+            initialCallbackUrl: $callbackUrl,  // Required for Web2App!
         );
 
-        // Send the request to Smart-ID API
         $response = $connector->initiateDeviceLinkAuthentication($request);
-
-        // Calculate the 4-digit verification code to display to the user
-        // User must see this code in their Smart-ID app to confirm it's the right session
         $verificationCode = VerificationCodeCalculator::calculateFromRpChallenge($rpChallenge);
 
-        // Store session data for subsequent requests (QR refresh, status polling)
         $_SESSION['auth'] = [
             'sessionId' => $response->getSessionID(),
             'sessionToken' => $response->getSessionToken(),
@@ -136,6 +129,7 @@ if (isset($_GET['action'])) {
             'rpName' => $relyingPartyName,
             'verificationCode' => $verificationCode,
             'createdAt' => time(),
+            'callbackUrl' => $callbackUrl,  // Store for link generation
         ];
 
         echo json_encode([
@@ -146,11 +140,10 @@ if (isset($_GET['action'])) {
     }
 
     // -------------------------------------------------------------------------
-    // ACTION: qr - Generate refreshed QR code with updated elapsed time
-    // The QR code must be refreshed every second because the authCode changes
-    // based on elapsed time to prevent replay attacks
+    // ACTION: link - Get the Web2App deep link URL
+    // Unlike QR codes, Web2App links don't need elapsed seconds tracking
     // -------------------------------------------------------------------------
-    if ($_GET['action'] === 'qr') {
+    if ($_GET['action'] === 'link') {
         if (!isset($_SESSION['auth'])) {
             echo json_encode(['error' => 'No session']);
             exit;
@@ -158,7 +151,6 @@ if (isset($_GET['action'])) {
 
         $auth = $_SESSION['auth'];
 
-        // Reconstruct the response object from stored session data
         $response = new \Sk\SmartId\DeviceLink\DeviceLinkAuthenticationResponse(
             $auth['sessionId'],
             $auth['sessionToken'],
@@ -174,35 +166,79 @@ if (isset($_GET['action'])) {
             $auth['verificationCode'],
         );
 
-        // Calculate how many seconds have passed since session creation
-        // This is crucial - the QR code URL contains a time-based authCode
-        $elapsedSeconds = time() - $auth['createdAt'];
-
-        // Build the QR code URL with the current elapsed time
-        $qrUrl = $session->createDeviceLinkBuilder()
-            ->withElapsedSeconds($elapsedSeconds)
+        // Build Web2App URL - must use the SAME callback URL sent to API!
+        $web2appUrl = $session->createDeviceLinkBuilder()
             ->withDemoEnvironment()
-            ->buildQrCodeUrl();
-
-        // Generate QR code image using chillerlan/php-qrcode library
-        $options = new QROptions([
-            'outputType' => QRCode::OUTPUT_IMAGE_PNG,
-            'imageBase64' => true,
-            'scale' => 5,
-        ]);
-
-        $qrImage = (new QRCode($options))->render($qrUrl);
+            ->withCallbackUrl($auth['callbackUrl'])
+            ->buildWeb2AppUrl();
 
         echo json_encode([
-            'qrImage' => $qrImage,
-            'elapsed' => $elapsedSeconds,
+            'url' => $web2appUrl,
+            'verificationCode' => $auth['verificationCode'],
         ]);
         exit;
     }
 
     // -------------------------------------------------------------------------
+    // ACTION: callback - Handle redirect from Smart-ID app after authentication
+    // The app redirects here with sessionSecretDigest and userChallengeVerifier
+    // -------------------------------------------------------------------------
+    if ($_GET['action'] === 'callback') {
+        // Override JSON content type for HTML callback page
+        header('Content-Type: text/html; charset=utf-8');
+        
+        // In a real app, you would validate these parameters:
+        // - sessionSecretDigest: SHA-256 hash of sessionSecret (base64url encoded)
+        // - userChallengeVerifier: Proves the user completed the flow
+        
+        $sessionSecretDigest = $_GET['sessionSecretDigest'] ?? null;
+        $userChallengeVerifier = $_GET['userChallengeVerifier'] ?? null;
+        
+        // Show success page - in production, validate and complete the session
+        ?>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authentication Callback</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                       background: #0F172A; color: #E2E8F0; padding: 20px; text-align: center; }
+                .card { background: #1E293B; border-radius: 16px; padding: 32px; max-width: 400px; margin: 40px auto; }
+                .success { color: #22C55E; font-size: 48px; }
+                h1 { margin: 16px 0 8px; }
+                .param { background: #334155; border-radius: 8px; padding: 12px; margin: 12px 0; 
+                         font-family: monospace; font-size: 11px; word-break: break-all; text-align: left; }
+                .label { color: #94A3B8; font-size: 12px; margin-bottom: 4px; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div class="success">✓</div>
+                <h1>Authentication Complete!</h1>
+                <p>Smart-ID app redirected back successfully.</p>
+                
+                <div class="param">
+                    <div class="label">sessionSecretDigest:</div>
+                    <?= htmlspecialchars($sessionSecretDigest ?? 'N/A') ?>
+                </div>
+                <div class="param">
+                    <div class="label">userChallengeVerifier:</div>
+                    <?= htmlspecialchars($userChallengeVerifier ?? 'N/A') ?>
+                </div>
+                
+                <p style="margin-top: 24px; color: #94A3B8; font-size: 13px;">
+                    In production, validate these parameters and complete the session.
+                </p>
+            </div>
+        </body>
+        </html>
+        <?php
+        exit;
+    }
+
+    // -------------------------------------------------------------------------
     // ACTION: status - Poll for authentication session status
-    // Called periodically to check if user has completed authentication
     // -------------------------------------------------------------------------
     if ($_GET['action'] === 'status') {
         if (!isset($_SESSION['auth'])) {
@@ -210,8 +246,6 @@ if (isset($_GET['action'])) {
             exit;
         }
 
-        // Query Smart-ID API for session status
-        // timeoutMs enables long polling - server holds connection until status changes or timeout
         $status = $connector->getSessionStatus($_SESSION['auth']['sessionId'], timeoutMs: 1000);
 
         $response = [
@@ -221,37 +255,21 @@ if (isset($_GET['action'])) {
         if ($status->isComplete() && $status->getResult() !== null) {
             $response['endResult'] = $status->getResult()->getEndResult();
 
-            // =========================================================
-            // EXTRACT USER INFORMATION FROM AUTHENTICATION RESPONSE
-            // =========================================================
             if ($status->getResult()->isOk()) {
                 try {
-                    // Create validator with trusted CA certificates
                     $validator = new AuthenticationResponseValidator();
-
-                    // For DEMO environment (sid.demo.sk.ee) - use TEST certificates
                     TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
-
-                    // For PRODUCTION environment - use production certificates:
-                    // TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
 
                     // Skip signature verification for quick local testing
                     // WARNING: Enable signature verification in production!
                     $validator->setSkipSignatureVerification(true);
 
-                    // Validate the authentication response and extract user identity
-                    // This verifies:
-                    // - Certificate is signed by a trusted CA
-                    // - Certificate is not expired
-                    // - Signature is valid
-                    // - Optionally: certificate level meets requirements
                     $identity = $validator->validate(
                         $status,
                         $_SESSION['auth']['rpChallenge'],
-                        CertificateLevel::QUALIFIED, // Optional: require QUALIFIED level
+                        CertificateLevel::QUALIFIED,
                     );
 
-                    // User information extracted from the certificate
                     $response['user'] = [
                         'givenName' => $identity->getGivenName(),
                         'surname' => $identity->getSurname(),
@@ -263,11 +281,9 @@ if (isset($_GET['action'])) {
                         'age' => $identity->getAge(),
                     ];
 
-                    // You can also get the document number for future authentications
                     $response['documentNumber'] = $status->getResult()->getDocumentNumber();
 
                 } catch (\Sk\SmartId\Exception\ValidationException $e) {
-                    // Validation failed - do not trust this authentication!
                     $response['endResult'] = 'VALIDATION_ERROR';
                     $response['error'] = $e->getMessage();
                 }
@@ -286,7 +302,7 @@ if (isset($_GET['action'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart-ID Authentication</title>
+    <title>Smart-ID Web2App Authentication</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -319,6 +335,18 @@ if (isset($_GET['action'])) {
             max-width: 420px;
             width: 100%;
         }
+        .badge {
+            display: inline-block;
+            background: var(--smart-id-green-light);
+            color: var(--smart-id-green-dark);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
         h1 {
             color: var(--text-primary);
             margin-bottom: 8px;
@@ -331,21 +359,48 @@ if (isset($_GET['action'])) {
             font-size: 15px;
             line-height: 1.5;
         }
-        #qr-container {
-            background: var(--white);
-            border: 2px solid var(--bg-gray);
-            border-radius: 16px;
-            padding: 24px;
-            margin: 0 auto 24px;
-            display: inline-block;
+        .verification-code {
+            background: var(--bg-gray);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
         }
-        #qr-code {
-            max-width: 200px;
+        .verification-code label {
             display: block;
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .verification-code .code {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 8px;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px 24px;
+            background: var(--smart-id-green);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: var(--smart-id-green-dark);
+        }
+        .btn:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
         }
         .status {
             color: var(--text-secondary);
-            margin-top: 16px;
+            margin-top: 24px;
             font-size: 14px;
         }
         .status.waiting {
@@ -390,63 +445,88 @@ if (isset($_GET['action'])) {
             color: var(--text-primary);
             font-size: 14px;
         }
-        .user-info p:first-child {
-            margin-top: 0;
+        .user-info p:first-child { margin-top: 0; }
+        .user-info p:last-child { margin-bottom: 0; }
+        .info-box {
+            background: #FEF3C7;
+            border: 1px solid #F59E0B;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: left;
         }
-        .user-info p:last-child {
-            margin-bottom: 0;
+        .info-box p {
+            color: #92400E;
+            font-size: 13px;
+            line-height: 1.5;
         }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <div class="card">
+        <span class="badge">Web2App Flow</span>
         <h1>Log in with Smart-ID</h1>
-        <p class="subtitle">Open Smart-ID app on your phone and scan the QR code</p>
+        <p class="subtitle">Tap the button below to open Smart-ID app on this device</p>
 
-        <div id="qr-container">
-            <img id="qr-code" src="" alt="QR Code">
+        <div class="info-box">
+            <p><strong>📱 Mobile Only:</strong> This example is for mobile browsers. Tap the button to open the Smart-ID app. After authentication, you'll be redirected back here. <strong>Requires Smart-ID Demo app</strong> for testing.</p>
         </div>
 
-        <p class="status waiting" id="status">
-            <span class="spinner"></span>
-            <span>Waiting for authentication...</span>
-        </p>
+        <div id="auth-container" class="hidden">
+            <div class="verification-code">
+                <label>Verification code</label>
+                <span class="code" id="verification-code">----</span>
+            </div>
 
+            <a href="#" id="smart-id-btn" class="btn">Open Smart-ID App</a>
+
+            <p class="status waiting" id="status">
+                <span class="spinner"></span>
+                <span>Waiting for authentication...</span>
+            </p>
+        </div>
+
+        <div id="loading">
+            <p class="status waiting">
+                <span class="spinner"></span>
+                <span>Initializing...</span>
+            </p>
+        </div>
     </div>
 
     <script>
-        let refreshInterval;
         let statusInterval;
 
         async function init() {
             const res = await fetch('?action=init');
             const data = await res.json();
+            
             if (data.success) {
-                refreshQR();
-                refreshInterval = setInterval(refreshQR, 1000);
+                const linkRes = await fetch('?action=link');
+                const linkData = await linkRes.json();
+                
+                document.getElementById('verification-code').textContent = linkData.verificationCode;
+                document.getElementById('smart-id-btn').href = linkData.url;
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('auth-container').classList.remove('hidden');
+                
                 statusInterval = setInterval(checkStatus, 2000);
-            }
-        }
-
-        async function refreshQR() {
-            const res = await fetch('?action=qr&t=' + Date.now());
-            const data = await res.json();
-            if (data.qrImage) {
-                document.getElementById('qr-code').src = data.qrImage;
             }
         }
 
         async function checkStatus() {
             const res = await fetch('?action=status');
             const data = await res.json();
+            
             if (data.state === 'COMPLETE') {
-                clearInterval(refreshInterval);
                 clearInterval(statusInterval);
                 const statusEl = document.getElementById('status');
                 statusEl.className = 'status';
 
                 if (data.endResult === 'OK' && data.user) {
-                    // Display user information after successful authentication
+                    document.getElementById('smart-id-btn').classList.add('hidden');
                     statusEl.innerHTML = `
                         <span class="success">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -470,7 +550,10 @@ if (isset($_GET['action'])) {
             }
         }
 
-        init();
+        // Only init if not on callback URL
+        if (!window.location.search.includes('action=callback')) {
+            init();
+        }
     </script>
 </body>
 </html>

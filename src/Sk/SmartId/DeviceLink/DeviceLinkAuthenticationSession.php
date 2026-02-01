@@ -32,6 +32,24 @@ namespace Sk\SmartId\DeviceLink;
 
 use Sk\SmartId\Model\Interaction;
 
+/**
+ * Session wrapper for device link-based authentication.
+ *
+ * This class combines the API response with additional context and provides
+ * convenient methods for generating device link URLs. After initiating a device
+ * link authentication, this session enables:
+ * - Building QR code URLs for display to the user
+ * - Building web2app deep links for mobile web scenarios
+ * - Building app2app links for native mobile app integration
+ * - Tracking elapsed time (important for QR code URL validity)
+ * - Accessing the verification code to display to the user
+ *
+ * The session tracks creation time to automatically calculate elapsed seconds
+ * for QR code URLs, which is required by the Smart-ID protocol.
+ *
+ * @see DeviceLinkAuthenticationRequestBuilder::initiate() which creates this session
+ * @see DeviceLinkBuilder for advanced URL building with custom parameters
+ */
 class DeviceLinkAuthenticationSession
 {
     private readonly float $createdAt;

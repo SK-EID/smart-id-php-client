@@ -92,7 +92,8 @@ class DeviceLinkBuilderTest extends TestCase
             $this->interactions,
         );
 
-        $url = $builder->buildWeb2AppUrl();
+        // Web2App requires callback URL
+        $url = $builder->withCallbackUrl('https://example.com/callback')->buildWeb2AppUrl();
 
         $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=Web2App&', $url);
         $this->assertStringContainsString('sessionToken=token-456', $url);
@@ -109,7 +110,8 @@ class DeviceLinkBuilderTest extends TestCase
             $this->interactions,
         );
 
-        $url = $builder->buildApp2AppUrl();
+        // App2App requires callback URL
+        $url = $builder->withCallbackUrl('https://example.com/callback')->buildApp2AppUrl();
 
         $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=App2App&', $url);
         $this->assertStringContainsString('sessionToken=token-456', $url);
@@ -127,8 +129,9 @@ class DeviceLinkBuilderTest extends TestCase
         );
 
         $qrUrl = $builder->buildUrl(DeviceLinkType::QR);
-        $web2appUrl = $builder->buildUrl(DeviceLinkType::WEB2APP);
-        $app2appUrl = $builder->buildUrl(DeviceLinkType::APP2APP);
+        // Web2App and App2App require callback URL
+        $web2appUrl = $builder->withCallbackUrl('https://example.com/callback')->buildUrl(DeviceLinkType::WEB2APP);
+        $app2appUrl = $builder->withCallbackUrl('https://example.com/callback')->buildUrl(DeviceLinkType::APP2APP);
 
         $this->assertStringContainsString('deviceLinkType=QR', $qrUrl);
         $this->assertStringContainsString('deviceLinkType=Web2App', $web2appUrl);
@@ -176,10 +179,11 @@ class DeviceLinkBuilderTest extends TestCase
             $this->interactions,
         );
 
-        $urlWithoutCallback = $builder->buildQrCodeUrl();
-        $urlWithCallback = $builder->withCallbackUrl('https://example.com/callback')->buildQrCodeUrl();
+        // Test that different callback URLs produce different auth codes for Web2App
+        $url1 = $builder->withCallbackUrl('https://example.com/callback1')->buildWeb2AppUrl();
+        $url2 = $builder->withCallbackUrl('https://example.com/callback2')->buildWeb2AppUrl();
 
-        $this->assertNotSame($urlWithoutCallback, $urlWithCallback);
+        $this->assertNotSame($url1, $url2);
     }
 
     #[Test]
@@ -254,12 +258,18 @@ class DeviceLinkBuilderTest extends TestCase
             $this->interactions,
         );
 
-        $url = $builder
+        // QR code should not have callback URL, Web2App requires it
+        $qrUrl = $builder
             ->withElapsedSeconds(5)
-            ->withCallbackUrl('https://example.com')
             ->withBrokeredRpName('Brokered')
             ->buildQrCodeUrl();
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=QR&', $url);
+        $web2appUrl = $builder
+            ->withCallbackUrl('https://example.com')
+            ->withBrokeredRpName('Brokered')
+            ->buildWeb2AppUrl();
+
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=QR&', $qrUrl);
+        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=Web2App&', $web2appUrl);
     }
 }

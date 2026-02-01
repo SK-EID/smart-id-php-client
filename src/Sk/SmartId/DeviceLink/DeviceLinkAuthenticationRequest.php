@@ -35,11 +35,26 @@ use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Model\Interaction;
 
+/**
+ * Request data transfer object for device link-based authentication.
+ *
+ * This class represents the request payload sent to the Smart-ID API when initiating
+ * authentication via device linking (QR code, web2app, or app2app). Device link flow
+ * is used when the user's identity is NOT known beforehand - the user scans a QR code
+ * or clicks a link to initiate authentication from their Smart-ID app.
+ *
+ * Unlike notification-based authentication, device link does not require a document
+ * number or semantics identifier upfront, making it suitable for anonymous or
+ * first-time authentication scenarios.
+ *
+ * @see DeviceLinkAuthenticationRequestBuilder for building instances of this class
+ */
 class DeviceLinkAuthenticationRequest extends AbstractAuthenticationRequest
 {
     /**
      * @param Interaction[] $allowedInteractionsOrder
      * @param string[]|null $capabilities
+     * @param string|null $initialCallbackUrl Callback URL for Web2App/App2App flows (must be HTTPS)
      */
     public function __construct(
         string $relyingPartyUUID,
@@ -50,6 +65,7 @@ class DeviceLinkAuthenticationRequest extends AbstractAuthenticationRequest
         ?CertificateLevel $certificateLevel = null,
         ?string $nonce = null,
         ?array $capabilities = null,
+        private readonly ?string $initialCallbackUrl = null,
     ) {
         parent::__construct(
             $relyingPartyUUID,
@@ -63,6 +79,11 @@ class DeviceLinkAuthenticationRequest extends AbstractAuthenticationRequest
         );
     }
 
+    public function getInitialCallbackUrl(): ?string
+    {
+        return $this->initialCallbackUrl;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -70,6 +91,10 @@ class DeviceLinkAuthenticationRequest extends AbstractAuthenticationRequest
     {
         $data = $this->buildBaseArray();
         $data['interactions'] = base64_encode(json_encode($this->mapInteractionsToArray(), JSON_THROW_ON_ERROR));
+
+        if ($this->initialCallbackUrl !== null) {
+            $data['initialCallbackUrl'] = $this->initialCallbackUrl;
+        }
 
         return $data;
     }

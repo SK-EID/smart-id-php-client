@@ -30,6 +30,19 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Notification;
 
+/**
+ * Session wrapper for push notification-based authentication.
+ *
+ * This class combines the API response with additional context needed for the
+ * authentication flow, including the RP challenge and verification code. After
+ * initiating a notification authentication, this session provides all the information
+ * needed to:
+ * - Display the verification code to the user (so they can verify it matches their app)
+ * - Poll for the session result using the session ID
+ * - Access the original RP challenge for signature verification
+ *
+ * @see NotificationAuthenticationRequestBuilder::initiate() which creates this session
+ */
 class NotificationAuthenticationSession
 {
     public function __construct(

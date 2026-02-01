@@ -30,6 +30,21 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\DeviceLink;
 
+/**
+ * Response from the Smart-ID API after initiating a device link authentication.
+ *
+ * This class encapsulates all the data returned by the API when a device link
+ * authentication request is successfully initiated. It contains:
+ * - Session ID: Used for polling the authentication status
+ * - Session Token: Included in the device link URL for the Smart-ID app
+ * - Session Secret: Used to calculate the authentication code for URL integrity
+ * - Device Link Base: The base URL for constructing QR code and deep link URLs
+ *
+ * These values are used by DeviceLinkBuilder to construct secure, verifiable URLs
+ * that the user's Smart-ID app can process.
+ *
+ * @see DeviceLinkAuthenticationSession which wraps this response with URL building capabilities
+ */
 class DeviceLinkAuthenticationResponse
 {
     public function __construct(

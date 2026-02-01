@@ -38,6 +38,22 @@ use Sk\SmartId\Model\SemanticsIdentifier;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
 
+/**
+ * Builder for constructing and initiating push notification-based authentication requests.
+ *
+ * This builder provides a fluent interface for configuring authentication parameters
+ * such as user identification (document number or semantics identifier), hash algorithm,
+ * certificate level, and allowed interactions. Use this builder when the user's identity
+ * is already known and you want to send a push notification to their Smart-ID app.
+ *
+ * The builder handles:
+ * - Request parameter validation
+ * - Automatic RP challenge generation if not provided
+ * - Verification code calculation
+ * - API communication through the connector
+ *
+ * @see NotificationAuthenticationSession for the session returned after initiation
+ */
 class NotificationAuthenticationRequestBuilder
 {
     private SmartIdConnector $connector;

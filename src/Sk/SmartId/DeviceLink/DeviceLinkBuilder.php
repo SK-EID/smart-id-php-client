@@ -35,6 +35,25 @@ use Sk\SmartId\Enum\SessionType;
 use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Util\AuthCodeCalculator;
 
+/**
+ * Builder for constructing secure device link URLs with authentication codes.
+ *
+ * This class generates URLs that can be used to initiate Smart-ID authentication
+ * from the user's device. It supports three types of device links:
+ * - QR Code: User scans with their phone camera, requires elapsed seconds tracking
+ * - Web2App: Deep link for mobile web browsers to open the Smart-ID app
+ * - App2App: Deep link for native mobile apps to open the Smart-ID app
+ *
+ * Each generated URL includes an authentication code (authCode) calculated from
+ * the session secret and request parameters. This ensures URL integrity and
+ * prevents tampering. The Smart-ID app validates this code before processing.
+ *
+ * The builder uses an immutable pattern - each configuration method returns
+ * a new instance, allowing safe reuse and modification of configurations.
+ *
+ * @see DeviceLinkAuthenticationSession::createDeviceLinkBuilder() for typical instantiation
+ * @see AuthCodeCalculator for the authentication code calculation algorithm
+ */
 class DeviceLinkBuilder
 {
     private DeviceLinkAuthenticationResponse $response;
@@ -150,6 +169,21 @@ class DeviceLinkBuilder
 
     public function buildUrl(DeviceLinkType $type): string
     {
+        // Java client requires initialCallbackUrl for Web2App and App2App flows
+        if (($type === DeviceLinkType::WEB2APP || $type === DeviceLinkType::APP2APP) && $this->callbackUrl === null) {
+            throw new \InvalidArgumentException(
+                "Parameter 'callbackUrl' must be provided when deviceLinkType is WEB2APP or APP2APP. " .
+                "Use withCallbackUrl() to set it. Example: https://your-app.com/callback"
+            );
+        }
+
+        // QR code flow must NOT have initialCallbackUrl
+        if ($type === DeviceLinkType::QR && $this->callbackUrl !== null) {
+            throw new \InvalidArgumentException(
+                "Parameter 'callbackUrl' must be empty when deviceLinkType is QR"
+            );
+        }
+
         $unprotectedDeviceLink = $this->buildUnprotectedDeviceLink($type);
 
         $authCode = AuthCodeCalculator::calculate(
@@ -168,6 +202,8 @@ class DeviceLinkBuilder
 
     private function buildUnprotectedDeviceLink(DeviceLinkType $type): string
     {
+        // URL parameter order must match exactly what Smart-ID backend expects
+        // See: https://sk-eid.github.io/smart-id-documentation/rp-api/authcode.html
         $params = 'deviceLinkType=' . $type->value;
 
         if ($type === DeviceLinkType::QR) {
@@ -179,9 +215,8 @@ class DeviceLinkBuilder
         $params .= '&version=' . $this->version;
         $params .= '&lang=' . $this->lang;
 
-        if ($type !== DeviceLinkType::QR && $this->callbackUrl !== null) {
-            $params .= '&initialCallbackUrl=' . $this->callbackUrl;
-        }
+        // Note: initialCallbackUrl is NOT added to the URL - it's only used in authCode calculation
+        // The Smart-ID app retrieves the callback URL from the backend using the session token
 
         return $this->response->getDeviceLinkBase() . '?' . $params;
     }

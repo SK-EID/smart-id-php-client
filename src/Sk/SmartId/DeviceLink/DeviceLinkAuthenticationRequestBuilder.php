@@ -37,6 +37,23 @@ use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
 
+/**
+ * Builder for constructing and initiating device link-based authentication requests.
+ *
+ * This builder provides a fluent interface for configuring authentication parameters
+ * when the user's identity is not known beforehand. Use this builder to initiate
+ * authentication flows where the user will scan a QR code or click a deep link
+ * to authenticate via their Smart-ID app.
+ *
+ * The builder handles:
+ * - Request parameter configuration (hash algorithm, certificate level, interactions)
+ * - Automatic RP challenge generation if not provided
+ * - Verification code calculation
+ * - API communication through the connector
+ *
+ * @see DeviceLinkAuthenticationSession for the session returned after initiation
+ * @see DeviceLinkBuilder for generating the actual QR/deep link URLs
+ */
 class DeviceLinkAuthenticationRequestBuilder
 {
     private SmartIdConnector $connector;
