@@ -69,7 +69,7 @@ class SmartIdRestConnector implements SmartIdConnector
         if ($documentNumber !== null) {
             $endpoint = sprintf(ApiEndpoints::NOTIFICATION_AUTHENTICATION_BY_DOCUMENT_NUMBER, $documentNumber);
         } elseif ($semanticsIdentifier !== null) {
-            $endpoint = sprintf(ApiEndpoints::NOTIFICATION_AUTHENTICATION_BY_SEMANTICS_IDENTIFIER, urlencode($semanticsIdentifier));
+            $endpoint = sprintf(ApiEndpoints::NOTIFICATION_AUTHENTICATION_BY_SEMANTICS_IDENTIFIER, $semanticsIdentifier);
         } else {
             throw new \InvalidArgumentException('Either documentNumber or semanticsIdentifier must be provided');
         }

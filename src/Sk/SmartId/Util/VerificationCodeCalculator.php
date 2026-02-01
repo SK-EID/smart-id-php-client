@@ -54,7 +54,8 @@ class VerificationCodeCalculator
             throw new \InvalidArgumentException('Invalid base64 encoded rpChallenge');
         }
 
-        $hash = hash($algorithm->getDigestAlgorithm(), $decodedChallenge, true);
+        // Verification code always uses SHA-256 regardless of signature hash algorithm
+        $hash = hash('sha256', $decodedChallenge, true);
 
         return self::calculate($hash);
     }

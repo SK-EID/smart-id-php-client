@@ -34,9 +34,9 @@ class ApiEndpoints
 {
     public const DEVICE_LINK_ANONYMOUS_AUTHENTICATION = '/authentication/device-link/anonymous';
 
-    public const NOTIFICATION_AUTHENTICATION_BY_DOCUMENT_NUMBER = '/authentication/document/%s';
+    public const NOTIFICATION_AUTHENTICATION_BY_DOCUMENT_NUMBER = '/authentication/notification/document/%s';
 
-    public const NOTIFICATION_AUTHENTICATION_BY_SEMANTICS_IDENTIFIER = '/authentication/etsi/%s';
+    public const NOTIFICATION_AUTHENTICATION_BY_SEMANTICS_IDENTIFIER = '/authentication/notification/etsi/%s';
 
     public const SESSION_STATUS = '/session/%s';
 }

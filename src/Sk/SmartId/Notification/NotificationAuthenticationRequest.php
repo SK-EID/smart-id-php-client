@@ -69,7 +69,8 @@ class NotificationAuthenticationRequest extends AbstractAuthenticationRequest
     public function toArray(): array
     {
         $data = $this->buildBaseArray();
-        $data['allowedInteractionsOrder'] = $this->mapInteractionsToArray();
+        $data['interactions'] = base64_encode(json_encode($this->mapInteractionsToArray(), JSON_THROW_ON_ERROR));
+        $data['vcType'] = 'numeric4';
 
         return $data;
     }

@@ -3,9 +3,15 @@
     "description": "Smart-ID PHP SDK - Plain PHP",
     "type": "project",
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../.."
+        }
+    ],
     "require": {
         "php": ">=8.4",
-        "sk-id-solutions/smart-id-php-client": "^3.0",
+        "sk-id-solutions/smart-id-php-client": "@dev",
         "guzzlehttp/guzzle": "^7.0",
         "guzzlehttp/psr7": "^2.0",
         "chillerlan/php-qrcode": "^5.0"

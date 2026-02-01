@@ -4,6 +4,7 @@ parameters:
         - src
     excludePaths:
         - vendor
+        - examples
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         # Array type specifications - PHPStan level 6 requires verbose generics
