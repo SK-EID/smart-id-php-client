@@ -34,5 +34,4 @@ enum DeviceLinkType: string
 {
     case QR = 'QR';
     case WEB2APP = 'Web2App';
-    case APP2APP = 'App2App';
 }

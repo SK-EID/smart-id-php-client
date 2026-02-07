@@ -34,6 +34,7 @@ use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 use phpseclib3\Crypt\RSA\PublicKey as RSAPublicKey;
 use Sk\SmartId\Enum\CertificateLevel;
+use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\ValidationException;
 use Sk\SmartId\Model\AuthenticationIdentity;
@@ -47,6 +48,8 @@ class AuthenticationResponseValidator
     private array $trustedCaCertificates = [];
 
     private bool $skipSignatureVerification = false;
+
+    private ?OcspCertificateRevocationChecker $ocspChecker = null;
 
     /**
      * @return string[]
@@ -86,13 +89,88 @@ class AuthenticationResponseValidator
     }
 
     /**
+     * Enable OCSP revocation checking.
+     * When set, the validator will verify that end-entity certificates have not been revoked
+     * by querying the OCSP responder specified in the certificate's AIA extension.
+     */
+    public function setOcspRevocationChecker(?OcspCertificateRevocationChecker $checker): self
+    {
+        $this->ocspChecker = $checker;
+
+        return $this;
+    }
+
+    /**
+     * Verify session secret for Web2App/App2App flows.
+     * Must be called BEFORE validate() when using Web2App or App2App flows.
+     *
+     * Verifies that SHA-256(Base64Decode(sessionSecret)) encoded as Base64URL
+     * matches the sessionSecretDigest parameter from the callback URL.
+     *
+     * @param string $sessionSecret The sessionSecret from the initial session response (Base64-encoded)
+     * @param string $sessionSecretDigest The sessionSecretDigest from the callback URL
+     * @throws ValidationException if the digest does not match
+     */
+    public function verifySessionSecret(string $sessionSecret, string $sessionSecretDigest): void
+    {
+        $decoded = base64_decode($sessionSecret, true);
+        if ($decoded === false) {
+            throw new ValidationException('Failed to Base64-decode sessionSecret');
+        }
+
+        $hash = hash('sha256', $decoded, true);
+        $expected = rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
+
+        if (!hash_equals($expected, $sessionSecretDigest)) {
+            throw new ValidationException(
+                'sessionSecretDigest from callback URL does not match SHA-256 of sessionSecret',
+            );
+        }
+    }
+
+    /**
+     * Verify user challenge for Web2App/App2App authentication flows.
+     * Must be called when using Web2App or App2App flows.
+     *
+     * Verifies that SHA-256(userChallengeVerifier) encoded as Base64URL
+     * matches the signature.userChallenge from the session response.
+     *
+     * @param string $userChallengeVerifier The userChallengeVerifier from the callback URL
+     * @param string $userChallengeFromResponse The signature.userChallenge from the session status response
+     * @throws ValidationException if the values do not match
+     */
+    public function verifyUserChallenge(string $userChallengeVerifier, string $userChallengeFromResponse): void
+    {
+        $hash = hash('sha256', $userChallengeVerifier, true);
+        $expected = rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
+
+        if (!hash_equals($expected, $userChallengeFromResponse)) {
+            throw new ValidationException(
+                'userChallenge from session response does not match SHA-256 of userChallengeVerifier from callback URL',
+            );
+        }
+    }
+
+    /**
+     * @param string $rpChallenge Base64-encoded RP challenge sent in the initial request
+     * @param string $relyingPartyName Relying Party name as sent in the initial request
+     * @param string $interactionsBase64 Base64-encoded interactions JSON as sent in the initial request
+     * @param string|null $initialCallbackUrl Callback URL if Web2App flow was used, null otherwise
+     * @param string|null $brokeredRpName Brokered RP name if acting as broker, null otherwise
+     * @param string $schemeName Scheme name ('smart-id' for production, 'smart-id-demo' for demo)
+     *
      * @throws SmartIdException
      * @throws ValidationException
      */
     public function validate(
         SessionStatus $sessionStatus,
         string $rpChallenge,
+        string $relyingPartyName,
+        string $interactionsBase64,
+        ?string $initialCallbackUrl = null,
+        ?string $brokeredRpName = null,
         ?CertificateLevel $requiredCertificateLevel = null,
+        string $schemeName = AuthCodeCalculator::SCHEME_NAME_PRODUCTION,
     ): AuthenticationIdentity {
         if (!$sessionStatus->isComplete()) {
             throw new ValidationException('Cannot validate incomplete session');
@@ -101,6 +179,13 @@ class AuthenticationResponseValidator
         $result = $sessionStatus->getResult();
         if ($result === null || !$result->isOk()) {
             throw new ValidationException('Session result is not OK');
+        }
+
+        $signatureProtocol = $sessionStatus->getSignatureProtocol();
+        if ($signatureProtocol !== 'ACSP_V2') {
+            throw new ValidationException(
+                sprintf('Expected signatureProtocol ACSP_V2, got: %s', $signatureProtocol ?? 'null'),
+            );
         }
 
         $cert = $sessionStatus->getCert();
@@ -118,9 +203,21 @@ class AuthenticationResponseValidator
         }
 
         $this->verifyCertificateTrust($cert);
+        $this->verifyBasicConstraints($cert);
+        $this->verifyCertificateRevocation($cert);
+        $this->verifyCertificatePolicies($cert);
+        $this->verifyCertificatePurpose($cert);
 
         if (!$this->skipSignatureVerification) {
-            $this->verifySignature($sessionStatus, $rpChallenge);
+            $this->verifySignature(
+                $sessionStatus,
+                $rpChallenge,
+                $relyingPartyName,
+                $interactionsBase64,
+                $initialCallbackUrl,
+                $brokeredRpName,
+                $schemeName,
+            );
         }
 
         return $this->extractIdentity($cert);
@@ -194,10 +291,186 @@ class AuthenticationResponseValidator
     }
 
     /**
+     * Verify that the end-entity certificate has appropriate basic constraints.
+     * Per Smart-ID docs: end-entity certificates must either not have the Basic Constraints
+     * extension, or if present, the cA boolean must be set to FALSE.
+     *
      * @throws ValidationException
      */
-    private function verifySignature(SessionStatus $sessionStatus, string $rpChallenge): void
+    private function verifyBasicConstraints(SessionCertificate $cert): void
     {
+        $certPem = $cert->getPemEncodedCertificate();
+        $certResource = openssl_x509_read($certPem);
+
+        if ($certResource === false) {
+            throw new ValidationException('Failed to parse certificate for basic constraints validation');
+        }
+
+        $certInfo = openssl_x509_parse($certResource);
+        if ($certInfo === false) {
+            throw new ValidationException('Failed to parse certificate information');
+        }
+
+        $basicConstraints = $certInfo['extensions']['basicConstraints'] ?? null;
+
+        // If basicConstraints is absent, that's fine for an EE certificate
+        if ($basicConstraints === null) {
+            return;
+        }
+
+        // If present, CA must be FALSE
+        if (stripos($basicConstraints, 'CA:TRUE') !== false) {
+            throw new ValidationException(
+                'End-entity certificate has CA:TRUE in Basic Constraints — this is a CA certificate, not an end-entity certificate',
+            );
+        }
+    }
+
+    /**
+     * Check certificate revocation status via OCSP if an OCSP checker is configured.
+     *
+     * @throws ValidationException if certificate is revoked or OCSP check fails
+     */
+    private function verifyCertificateRevocation(SessionCertificate $cert): void
+    {
+        if ($this->ocspChecker === null) {
+            @trigger_error(
+                'Smart-ID certificate revocation check (OCSP) is not configured. '
+                . 'Per Smart-ID documentation, OCSP revocation checking is a required validation step. '
+                . 'Use setOcspRevocationChecker() or TrustedCACertificateStore::configureValidatorWithOcsp() to enable it.',
+                E_USER_NOTICE,
+            );
+
+            return;
+        }
+
+        $certPem = $cert->getPemEncodedCertificate();
+
+        $issuerPem = $this->findIssuerCertificate($certPem);
+        if ($issuerPem === null) {
+            throw new ValidationException(
+                'Cannot perform OCSP check: no matching issuer certificate found in trusted CA store',
+            );
+        }
+
+        $this->ocspChecker->checkRevocationStatus($certPem, $issuerPem);
+    }
+
+    /**
+     * Find the issuer certificate for the given end-entity certificate from the trusted CA store.
+     */
+    private function findIssuerCertificate(string $certPem): ?string
+    {
+        $certResource = openssl_x509_read($certPem);
+        if ($certResource === false) {
+            return null;
+        }
+
+        foreach ($this->trustedCaCertificates as $caCert) {
+            if (openssl_x509_verify($certResource, $caCert) === 1) {
+                return $caCert;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Verify that the end-entity certificate belongs to the Smart-ID scheme
+     * by checking Certificate Policies extension for required OIDs.
+     *
+     * Qualified Smart-ID certs must have:
+     *   - 1.3.6.1.4.1.10015.17.2 (SK Smart-ID Qualified policy)
+     *   - 0.4.0.2042.1.2 (EU QCP for qualified electronic signatures)
+     *
+     * Non-qualified Smart-ID certs must have:
+     *   - 1.3.6.1.4.1.10015.17.1 (SK Smart-ID Non-Qualified policy)
+     *
+     * @throws ValidationException
+     */
+    private function verifyCertificatePolicies(SessionCertificate $cert): void
+    {
+        $certPem = $cert->getPemEncodedCertificate();
+        $certResource = openssl_x509_read($certPem);
+
+        if ($certResource === false) {
+            throw new ValidationException('Failed to parse certificate for policy validation');
+        }
+
+        $certInfo = openssl_x509_parse($certResource);
+        if ($certInfo === false) {
+            throw new ValidationException('Failed to parse certificate information');
+        }
+
+        $policies = $certInfo['extensions']['certificatePolicies'] ?? '';
+
+        $hasQualifiedPolicy = str_contains($policies, '1.3.6.1.4.1.10015.17.2');
+        $hasNonQualifiedPolicy = str_contains($policies, '1.3.6.1.4.1.10015.17.1');
+
+        if (!$hasQualifiedPolicy && !$hasNonQualifiedPolicy) {
+            throw new ValidationException(
+                'Certificate does not contain Smart-ID scheme Certificate Policy OIDs '
+                . '(expected 1.3.6.1.4.1.10015.17.2 for Qualified or 1.3.6.1.4.1.10015.17.1 for Non-Qualified)',
+            );
+        }
+
+        if ($hasQualifiedPolicy && !str_contains($policies, '0.4.0.2042.1.2')) {
+            throw new ValidationException(
+                'Qualified Smart-ID certificate is missing EU QCP policy OID 0.4.0.2042.1.2',
+            );
+        }
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function verifyCertificatePurpose(SessionCertificate $cert): void
+    {
+        $certPem = $cert->getPemEncodedCertificate();
+        $certResource = openssl_x509_read($certPem);
+
+        if ($certResource === false) {
+            throw new ValidationException('Failed to parse certificate for purpose validation');
+        }
+
+        $certInfo = openssl_x509_parse($certResource);
+        if ($certInfo === false) {
+            throw new ValidationException('Failed to parse certificate information');
+        }
+
+        // Check key usage includes digitalSignature
+        $keyUsage = $certInfo['extensions']['keyUsage'] ?? '';
+        if (stripos($keyUsage, 'Digital Signature') === false) {
+            throw new ValidationException('Certificate key usage does not include digitalSignature');
+        }
+
+        // Check Extended Key Usage for Smart-ID authentication
+        // New certs (April 2025+): Smart-ID authentication OID 1.3.6.1.4.1.62306.5.7.0
+        // Older certs: id-kp-clientAuth OID 1.3.6.1.5.5.7.3.2
+        $extKeyUsage = $certInfo['extensions']['extendedKeyUsage'] ?? '';
+        $hasSmartIdAuthEku = str_contains($extKeyUsage, '1.3.6.1.4.1.62306.5.7.0');
+        $hasClientAuthEku = str_contains($extKeyUsage, '1.3.6.1.5.5.7.3.2')
+            || stripos($extKeyUsage, 'TLS Web Client Authentication') !== false;
+
+        if (!$hasSmartIdAuthEku && !$hasClientAuthEku) {
+            throw new ValidationException(
+                'Certificate does not have Smart-ID authentication or clientAuth Extended Key Usage',
+            );
+        }
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function verifySignature(
+        SessionStatus $sessionStatus,
+        string $rpChallenge,
+        string $relyingPartyName,
+        string $interactionsBase64,
+        ?string $initialCallbackUrl,
+        ?string $brokeredRpName,
+        string $schemeName,
+    ): void {
         $cert = $sessionStatus->getCert();
         $signature = $sessionStatus->getSignature();
 
@@ -205,45 +478,60 @@ class AuthenticationResponseValidator
             throw new ValidationException('Certificate or signature missing');
         }
 
-        $certPem = $cert->getPemEncodedCertificate();
-        $publicKey = openssl_pkey_get_public($certPem);
-
-        if ($publicKey === false) {
-            throw new ValidationException('Failed to extract public key from certificate');
-        }
-
-        $decodedChallenge = base64_decode($rpChallenge, true);
-        if ($decodedChallenge === false) {
-            throw new ValidationException('Invalid base64 encoded rpChallenge');
-        }
-
-        $signatureValue = $signature->getDecodedValue();
         $algorithmName = strtolower($signature->getSignatureAlgorithm());
-
-        if ($algorithmName === 'rsassa-pss') {
-            $this->verifyRsaPssSignature($decodedChallenge, $signatureValue, $publicKey, $signature);
-        } else {
-            $algorithm = $this->mapSignatureAlgorithm($signature->getSignatureAlgorithm());
-            $result = openssl_verify($decodedChallenge, $signatureValue, $publicKey, $algorithm);
-
-            if ($result === -1) {
-                throw new ValidationException('Signature verification error: ' . openssl_error_string());
-            }
-
-            if ($result !== 1) {
-                throw new ValidationException('Signature verification failed');
-            }
+        if ($algorithmName !== 'rsassa-pss') {
+            throw new ValidationException(
+                sprintf('Expected rsassa-pss signature algorithm for ACSP_V2, got: %s', $algorithmName),
+            );
         }
+
+        $serverRandom = $signature->getServerRandom();
+        $userChallenge = $signature->getUserChallenge();
+        $flowType = $signature->getFlowType();
+        $interactionTypeUsed = $sessionStatus->getInteractionTypeUsed();
+
+        if ($serverRandom === null || $serverRandom === '') {
+            throw new ValidationException('serverRandom is required for ACSP_V2 signature verification');
+        }
+        if ($userChallenge === null || $userChallenge === '') {
+            throw new ValidationException('userChallenge is required for ACSP_V2 signature verification');
+        }
+        if ($flowType === null || $flowType === '') {
+            throw new ValidationException('flowType is required for ACSP_V2 signature verification');
+        }
+        if ($interactionTypeUsed === null || $interactionTypeUsed === '') {
+            throw new ValidationException('interactionTypeUsed is required for ACSP_V2 signature verification');
+        }
+
+        // Construct ACSP_V2 payload per documentation:
+        // 'smart-id'|'ACSP_V2'|serverRandom|rpChallenge|userChallenge|BASE64(rpName)|BASE64(brokeredRpName)|BASE64(SHA-256(interactions))|interactionTypeUsed|initialCallbackUrl|flowType
+        $interactionsHash = hash('sha256', $interactionsBase64, true);
+        $interactionsHashBase64 = base64_encode($interactionsHash);
+
+        $acspV2Payload = implode('|', [
+            $schemeName,
+            'ACSP_V2',
+            $serverRandom,
+            $rpChallenge,
+            $userChallenge,
+            base64_encode($relyingPartyName),
+            base64_encode($brokeredRpName ?? ''),
+            $interactionsHashBase64,
+            $interactionTypeUsed,
+            $initialCallbackUrl ?? '',
+            $flowType,
+        ]);
+
+        $this->verifyRsaPssSignature($acspV2Payload, $signature, $cert);
     }
 
     /**
      * @throws ValidationException
      */
     private function verifyRsaPssSignature(
-        string $rpChallenge,
-        string $signature,
-        \OpenSSLAsymmetricKey $publicKey,
+        string $acspV2Payload,
         SessionSignature $sessionSignature,
+        SessionCertificate $cert,
     ): void {
         $params = $sessionSignature->getSignatureAlgorithmParameters();
         $hashAlgorithm = $params['hashAlgorithm'] ?? 'SHA-512';
@@ -255,36 +543,22 @@ class AuthenticationResponseValidator
             default => throw new ValidationException("Unsupported hash algorithm for RSA-PSS: {$hashAlgorithm}"),
         };
 
-        // For ACSP v2, signature is over: serverRandom || userChallenge || rpChallenge
-        $serverRandom = $sessionSignature->getServerRandom();
-        $userChallenge = $sessionSignature->getUserChallenge();
-
-        // Validate required fields for ACSP v2
-        if ($serverRandom === null || $serverRandom === '') {
-            throw new ValidationException('serverRandom is required for RSA-PSS signature verification');
-        }
-        if ($userChallenge === null || $userChallenge === '') {
-            throw new ValidationException('userChallenge is required for RSA-PSS signature verification');
-        }
-
-        // Decode URL-safe base64 (convert -_ to +/ and add padding)
-        $decodedServerRandom = $this->decodeUrlSafeBase64($serverRandom);
-        $decodedUserChallenge = $this->decodeUrlSafeBase64($userChallenge);
-
-        // Construct signed data: serverRandom || userChallenge || rpChallenge
-        $signedData = $decodedServerRandom . $decodedUserChallenge . $rpChallenge;
-
-        // Get salt length from parameters (default 64 for SHA-512)
         $saltLength = (int) ($params['saltLength'] ?? 64);
+        $signatureValue = $sessionSignature->getDecodedValue();
 
-        // Extract public key details
+        $certPem = $cert->getPemEncodedCertificate();
+        $publicKey = openssl_pkey_get_public($certPem);
+
+        if ($publicKey === false) {
+            throw new ValidationException('Failed to extract public key from certificate');
+        }
+
         $keyDetails = openssl_pkey_get_details($publicKey);
         if ($keyDetails === false || !isset($keyDetails['key'])) {
             throw new ValidationException('Failed to extract public key details');
         }
 
         try {
-            // Load public key using phpseclib for RSA-PSS support
             /** @var string $keyPem */
             $keyPem = $keyDetails['key'];
             $loadedKey = PublicKeyLoader::load($keyPem);
@@ -293,7 +567,6 @@ class AuthenticationResponseValidator
                 throw new ValidationException('Expected RSA public key for RSA-PSS verification');
             }
 
-            // Configure for RSA-PSS with proper parameters
             // @phpstan-ignore-next-line (phpseclib fluent interface returns self but typed as mixed)
             $rsaKey = $loadedKey
                 ->withHash($hashAlgo)
@@ -301,9 +574,10 @@ class AuthenticationResponseValidator
                 ->withPadding(RSA::SIGNATURE_PSS)
                 ->withSaltLength($saltLength);
 
-            // Verify the signature
+            // Verify signature against UTF-8 bytes of ACSP_V2 payload
+            // phpseclib handles hashing internally as part of RSA-PSS
             // @phpstan-ignore method.nonObject (phpseclib fluent interface)
-            if (!$rsaKey->verify($signedData, $signature)) {
+            if (!$rsaKey->verify($acspV2Payload, $signatureValue)) {
                 throw new ValidationException('RSA-PSS signature verification failed');
             }
         } catch (ValidationException $e) {
@@ -311,52 +585,6 @@ class AuthenticationResponseValidator
         } catch (\Exception $e) {
             throw new ValidationException('RSA-PSS signature verification error: ' . $e->getMessage());
         }
-    }
-
-    private function mapSignatureAlgorithm(string $algorithm): int
-    {
-        return match (strtoupper($algorithm)) {
-            'SHA256WITHRSA', 'SHA256WITHRSAENCRYPTION' => OPENSSL_ALGO_SHA256,
-            'SHA384WITHRSA', 'SHA384WITHRSAENCRYPTION' => OPENSSL_ALGO_SHA384,
-            'SHA512WITHRSA', 'SHA512WITHRSAENCRYPTION' => OPENSSL_ALGO_SHA512,
-            'SHA256WITHECDSA' => OPENSSL_ALGO_SHA256,
-            'SHA384WITHECDSA' => OPENSSL_ALGO_SHA384,
-            'SHA512WITHECDSA' => OPENSSL_ALGO_SHA512,
-            default => throw new ValidationException('Unsupported signature algorithm: ' . $algorithm),
-        };
-    }
-
-    /**
-     * Decode URL-safe base64 (RFC 4648).
-     * Converts -_ to +/ and adds padding if needed.
-     *
-     * @throws ValidationException
-     */
-    private function decodeUrlSafeBase64(string $data, bool $allowEmpty = false): string
-    {
-        if ($data === '') {
-            if ($allowEmpty) {
-                return '';
-            }
-            throw new ValidationException('Cannot decode empty base64 string');
-        }
-
-        // Convert URL-safe chars to standard base64
-        $base64 = strtr($data, '-_', '+/');
-
-        // Add padding if needed
-        $padding = strlen($base64) % 4;
-        if ($padding > 0) {
-            $base64 .= str_repeat('=', 4 - $padding);
-        }
-
-        $decoded = base64_decode($base64, true);
-
-        if ($decoded === false) {
-            throw new ValidationException('Invalid URL-safe base64 encoded data');
-        }
-
-        return $decoded;
     }
 
     /**

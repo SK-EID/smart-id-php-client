@@ -43,6 +43,7 @@ class SessionSignature
         private readonly ?string $serverRandom = null,
         private readonly ?string $userChallenge = null,
         private readonly ?string $flowType = null,
+        private readonly ?string $interactionTypeUsed = null,
         private readonly ?array $signatureAlgorithmParameters = null,
     ) {
     }
@@ -62,6 +63,7 @@ class SessionSignature
         $serverRandom = $data['serverRandom'] ?? null;
         $userChallenge = $data['userChallenge'] ?? null;
         $flowType = $data['flowType'] ?? null;
+        $interactionTypeUsed = $data['interactionTypeUsed'] ?? null;
 
         /** @var array<string, string>|null $algorithmParams */
         $algorithmParams = $data['signatureAlgorithmParameters'] ?? null;
@@ -72,6 +74,7 @@ class SessionSignature
             is_string($serverRandom) ? $serverRandom : null,
             is_string($userChallenge) ? $userChallenge : null,
             is_string($flowType) ? $flowType : null,
+            is_string($interactionTypeUsed) ? $interactionTypeUsed : null,
             $algorithmParams,
         );
     }
@@ -99,6 +102,11 @@ class SessionSignature
     public function getFlowType(): ?string
     {
         return $this->flowType;
+    }
+
+    public function getInteractionTypeUsed(): ?string
+    {
+        return $this->interactionTypeUsed;
     }
 
     /**

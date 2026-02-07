@@ -150,4 +150,17 @@ class TrustedCACertificateStore
     {
         return $validator->setTrustedCaCertificates($this->certificates);
     }
+
+    /**
+     * Configure an AuthenticationResponseValidator with these certificates and OCSP revocation checking enabled.
+     */
+    public function configureValidatorWithOcsp(
+        AuthenticationResponseValidator $validator,
+        ?OcspCertificateRevocationChecker $ocspChecker = null,
+    ): AuthenticationResponseValidator {
+        $validator->setTrustedCaCertificates($this->certificates);
+        $validator->setOcspRevocationChecker($ocspChecker ?? new OcspCertificateRevocationChecker());
+
+        return $validator;
+    }
 }

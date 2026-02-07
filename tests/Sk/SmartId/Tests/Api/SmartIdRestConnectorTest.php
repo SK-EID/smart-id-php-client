@@ -65,8 +65,8 @@ class SmartIdRestConnectorTest extends TestCase
         $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
         $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
 
-        $this->connector = new SmartIdRestConnector(
-            'https://sid.demo.sk.ee/smart-id-rp/v2',
+        $this->connector = SmartIdRestConnector::createForTesting(
+            'https://sid.demo.sk.ee/smart-id-rp/v3',
             $this->httpClient,
             $this->requestFactory,
             $this->streamFactory,

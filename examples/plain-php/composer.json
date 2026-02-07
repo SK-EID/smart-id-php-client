@@ -12,8 +12,6 @@
     "require": {
         "php": ">=8.4",
         "sk-id-solutions/smart-id-php-client": "@dev",
-        "guzzlehttp/guzzle": "^7.0",
-        "guzzlehttp/psr7": "^2.0",
         "chillerlan/php-qrcode": "^5.0"
     },
     "config": {

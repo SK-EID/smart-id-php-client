@@ -53,14 +53,14 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\HttpFactory;
 use Sk\SmartId\Api\SmartIdRestConnector;
+use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
@@ -74,23 +74,17 @@ session_start();
 // CONFIGURATION
 // ============================================================================
 
-// Create HTTP client (SSL verification disabled for local testing)
-// For production, configure proper CA bundle or set verify => true
-$httpClient = new Client(['verify' => false]);
-$httpFactory = new HttpFactory();
-
 // Smart-ID API endpoint (use production URL for live environment)
 $baseUrl = 'https://sid.demo.sk.ee/smart-id-rp/v3';
 // Demo Relying Party credentials (replace with your own for production)
 $relyingPartyUUID = '00000000-0000-4000-8000-000000000000';
 $relyingPartyName = 'DEMO';
 
-// Initialize the Smart-ID connector with PSR-18 HTTP client and PSR-17 factories
+// Initialize the Smart-ID connector with HTTPS pinning
+// For production, use SslPinnedPublicKeyStore::loadFromDirectory() or create()->addPublicKeyHash()
 $connector = new SmartIdRestConnector(
     $baseUrl,
-    $httpClient,
-    $httpFactory,
-    $httpFactory,
+    SslPinnedPublicKeyStore::loadDemo(),
 );
 
 // ============================================================================
@@ -107,15 +101,21 @@ if (isset($_GET['action'])) {
         // This is used to create the authentication request and verify the response
         $rpChallenge = RpChallengeGenerator::generate();
 
+        // Build the interactions and store their Base64 representation
+        // This exact Base64 value is needed later for response signature verification
+        $interactions = [Interaction::displayTextAndPin('Test login')];
+        $interactionsBase64 = base64_encode(json_encode(
+            array_map(fn (Interaction $i) => $i->toArray(), $interactions),
+            JSON_THROW_ON_ERROR,
+        ));
+
         // Build the authentication request
         $request = new DeviceLinkAuthenticationRequest(
             relyingPartyUUID: $relyingPartyUUID,
             relyingPartyName: $relyingPartyName,
             rpChallenge: $rpChallenge,
             hashAlgorithm: HashAlgorithm::SHA512,
-            allowedInteractionsOrder: [
-                Interaction::displayTextAndPin('Test login'),
-            ],
+            allowedInteractionsOrder: $interactions,
             certificateLevel: CertificateLevel::QUALIFIED,
         );
 
@@ -134,6 +134,7 @@ if (isset($_GET['action'])) {
             'deviceLinkBase' => $response->getDeviceLinkBase(),
             'rpChallenge' => $rpChallenge,
             'rpName' => $relyingPartyName,
+            'interactionsBase64' => $interactionsBase64,
             'verificationCode' => $verificationCode,
             'createdAt' => time(),
         ];
@@ -230,14 +231,11 @@ if (isset($_GET['action'])) {
                     $validator = new AuthenticationResponseValidator();
 
                     // For DEMO environment (sid.demo.sk.ee) - use TEST certificates
+                    // Note: Demo OCSP responder reports test certs as revoked, so don't use OCSP here
                     TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 
-                    // For PRODUCTION environment - use production certificates:
-                    // TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
-
-                    // Skip signature verification for quick local testing
-                    // WARNING: Enable signature verification in production!
-                    $validator->setSkipSignatureVerification(true);
+                    // For PRODUCTION environment - use production certificates with OCSP:
+                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator);
 
                     // Validate the authentication response and extract user identity
                     // This verifies:
@@ -248,7 +246,10 @@ if (isset($_GET['action'])) {
                     $identity = $validator->validate(
                         $status,
                         $_SESSION['auth']['rpChallenge'],
-                        CertificateLevel::QUALIFIED, // Optional: require QUALIFIED level
+                        $_SESSION['auth']['rpName'],
+                        $_SESSION['auth']['interactionsBase64'],
+                        requiredCertificateLevel: CertificateLevel::QUALIFIED,
+                        schemeName: AuthCodeCalculator::SCHEME_NAME_DEMO,
                     );
 
                     // User information extracted from the certificate

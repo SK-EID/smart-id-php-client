@@ -73,6 +73,8 @@ class DeviceLinkAuthenticationRequestBuilder
     /** @var string[]|null */
     private ?array $capabilities = null;
 
+    private ?string $callbackUrl = null;
+
     /** @var Interaction[] */
     private array $allowedInteractionsOrder = [];
 
@@ -134,6 +136,22 @@ class DeviceLinkAuthenticationRequestBuilder
         return $this;
     }
 
+    /**
+     * Set the callback URL for Web2App flows.
+     *
+     * Required when using same-device flows. The URL must include a random
+     * query parameter unique to each session for security verification.
+     * Example: https://your-rp.com/callback?value=<random>
+     *
+     * @param string $callbackUrl HTTPS callback URL with random parameter
+     */
+    public function withCallbackUrl(string $callbackUrl): self
+    {
+        $this->callbackUrl = $callbackUrl;
+
+        return $this;
+    }
+
     public function initiate(): DeviceLinkAuthenticationSession
     {
         if ($this->rpChallenge === null) {
@@ -155,6 +173,7 @@ class DeviceLinkAuthenticationRequestBuilder
             $this->certificateLevel,
             $this->nonce,
             $this->capabilities,
+            $this->callbackUrl,
         );
 
         $response = $this->connector->initiateDeviceLinkAuthentication($request);
@@ -170,6 +189,7 @@ class DeviceLinkAuthenticationRequestBuilder
             $this->relyingPartyName,
             $this->allowedInteractionsOrder,
             $verificationCode,
+            $this->callbackUrl,
         );
     }
 }

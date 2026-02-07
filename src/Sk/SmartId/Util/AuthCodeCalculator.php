@@ -46,7 +46,7 @@ class AuthCodeCalculator
      * @param string $rpChallenge Base64-encoded RP challenge
      * @param string $rpName Relying Party name
      * @param Interaction[] $interactions Array of interaction objects
-     * @param string|null $initialCallbackUrl Optional callback URL (for Web2App/App2App flows)
+     * @param string|null $initialCallbackUrl Optional callback URL (for Web2App flows)
      * @param string|null $brokeredRpName Optional brokered RP name
      * @param string $unprotectedDeviceLink The device link URL without authCode parameter
      * @param string $schemeName Scheme name ('smart-id' for production, 'smart-id-demo' for demo)

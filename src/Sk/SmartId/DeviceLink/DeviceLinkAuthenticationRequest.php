@@ -39,7 +39,7 @@ use Sk\SmartId\Model\Interaction;
  * Request data transfer object for device link-based authentication.
  *
  * This class represents the request payload sent to the Smart-ID API when initiating
- * authentication via device linking (QR code, web2app, or app2app). Device link flow
+ * authentication via device linking (QR code or web2app). Device link flow
  * is used when the user's identity is NOT known beforehand - the user scans a QR code
  * or clicks a link to initiate authentication from their Smart-ID app.
  *
@@ -54,7 +54,7 @@ class DeviceLinkAuthenticationRequest extends AbstractAuthenticationRequest
     /**
      * @param Interaction[] $allowedInteractionsOrder
      * @param string[]|null $capabilities
-     * @param string|null $initialCallbackUrl Callback URL for Web2App/App2App flows (must be HTTPS)
+     * @param string|null $initialCallbackUrl Callback URL for Web2App flows (must be HTTPS)
      */
     public function __construct(
         string $relyingPartyUUID,

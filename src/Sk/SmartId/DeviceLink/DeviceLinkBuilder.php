@@ -39,10 +39,9 @@ use Sk\SmartId\Util\AuthCodeCalculator;
  * Builder for constructing secure device link URLs with authentication codes.
  *
  * This class generates URLs that can be used to initiate Smart-ID authentication
- * from the user's device. It supports three types of device links:
+ * from the user's device. It supports two types of device links:
  * - QR Code: User scans with their phone camera, requires elapsed seconds tracking
  * - Web2App: Deep link for mobile web browsers to open the Smart-ID app
- * - App2App: Deep link for native mobile apps to open the Smart-ID app
  *
  * Each generated URL includes an authentication code (authCode) calculated from
  * the session secret and request parameters. This ensures URL integrity and
@@ -118,14 +117,6 @@ class DeviceLinkBuilder
         return $clone;
     }
 
-    public function withSessionType(SessionType $sessionType): self
-    {
-        $clone = clone $this;
-        $clone->sessionType = $sessionType;
-
-        return $clone;
-    }
-
     public function withLang(string $lang): self
     {
         $clone = clone $this;
@@ -162,17 +153,11 @@ class DeviceLinkBuilder
         return $this->buildUrl(DeviceLinkType::WEB2APP);
     }
 
-    public function buildApp2AppUrl(): string
-    {
-        return $this->buildUrl(DeviceLinkType::APP2APP);
-    }
-
     public function buildUrl(DeviceLinkType $type): string
     {
-        // Java client requires initialCallbackUrl for Web2App and App2App flows
-        if (($type === DeviceLinkType::WEB2APP || $type === DeviceLinkType::APP2APP) && $this->callbackUrl === null) {
+        if ($type === DeviceLinkType::WEB2APP && $this->callbackUrl === null) {
             throw new \InvalidArgumentException(
-                "Parameter 'callbackUrl' must be provided when deviceLinkType is WEB2APP or APP2APP. " .
+                "Parameter 'callbackUrl' must be provided when deviceLinkType is WEB2APP. " .
                 "Use withCallbackUrl() to set it. Example: https://your-app.com/callback"
             );
         }

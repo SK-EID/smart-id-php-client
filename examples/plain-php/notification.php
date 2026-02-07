@@ -43,13 +43,13 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\HttpFactory;
 use Sk\SmartId\Api\SmartIdRestConnector;
+use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Model\SemanticsIdentifier;
 use Sk\SmartId\Notification\NotificationAuthenticationRequestBuilder;
+use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 
@@ -59,23 +59,17 @@ session_start();
 // CONFIGURATION
 // ============================================================================
 
-// Create HTTP client (SSL verification disabled for local testing)
-// For production, configure proper CA bundle or set verify => true
-$httpClient = new Client(['verify' => false]);
-$httpFactory = new HttpFactory();
-
 // Smart-ID API endpoint (use production URL for live environment)
 $baseUrl = 'https://sid.demo.sk.ee/smart-id-rp/v3';
 // Demo Relying Party credentials (replace with your own for production)
 $relyingPartyUUID = '00000000-0000-4000-8000-000000000000';
 $relyingPartyName = 'DEMO';
 
-// Initialize the Smart-ID connector with PSR-18 HTTP client and PSR-17 factories
+// Initialize the Smart-ID connector with HTTPS pinning
+// For production, use SslPinnedPublicKeyStore::loadFromDirectory() or create()->addPublicKeyHash()
 $connector = new SmartIdRestConnector(
     $baseUrl,
-    $httpClient,
-    $httpFactory,
-    $httpFactory,
+    SslPinnedPublicKeyStore::loadDemo(),
 );
 
 // ============================================================================
@@ -107,13 +101,19 @@ if (isset($_GET['action'])) {
                 $relyingPartyName,
             );
 
+            $interactions = [
+                Interaction::confirmationMessageAndVerificationCodeChoice('Login to Demo'),
+                Interaction::displayTextAndPin('Login to Demo'),
+            ];
+            $interactionsBase64 = base64_encode(json_encode(
+                array_map(fn (Interaction $i) => $i->toArray(), $interactions),
+                JSON_THROW_ON_ERROR,
+            ));
+
             $session = $builder
                 ->withSemanticsIdentifier($semanticsIdentifier)
                 ->withCertificateLevel(CertificateLevel::QUALIFIED)
-                ->withAllowedInteractionsOrder([
-                    Interaction::confirmationMessageAndVerificationCodeChoice('Login to Demo'),
-                    Interaction::displayTextAndPin('Login to Demo'),
-                ])
+                ->withAllowedInteractionsOrder($interactions)
                 ->initiate();
 
             // Store session data for status polling
@@ -121,6 +121,8 @@ if (isset($_GET['action'])) {
                 'sessionId' => $session->getSessionId(),
                 'verificationCode' => $session->getVerificationCode(),
                 'rpChallenge' => $session->getRpChallenge(),
+                'rpName' => $relyingPartyName,
+                'interactionsBase64' => $interactionsBase64,
             ];
 
             echo json_encode([
@@ -178,7 +180,10 @@ if (isset($_GET['action'])) {
                     $identity = $validator->validate(
                         $status,
                         $_SESSION['auth']['rpChallenge'],
-                        CertificateLevel::QUALIFIED,
+                        $_SESSION['auth']['rpName'],
+                        $_SESSION['auth']['interactionsBase64'],
+                        requiredCertificateLevel: CertificateLevel::QUALIFIED,
+                        schemeName: AuthCodeCalculator::SCHEME_NAME_DEMO,
                     );
 
                     // User information extracted from the certificate

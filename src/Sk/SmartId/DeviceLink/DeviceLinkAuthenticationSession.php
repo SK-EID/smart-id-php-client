@@ -40,7 +40,6 @@ use Sk\SmartId\Model\Interaction;
  * link authentication, this session enables:
  * - Building QR code URLs for display to the user
  * - Building web2app deep links for mobile web scenarios
- * - Building app2app links for native mobile app integration
  * - Tracking elapsed time (important for QR code URL validity)
  * - Accessing the verification code to display to the user
  *
@@ -63,6 +62,7 @@ class DeviceLinkAuthenticationSession
         private readonly string $rpName,
         private readonly array $interactions,
         private readonly string $verificationCode,
+        private readonly ?string $callbackUrl = null,
     ) {
         $this->createdAt = microtime(true);
     }
@@ -97,14 +97,20 @@ class DeviceLinkAuthenticationSession
         return $this->buildUrlWithElapsed($elapsedSeconds)->buildQrCodeUrl();
     }
 
-    public function buildWeb2AppUrl(?int $elapsedSeconds = null): string
+    public function buildWeb2AppUrl(): string
     {
-        return $this->buildUrlWithElapsed($elapsedSeconds)->buildWeb2AppUrl();
+        $builder = $this->createDeviceLinkBuilder();
+
+        if ($this->callbackUrl !== null) {
+            $builder = $builder->withCallbackUrl($this->callbackUrl);
+        }
+
+        return $builder->buildWeb2AppUrl();
     }
 
-    public function buildApp2AppUrl(?int $elapsedSeconds = null): string
+    public function getCallbackUrl(): ?string
     {
-        return $this->buildUrlWithElapsed($elapsedSeconds)->buildApp2AppUrl();
+        return $this->callbackUrl;
     }
 
     private function buildUrlWithElapsed(?int $elapsedSeconds): DeviceLinkBuilder

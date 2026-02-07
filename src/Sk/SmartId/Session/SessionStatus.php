@@ -41,7 +41,9 @@ class SessionStatus
         private readonly ?SessionResult $result = null,
         private readonly ?SessionCertificate $cert = null,
         private readonly ?SessionSignature $signature = null,
+        private readonly ?string $signatureProtocol = null,
         private readonly ?string $deviceIpAddress = null,
+        private readonly ?string $interactionTypeUsed = null,
     ) {
     }
 
@@ -76,14 +78,18 @@ class SessionStatus
             throw new \InvalidArgumentException('state must be a string');
         }
 
+        $signatureProtocol = $data['signatureProtocol'] ?? null;
         $deviceIpAddress = $data['deviceIpAddress'] ?? null;
+        $interactionTypeUsed = $data['interactionTypeUsed'] ?? null;
 
         return new self(
             $state,
             $result,
             $cert,
             $signature,
+            is_string($signatureProtocol) ? $signatureProtocol : null,
             is_string($deviceIpAddress) ? $deviceIpAddress : null,
+            is_string($interactionTypeUsed) ? $interactionTypeUsed : null,
         );
     }
 
@@ -117,8 +123,18 @@ class SessionStatus
         return $this->signature;
     }
 
+    public function getSignatureProtocol(): ?string
+    {
+        return $this->signatureProtocol;
+    }
+
     public function getDeviceIpAddress(): ?string
     {
         return $this->deviceIpAddress;
+    }
+
+    public function getInteractionTypeUsed(): ?string
+    {
+        return $this->interactionTypeUsed;
     }
 }

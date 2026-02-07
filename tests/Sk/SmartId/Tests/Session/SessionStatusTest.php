@@ -133,10 +133,11 @@ class SessionStatusTest extends TestCase
         $cert = new SessionCertificate('certValue', 'QUALIFIED');
         $signature = new SessionSignature('sigValue', 'sha512WithRSAEncryption');
 
-        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, '10.0.0.1');
+        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, 'ACSP_V2', '10.0.0.1');
 
         $this->assertSame($cert, $status->getCert());
         $this->assertSame($signature, $status->getSignature());
+        $this->assertSame('ACSP_V2', $status->getSignatureProtocol());
         $this->assertSame('10.0.0.1', $status->getDeviceIpAddress());
     }
 

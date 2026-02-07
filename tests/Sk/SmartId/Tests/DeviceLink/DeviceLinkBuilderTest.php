@@ -101,24 +101,6 @@ class DeviceLinkBuilderTest extends TestCase
     }
 
     #[Test]
-    public function buildApp2AppUrlReturnsValidUrl(): void
-    {
-        $builder = new DeviceLinkBuilder(
-            $this->response,
-            $this->rpChallenge,
-            $this->rpName,
-            $this->interactions,
-        );
-
-        // App2App requires callback URL
-        $url = $builder->withCallbackUrl('https://example.com/callback')->buildApp2AppUrl();
-
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=App2App&', $url);
-        $this->assertStringContainsString('sessionToken=token-456', $url);
-        $this->assertStringNotContainsString('elapsedSeconds=', $url);
-    }
-
-    #[Test]
     public function buildUrlWithDeviceLinkType(): void
     {
         $builder = new DeviceLinkBuilder(
@@ -129,13 +111,10 @@ class DeviceLinkBuilderTest extends TestCase
         );
 
         $qrUrl = $builder->buildUrl(DeviceLinkType::QR);
-        // Web2App and App2App require callback URL
         $web2appUrl = $builder->withCallbackUrl('https://example.com/callback')->buildUrl(DeviceLinkType::WEB2APP);
-        $app2appUrl = $builder->withCallbackUrl('https://example.com/callback')->buildUrl(DeviceLinkType::APP2APP);
 
         $this->assertStringContainsString('deviceLinkType=QR', $qrUrl);
         $this->assertStringContainsString('deviceLinkType=Web2App', $web2appUrl);
-        $this->assertStringContainsString('deviceLinkType=App2App', $app2appUrl);
     }
 
     #[Test]

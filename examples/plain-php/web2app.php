@@ -55,14 +55,14 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\HttpFactory;
 use Sk\SmartId\Api\SmartIdRestConnector;
+use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Util\CallbackUrlValidator;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
@@ -75,18 +75,17 @@ session_start();
 // CONFIGURATION
 // ============================================================================
 
-$httpClient = new Client(['verify' => false]);
-$httpFactory = new HttpFactory();
-
 $baseUrl = 'https://sid.demo.sk.ee/smart-id-rp/v3';
 $relyingPartyUUID = '00000000-0000-4000-8000-000000000000';
 $relyingPartyName = 'DEMO';
 
+// Public HTTPS URL for Web2App callback (required by Smart-ID API)
+// Use ngrok or similar tunnel for local development: ngrok http 8080
+$publicBaseUrl = 'https://3519-2001-7d0-89b7-e80-248e-5ba0-afc2-af4e.ngrok-free.app';
+
 $connector = new SmartIdRestConnector(
     $baseUrl,
-    $httpClient,
-    $httpFactory,
-    $httpFactory,
+    SslPinnedPublicKeyStore::loadDemo(),
 );
 
 // ============================================================================
@@ -103,17 +102,23 @@ if (isset($_GET['action'])) {
 
         // For Web2App, the callback URL must be sent to API during session init!
         // This is required so the Smart-ID backend can validate the authCode
-        // IMPORTANT: The API requires HTTPS for callback URL - use ngrok or similar for local testing
-        $callbackUrl = 'https://' . $_SERVER['HTTP_HOST'] . strtok($_SERVER['REQUEST_URI'], '?') . '?action=callback';
+        $callbackUrl = $publicBaseUrl . '/web2app.php?action=callback';
+
+        // Validate callback URL format — Smart-ID API requires HTTPS
+        CallbackUrlValidator::validateOrThrow($callbackUrl, requireHttps: true);
+
+        $interactions = [Interaction::displayTextAndPin('Test login')];
+        $interactionsBase64 = base64_encode(json_encode(
+            array_map(fn (Interaction $i) => $i->toArray(), $interactions),
+            JSON_THROW_ON_ERROR,
+        ));
 
         $request = new DeviceLinkAuthenticationRequest(
             relyingPartyUUID: $relyingPartyUUID,
             relyingPartyName: $relyingPartyName,
             rpChallenge: $rpChallenge,
             hashAlgorithm: HashAlgorithm::SHA512,
-            allowedInteractionsOrder: [
-                Interaction::displayTextAndPin('Test login'),
-            ],
+            allowedInteractionsOrder: $interactions,
             certificateLevel: CertificateLevel::QUALIFIED,
             initialCallbackUrl: $callbackUrl,  // Required for Web2App!
         );
@@ -128,6 +133,7 @@ if (isset($_GET['action'])) {
             'deviceLinkBase' => $response->getDeviceLinkBase(),
             'rpChallenge' => $rpChallenge,
             'rpName' => $relyingPartyName,
+            'interactionsBase64' => $interactionsBase64,
             'verificationCode' => $verificationCode,
             'createdAt' => time(),
             'callbackUrl' => $callbackUrl,  // Store for link generation
@@ -183,82 +189,129 @@ if (isset($_GET['action'])) {
     // -------------------------------------------------------------------------
     // ACTION: callback - Handle redirect from Smart-ID app after authentication
     // The app redirects here with sessionSecretDigest and userChallengeVerifier
+    // Store them in session for use during status polling validation
     // -------------------------------------------------------------------------
     if ($_GET['action'] === 'callback') {
-        // Override JSON content type for HTML callback page
-        header('Content-Type: text/html; charset=utf-8');
-        
-        $sessionSecretDigest = $_GET['sessionSecretDigest'] ?? null;
-        $userChallengeVerifier = $_GET['userChallengeVerifier'] ?? null;
-        
-        // =====================================================================
-        // VALIDATION STEP 1: Verify sessionSecretDigest
-        // This proves the callback came from Smart-ID (not spoofed)
-        // =====================================================================
-        $digestValid = false;
-        $auth = $_SESSION['auth'] ?? null;
-        if ($auth && $sessionSecretDigest) {
-            $digestValid = CallbackUrlValidator::validateSessionSecretDigest(
-                $sessionSecretDigest,
-                $auth['sessionSecret']
-            );
+        // =========================================================
+        // Per Smart-ID docs, validate callback query parameters:
+        // 1. `value` must match sessionToken from init response
+        // 2. `sessionSecretDigest` must be present (validated later)
+        // 3. `userChallengeVerifier` must be present for auth flows
+        // =========================================================
+        if (!isset($_SESSION['auth'])) {
+            header('Content-Type: text/html; charset=utf-8');
+            http_response_code(403);
+            echo '<h1>No active session</h1>';
+            exit;
         }
-        
-        // =====================================================================
-        // VALIDATION STEP 2: Verify userChallengeVerifier (after polling completes)
-        // This proves the user actually completed the authentication
-        // The userChallenge comes from session status response: signature.userChallenge
-        // =====================================================================
-        // Note: In a real app, you would:
-        // 1. Poll session status to get the final response
-        // 2. Extract signature.userChallenge from the response
-        // 3. Compare: CallbackUrlValidator::validateUserChallengeVerifier(
-        //        $userChallengeVerifier,
-        //        $sessionStatus->getSignature()->getUserChallenge()
-        //    );
-        
+
+        // Step 1: Verify URL token matches sessionToken
+        $urlToken = $_GET['value'] ?? '';
+        $expectedToken = $_SESSION['auth']['sessionToken'] ?? '';
+        if (!hash_equals($expectedToken, $urlToken)) {
+            header('Content-Type: text/html; charset=utf-8');
+            http_response_code(403);
+            echo '<h1>Invalid callback: URL token mismatch</h1>';
+            exit;
+        }
+
+        // Store callback parameters in session for validation during status polling
+        if (isset($_GET['sessionSecretDigest'])) {
+            $_SESSION['auth']['callbackSessionSecretDigest'] = $_GET['sessionSecretDigest'];
+        }
+        if (isset($_GET['userChallengeVerifier'])) {
+            $_SESSION['auth']['callbackUserChallengeVerifier'] = $_GET['userChallengeVerifier'];
+        }
+
+        // Override JSON content type — render HTML page that polls for status
+        header('Content-Type: text/html; charset=utf-8');
         ?>
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Authentication Callback</title>
+            <title>Verifying Authentication...</title>
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                        background: #0F172A; color: #E2E8F0; padding: 20px; text-align: center; }
                 .card { background: #1E293B; border-radius: 16px; padding: 32px; max-width: 400px; margin: 40px auto; }
-                .success { color: #22C55E; font-size: 48px; }
-                h1 { margin: 16px 0 8px; }
-                .param { background: #334155; border-radius: 8px; padding: 12px; margin: 12px 0; 
-                         font-family: monospace; font-size: 11px; word-break: break-all; text-align: left; }
-                .label { color: #94A3B8; font-size: 12px; margin-bottom: 4px; }
+                h1 { margin: 16px 0 8px; font-size: 22px; }
+                .spinner { width: 24px; height: 24px; border: 3px solid #334155; border-top-color: #22C55E;
+                           border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
+                @keyframes spin { to { transform: rotate(360deg); } }
+                .success-icon { color: #22C55E; font-size: 48px; }
+                .error-icon { color: #EF4444; font-size: 48px; }
+                .user-info { background: #334155; border-radius: 8px; padding: 16px; margin: 16px 0;
+                             text-align: left; font-size: 14px; }
+                .user-info p { margin: 8px 0; }
+                .check-item { background: #334155; border-radius: 8px; padding: 10px 14px; margin: 6px 0;
+                              text-align: left; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+                .check-ok { color: #22C55E; }
+                .check-fail { color: #EF4444; }
+                .hidden { display: none; }
             </style>
         </head>
         <body>
             <div class="card">
-                <div class="success">✓</div>
-                <h1>Authentication Complete!</h1>
-                <p>Smart-ID app redirected back successfully.</p>
-                
-                <div class="param">
-                    <div class="label">sessionSecretDigest:</div>
-                    <?= htmlspecialchars($sessionSecretDigest ?? 'N/A') ?>
-                    <div style="margin-top: 8px; color: <?= $digestValid ? '#22C55E' : '#EF4444' ?>">
-                        <?= $digestValid ? '✓ Valid' : '✗ Invalid or session expired' ?>
-                    </div>
+                <div id="loading">
+                    <div class="spinner"></div>
+                    <h1>Verifying authentication...</h1>
+                    <p style="color: #94A3B8; font-size: 13px;">Polling session status and validating response</p>
                 </div>
-                <div class="param">
-                    <div class="label">userChallengeVerifier:</div>
-                    <?= htmlspecialchars($userChallengeVerifier ?? 'N/A') ?>
-                    <div style="margin-top: 8px; color: #94A3B8; font-size: 10px;">
-                        (Validated against session status response)
-                    </div>
-                </div>
-                
-                <p style="margin-top: 24px; color: #94A3B8; font-size: 13px;">
-                    In production, also poll session status and validate userChallengeVerifier.
-                </p>
+                <div id="result" class="hidden"></div>
             </div>
+            <script>
+                async function pollStatus() {
+                    try {
+                        const res = await fetch('?action=status');
+                        const data = await res.json();
+
+                        if (data.state !== 'COMPLETE') {
+                            setTimeout(pollStatus, 1500);
+                            return;
+                        }
+
+                        const resultEl = document.getElementById('result');
+                        document.getElementById('loading').classList.add('hidden');
+                        resultEl.classList.remove('hidden');
+
+                        if (data.endResult === 'OK' && data.user) {
+                            let checksHtml = '';
+                            if (data.checks) {
+                                checksHtml = data.checks.map(c =>
+                                    `<div class="check-item">
+                                        <span class="${c.ok ? 'check-ok' : 'check-fail'}">${c.ok ? '✓' : '✗'}</span>
+                                        <span>${c.label}</span>
+                                    </div>`
+                                ).join('');
+                            }
+                            resultEl.innerHTML = `
+                                <div class="success-icon">✓</div>
+                                <h1>Authentication Verified!</h1>
+                                <p style="color: #94A3B8; font-size: 13px; margin-bottom: 12px;">
+                                    All production validation checks passed
+                                </p>
+                                ${checksHtml}
+                                <div class="user-info">
+                                    <p><strong>Name:</strong> ${data.user.fullName}</p>
+                                    <p><strong>Identity Code:</strong> ${data.user.identityCode}</p>
+                                    <p><strong>Country:</strong> ${data.user.country}</p>
+                                    ${data.user.dateOfBirth ? `<p><strong>Date of Birth:</strong> ${data.user.dateOfBirth}</p>` : ''}
+                                </div>`;
+                        } else {
+                            resultEl.innerHTML = `
+                                <div class="error-icon">✗</div>
+                                <h1>Authentication Failed</h1>
+                                <p style="color: #EF4444; font-size: 14px;">
+                                    ${data.error || data.endResult || 'Unknown error'}
+                                </p>`;
+                        }
+                    } catch (e) {
+                        setTimeout(pollStatus, 2000);
+                    }
+                }
+                pollStatus();
+            </script>
         </body>
         </html>
         <?php
@@ -267,6 +320,8 @@ if (isset($_GET['action'])) {
 
     // -------------------------------------------------------------------------
     // ACTION: status - Poll for authentication session status
+    // Performs full production-like validation when session is complete
+    // AND callback parameters have been received
     // -------------------------------------------------------------------------
     if ($_GET['action'] === 'status') {
         if (!isset($_SESSION['auth'])) {
@@ -284,20 +339,77 @@ if (isset($_GET['action'])) {
             $response['endResult'] = $status->getResult()->getEndResult();
 
             if ($status->getResult()->isOk()) {
+                // =========================================================
+                // In Web2App flow, we MUST wait for the callback URL redirect
+                // before validating. The callback delivers sessionSecretDigest
+                // and userChallengeVerifier which prove the redirect actually
+                // came from Smart-ID and the user completed authentication.
+                // Without these, authentication should NOT be considered valid.
+                // =========================================================
+                $hasCallbackParams = isset(
+                    $_SESSION['auth']['callbackSessionSecretDigest'],
+                    $_SESSION['auth']['callbackUserChallengeVerifier'],
+                );
+
+                if (!$hasCallbackParams) {
+                    // Session is complete but callback hasn't been received yet.
+                    // Tell the frontend to keep waiting.
+                    $response['state'] = 'WAITING_FOR_CALLBACK';
+                    $response['endResult'] = null;
+                    echo json_encode($response);
+                    exit;
+                }
+
                 try {
+                    $checks = [];
+
+                    // =========================================================
+                    // STEP 1: Verify sessionSecretDigest from callback URL
+                    // Proves the callback came from Smart-ID (not spoofed)
+                    // =========================================================
+                    $validator = new AuthenticationResponseValidator();
+                    $validator->verifySessionSecret(
+                        $_SESSION['auth']['sessionSecret'],
+                        $_SESSION['auth']['callbackSessionSecretDigest'],
+                    );
+                    $checks[] = ['label' => 'Session secret digest', 'ok' => true];
+
+                    // =========================================================
+                    // STEP 2: Verify userChallengeVerifier from callback URL
+                    // Proves the user actually completed authentication
+                    // =========================================================
+                    if ($status->getSignature() !== null) {
+                        $validator->verifyUserChallenge(
+                            $_SESSION['auth']['callbackUserChallengeVerifier'],
+                            $status->getSignature()->getUserChallenge(),
+                        );
+                        $checks[] = ['label' => 'User challenge verifier', 'ok' => true];
+                    }
+
+                    // =========================================================
+                    // STEP 3: Full response validation
+                    // Certificate trust, basic constraints, policies, purpose,
+                    // ACSP_V2 signature verification — everything
+                    // =========================================================
                     $validator = new AuthenticationResponseValidator();
                     TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
-
-                    // Skip signature verification for quick local testing
-                    // WARNING: Enable signature verification in production!
-                    $validator->setSkipSignatureVerification(true);
 
                     $identity = $validator->validate(
                         $status,
                         $_SESSION['auth']['rpChallenge'],
-                        CertificateLevel::QUALIFIED,
+                        $_SESSION['auth']['rpName'],
+                        $_SESSION['auth']['interactionsBase64'],
+                        $_SESSION['auth']['callbackUrl'],
+                        requiredCertificateLevel: CertificateLevel::QUALIFIED,
+                        schemeName: AuthCodeCalculator::SCHEME_NAME_DEMO,
                     );
 
+                    $checks[] = ['label' => 'Certificate trust chain', 'ok' => true];
+                    $checks[] = ['label' => 'Basic constraints (CA:FALSE)', 'ok' => true];
+                    $checks[] = ['label' => 'Certificate policies', 'ok' => true];
+                    $checks[] = ['label' => 'ACSP_V2 RSA-PSS signature', 'ok' => true];
+
+                    $response['checks'] = $checks;
                     $response['user'] = [
                         'givenName' => $identity->getGivenName(),
                         'surname' => $identity->getSurname(),
@@ -497,16 +609,7 @@ if (isset($_GET['action'])) {
         <h1>Log in with Smart-ID</h1>
         <p class="subtitle">Tap the button below to open Smart-ID app on this device</p>
 
-        <div class="info-box">
-            <p><strong>📱 Mobile Only:</strong> This example is for mobile browsers. Tap the button to open the Smart-ID app. After authentication, you'll be redirected back here. <strong>Requires Smart-ID Demo app</strong> for testing.</p>
-        </div>
-
         <div id="auth-container" class="hidden">
-            <div class="verification-code">
-                <label>Verification code</label>
-                <span class="code" id="verification-code">----</span>
-            </div>
-
             <a href="#" id="smart-id-btn" class="btn">Open Smart-ID App</a>
 
             <p class="status waiting" id="status">
@@ -534,7 +637,6 @@ if (isset($_GET['action'])) {
                 const linkRes = await fetch('?action=link');
                 const linkData = await linkRes.json();
                 
-                document.getElementById('verification-code').textContent = linkData.verificationCode;
                 document.getElementById('smart-id-btn').href = linkData.url;
                 
                 document.getElementById('loading').classList.add('hidden');
@@ -547,28 +649,44 @@ if (isset($_GET['action'])) {
         async function checkStatus() {
             const res = await fetch('?action=status');
             const data = await res.json();
-            
+            const statusEl = document.getElementById('status');
+
+            if (data.state === 'WAITING_FOR_CALLBACK') {
+                document.getElementById('smart-id-btn').classList.add('hidden');
+                statusEl.innerHTML = `
+                    <span class="spinner"></span>
+                    <span>Authenticating...</span>`;
+                return; // keep polling
+            }
+
             if (data.state === 'COMPLETE') {
                 clearInterval(statusInterval);
-                const statusEl = document.getElementById('status');
                 statusEl.className = 'status';
 
                 if (data.endResult === 'OK' && data.user) {
                     document.getElementById('smart-id-btn').classList.add('hidden');
+                    let checksHtml = '';
+                    if (data.checks) {
+                        checksHtml = data.checks.map(c =>
+                            `<div style="background: var(--smart-id-green-light); border-radius: 8px; padding: 8px 12px; margin: 4px 0; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                                <span style="color: var(--smart-id-green);">✓</span>
+                                <span style="color: var(--text-primary);">${c.label}</span>
+                            </div>`
+                        ).join('');
+                    }
                     statusEl.innerHTML = `
                         <span class="success">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
-                            Authentication successful!
+                            Authentication verified!
                         </span>
+                        ${checksHtml}
                         <div class="user-info">
                             <p><strong>Name:</strong> ${data.user.fullName}</p>
                             <p><strong>Identity Code:</strong> ${data.user.identityCode}</p>
                             <p><strong>Country:</strong> ${data.user.country}</p>
                             ${data.user.dateOfBirth ? `<p><strong>Date of Birth:</strong> ${data.user.dateOfBirth}</p>` : ''}
-                            ${data.user.gender ? `<p><strong>Gender:</strong> ${data.user.gender === 'M' ? 'Male' : 'Female'}</p>` : ''}
-                            ${data.user.age !== null ? `<p><strong>Age:</strong> ${data.user.age}</p>` : ''}
                         </div>`;
                 } else if (data.endResult === 'VALIDATION_ERROR') {
                     statusEl.innerHTML = `<span style="color: #dc2626;">Validation failed: ${data.error || 'Unknown error'}</span>`;

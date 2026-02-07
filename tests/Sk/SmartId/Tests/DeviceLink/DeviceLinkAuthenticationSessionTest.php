@@ -191,6 +191,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->rpName,
             $this->interactions,
             $this->verificationCode,
+            'https://example.com/callback?value=random123',
         );
 
         $url = $session->buildWeb2AppUrl();
@@ -199,7 +200,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
     }
 
     #[Test]
-    public function buildWeb2AppUrlWithExplicitElapsedSeconds(): void
+    public function buildWeb2AppUrlThrowsWithoutCallbackUrl(): void
     {
         $session = new DeviceLinkAuthenticationSession(
             $this->response,
@@ -209,40 +210,10 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->verificationCode,
         );
 
-        $url = $session->buildWeb2AppUrl(10);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('callbackUrl');
 
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=Web2App&', $url);
+        $session->buildWeb2AppUrl();
     }
 
-    #[Test]
-    public function buildApp2AppUrlReturnsValidUrl(): void
-    {
-        $session = new DeviceLinkAuthenticationSession(
-            $this->response,
-            $this->rpChallenge,
-            $this->rpName,
-            $this->interactions,
-            $this->verificationCode,
-        );
-
-        $url = $session->buildApp2AppUrl();
-
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=App2App&', $url);
-    }
-
-    #[Test]
-    public function buildApp2AppUrlWithExplicitElapsedSeconds(): void
-    {
-        $session = new DeviceLinkAuthenticationSession(
-            $this->response,
-            $this->rpChallenge,
-            $this->rpName,
-            $this->interactions,
-            $this->verificationCode,
-        );
-
-        $url = $session->buildApp2AppUrl(15);
-
-        $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=App2App&', $url);
-    }
 }

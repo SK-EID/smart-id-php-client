@@ -92,16 +92,21 @@ class CallbackUrlValidator
     /**
      * Validates userChallengeVerifier against userChallenge from session status.
      *
-     * For authentication flows, the Smart-ID app returns userChallengeVerifier which
-     * must match the userChallenge in the session status response signature.
+     * For authentication flows, the Smart-ID app returns userChallengeVerifier in the
+     * callback URL. Per the docs: apply SHA-256 to the userChallengeVerifier value
+     * (as is, without Base64URL decoding), then Base64URL-encode the result and
+     * compare with userChallenge from the session API response signature object.
      *
-     * @param string $userChallengeVerifier From callback URL
-     * @param string $userChallenge From session status response (signature.userChallenge)
-     * @return bool True if verifier matches challenge
+     * @param string $userChallengeVerifier Base64URL-encoded value from callback URL
+     * @param string $userChallenge Base64URL-encoded value from session status response (signature.userChallenge)
+     * @return bool True if SHA-256(verifier) matches challenge
      */
     public static function validateUserChallengeVerifier(string $userChallengeVerifier, string $userChallenge): bool
     {
-        return hash_equals($userChallenge, $userChallengeVerifier);
+        $hashedVerifier = hash('sha256', $userChallengeVerifier, true);
+        $hashedVerifierBase64Url = self::base64UrlEncode($hashedVerifier);
+
+        return hash_equals($userChallenge, $hashedVerifierBase64Url);
     }
 
     private static function base64UrlEncode(string $data): string

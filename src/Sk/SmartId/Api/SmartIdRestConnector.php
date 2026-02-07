@@ -30,6 +30,8 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Api;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -44,15 +46,54 @@ use Sk\SmartId\Exception\UserAccountException;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
 use Sk\SmartId\Notification\NotificationAuthenticationResponse;
 use Sk\SmartId\Session\SessionStatus;
+use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
+
+defined('CURLOPT_PINNEDPUBLICKEY') || define('CURLOPT_PINNEDPUBLICKEY', 10230);
 
 class SmartIdRestConnector implements SmartIdConnector
 {
+    private readonly ClientInterface $httpClient;
+
+    private readonly RequestFactoryInterface $requestFactory;
+
+    private readonly StreamFactoryInterface $streamFactory;
+
     public function __construct(
         private readonly string $baseUrl,
-        private readonly ClientInterface $httpClient,
-        private readonly RequestFactoryInterface $requestFactory,
-        private readonly StreamFactoryInterface $streamFactory,
+        SslPinnedPublicKeyStore $sslPinnedKeys,
     ) {
+        $this->httpClient = new Client([
+            'verify' => false,
+            'curl' => [
+                CURLOPT_PINNEDPUBLICKEY => $sslPinnedKeys->toPinnedKeyString(),
+            ],
+        ]);
+        $this->requestFactory = new HttpFactory();
+        $this->streamFactory = new HttpFactory();
+    }
+
+    /**
+     * @internal For unit testing only. Do not use in production code.
+     */
+    public static function createForTesting(
+        string $baseUrl,
+        ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        StreamFactoryInterface $streamFactory,
+    ): self {
+        $instance = (new \ReflectionClass(self::class))->newInstanceWithoutConstructor();
+
+        $setClosed = function (string $prop, mixed $value) use ($instance): void {
+            $ref = new \ReflectionProperty(self::class, $prop);
+            $ref->setValue($instance, $value);
+        };
+
+        $setClosed('baseUrl', $baseUrl);
+        $setClosed('httpClient', $httpClient);
+        $setClosed('requestFactory', $requestFactory);
+        $setClosed('streamFactory', $streamFactory);
+
+        return $instance;
     }
 
     public function initiateDeviceLinkAuthentication(

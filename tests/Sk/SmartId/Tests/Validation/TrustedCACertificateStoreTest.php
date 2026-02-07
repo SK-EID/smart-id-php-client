@@ -33,6 +33,7 @@ namespace Sk\SmartId\Tests\Validation;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
+use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 
 class TrustedCACertificateStoreTest extends TestCase
@@ -85,5 +86,41 @@ class TrustedCACertificateStoreTest extends TestCase
         $this->expectExceptionMessage('No certificate files found');
 
         TrustedCACertificateStore::loadFromDirectory(sys_get_temp_dir());
+    }
+
+    #[Test]
+    public function configureValidatorWithOcspSetsCertificatesAndOcspChecker(): void
+    {
+        $store = TrustedCACertificateStore::loadFromDefaults();
+        $validator = new AuthenticationResponseValidator();
+
+        $result = $store->configureValidatorWithOcsp($validator);
+
+        $this->assertSame($validator, $result);
+        $this->assertNotEmpty($validator->getTrustedCaCertificates());
+        $this->assertSame($store->getCertificates(), $validator->getTrustedCaCertificates());
+    }
+
+    #[Test]
+    public function configureValidatorWithOcspAcceptsCustomChecker(): void
+    {
+        $store = TrustedCACertificateStore::loadFromDefaults();
+        $validator = new AuthenticationResponseValidator();
+        $checker = new OcspCertificateRevocationChecker();
+
+        $result = $store->configureValidatorWithOcsp($validator, $checker);
+
+        $this->assertSame($validator, $result);
+    }
+
+    #[Test]
+    public function loadTestCertificatesReturnsCertificates(): void
+    {
+        $store = TrustedCACertificateStore::loadTestCertificates();
+
+        $certificates = $store->getCertificates();
+
+        $this->assertNotEmpty($certificates);
+        $this->assertContainsOnly('string', $certificates);
     }
 }
