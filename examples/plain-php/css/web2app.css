@@ -1,0 +1,65 @@
+.badge {
+    display: inline-block;
+    background: var(--smart-id-green-light);
+    color: var(--smart-id-green-dark);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.verification-code {
+    background: var(--bg-gray);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+.verification-code label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+.verification-code .code {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 8px;
+}
+.btn {
+    display: block;
+    width: 100%;
+    padding: 16px 24px;
+    background: var(--smart-id-green);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+.btn:hover {
+    background: var(--smart-id-green-dark);
+}
+.btn:disabled {
+    background: var(--text-secondary);
+    cursor: not-allowed;
+}
+.info-box {
+    background: #FEF3C7;
+    border: 1px solid #F59E0B;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    text-align: left;
+}
+.info-box p {
+    color: #92400E;
+    font-size: 13px;
+    line-height: 1.5;
+}
+.hidden { display: none !important; }

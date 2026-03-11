@@ -62,7 +62,6 @@ use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Util\RpChallengeGenerator;
-use Sk\SmartId\Util\VerificationCodeCalculator;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 use chillerlan\QRCode\QRCode;
@@ -122,10 +121,6 @@ if (isset($_GET['action'])) {
         // Send the request to Smart-ID API
         $response = $connector->initiateDeviceLinkAuthentication($request);
 
-        // Calculate the 4-digit verification code to display to the user
-        // User must see this code in their Smart-ID app to confirm it's the right session
-        $verificationCode = VerificationCodeCalculator::calculateFromRpChallenge($rpChallenge);
-
         // Store session data for subsequent requests (QR refresh, status polling)
         $_SESSION['auth'] = [
             'sessionId' => $response->getSessionID(),
@@ -135,13 +130,11 @@ if (isset($_GET['action'])) {
             'rpChallenge' => $rpChallenge,
             'rpName' => $relyingPartyName,
             'interactionsBase64' => $interactionsBase64,
-            'verificationCode' => $verificationCode,
             'createdAt' => time(),
         ];
 
         echo json_encode([
             'success' => true,
-            'verificationCode' => $verificationCode,
         ]);
         exit;
     }
@@ -172,7 +165,6 @@ if (isset($_GET['action'])) {
             $auth['rpChallenge'],
             $auth['rpName'],
             [Interaction::displayTextAndPin('Test login')],
-            $auth['verificationCode'],
         );
 
         // Calculate how many seconds have passed since session creation
@@ -291,113 +283,8 @@ if (isset($_GET['action'])) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --smart-id-green: #00B955;
-            --smart-id-green-dark: #009944;
-            --smart-id-green-light: #E6F9EF;
-            --text-primary: #1A1A1A;
-            --text-secondary: #6B7280;
-            --bg-gray: #F5F7FA;
-            --white: #FFFFFF;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-gray);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .card {
-            background: var(--white);
-            border-radius: 24px;
-            padding: 48px 40px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-            text-align: center;
-            max-width: 420px;
-            width: 100%;
-        }
-        h1 {
-            color: var(--text-primary);
-            margin-bottom: 8px;
-            font-size: 24px;
-            font-weight: 600;
-        }
-        .subtitle {
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-            font-size: 15px;
-            line-height: 1.5;
-        }
-        #qr-container {
-            background: var(--white);
-            border: 2px solid var(--bg-gray);
-            border-radius: 16px;
-            padding: 24px;
-            margin: 0 auto 24px;
-            display: inline-block;
-        }
-        #qr-code {
-            max-width: 200px;
-            display: block;
-        }
-        .status {
-            color: var(--text-secondary);
-            margin-top: 16px;
-            font-size: 14px;
-        }
-        .status.waiting {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--bg-gray);
-            border-top-color: var(--smart-id-green);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .success {
-            color: var(--smart-id-green);
-            font-weight: 600;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .success svg {
-            width: 24px;
-            height: 24px;
-        }
-        .user-info {
-            margin-top: 20px;
-            padding: 16px;
-            background: var(--smart-id-green-light);
-            border-radius: 12px;
-            text-align: left;
-        }
-        .user-info p {
-            margin: 8px 0;
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-        .user-info p:first-child {
-            margin-top: 0;
-        }
-        .user-info p:last-child {
-            margin-bottom: 0;
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
     <div class="card">
@@ -415,63 +302,6 @@ if (isset($_GET['action'])) {
 
     </div>
 
-    <script>
-        let refreshInterval;
-        let statusInterval;
-
-        async function init() {
-            const res = await fetch('?action=init');
-            const data = await res.json();
-            if (data.success) {
-                refreshQR();
-                refreshInterval = setInterval(refreshQR, 1000);
-                statusInterval = setInterval(checkStatus, 2000);
-            }
-        }
-
-        async function refreshQR() {
-            const res = await fetch('?action=qr&t=' + Date.now());
-            const data = await res.json();
-            if (data.qrImage) {
-                document.getElementById('qr-code').src = data.qrImage;
-            }
-        }
-
-        async function checkStatus() {
-            const res = await fetch('?action=status');
-            const data = await res.json();
-            if (data.state === 'COMPLETE') {
-                clearInterval(refreshInterval);
-                clearInterval(statusInterval);
-                const statusEl = document.getElementById('status');
-                statusEl.className = 'status';
-
-                if (data.endResult === 'OK' && data.user) {
-                    // Display user information after successful authentication
-                    statusEl.innerHTML = `
-                        <span class="success">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                            Authentication successful!
-                        </span>
-                        <div class="user-info">
-                            <p><strong>Name:</strong> ${data.user.fullName}</p>
-                            <p><strong>Identity Code:</strong> ${data.user.identityCode}</p>
-                            <p><strong>Country:</strong> ${data.user.country}</p>
-                            ${data.user.dateOfBirth ? `<p><strong>Date of Birth:</strong> ${data.user.dateOfBirth}</p>` : ''}
-                            ${data.user.gender ? `<p><strong>Gender:</strong> ${data.user.gender === 'M' ? 'Male' : 'Female'}</p>` : ''}
-                            ${data.user.age !== null ? `<p><strong>Age:</strong> ${data.user.age}</p>` : ''}
-                        </div>`;
-                } else if (data.endResult === 'VALIDATION_ERROR') {
-                    statusEl.innerHTML = `<span style="color: #dc2626;">Validation failed: ${data.error || 'Unknown error'}</span>`;
-                } else {
-                    statusEl.innerHTML = `<span style="color: #dc2626;">Authentication failed: ${data.endResult || 'Unknown error'}</span>`;
-                }
-            }
-        }
-
-        init();
-    </script>
+    <script src="js/index.js"></script>
 </body>
 </html>

@@ -1,0 +1,12 @@
+#qr-container {
+    background: var(--white);
+    border: 2px solid var(--bg-gray);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 0 auto 24px;
+    display: inline-block;
+}
+#qr-code {
+    max-width: 200px;
+    display: block;
+}

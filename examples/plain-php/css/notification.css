@@ -1,0 +1,94 @@
+.form-group {
+    margin-bottom: 16px;
+    text-align: left;
+}
+label {
+    display: block;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+select, input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-gray);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+select:focus, input:focus {
+    outline: none;
+    border-color: var(--smart-id-green);
+    box-shadow: 0 0 0 3px var(--smart-id-green-light);
+}
+.btn {
+    width: 100%;
+    padding: 14px 24px;
+    background: var(--smart-id-green);
+    color: var(--white);
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 8px;
+}
+.btn:hover {
+    background: var(--smart-id-green-dark);
+}
+.btn:disabled {
+    background: var(--border-gray);
+    cursor: not-allowed;
+}
+.verification-container {
+    display: none;
+    margin-top: 24px;
+}
+.verification-code {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--smart-id-green);
+    letter-spacing: 8px;
+    margin: 16px 0;
+}
+.verification-hint {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+.status {
+    margin-top: 24px;
+}
+#login-form.hidden {
+    display: none;
+}
+.toggle-group {
+    display: flex;
+    background: var(--bg-gray);
+    border-radius: 10px;
+    padding: 3px;
+}
+.toggle-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+.toggle-btn.active {
+    background: var(--white);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.hidden {
+    display: none !important;
+}

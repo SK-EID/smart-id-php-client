@@ -41,7 +41,7 @@ use Sk\SmartId\Model\Interaction;
  * - Building QR code URLs for display to the user
  * - Building web2app deep links for mobile web scenarios
  * - Tracking elapsed time (important for QR code URL validity)
- * - Accessing the verification code to display to the user
+ * - Optionally providing a verification code (not needed for QR flow)
  *
  * The session tracks creation time to automatically calculate elapsed seconds
  * for QR code URLs, which is required by the Smart-ID protocol.
@@ -61,7 +61,7 @@ class DeviceLinkAuthenticationSession
         private readonly string $rpChallenge,
         private readonly string $rpName,
         private readonly array $interactions,
-        private readonly string $verificationCode,
+        private readonly ?string $verificationCode = null,
         private readonly ?string $callbackUrl = null,
     ) {
         $this->createdAt = microtime(true);
@@ -72,7 +72,7 @@ class DeviceLinkAuthenticationSession
         return $this->response->getSessionID();
     }
 
-    public function getVerificationCode(): string
+    public function getVerificationCode(): ?string
     {
         return $this->verificationCode;
     }
