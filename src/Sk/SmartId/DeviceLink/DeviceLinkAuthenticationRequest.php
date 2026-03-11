@@ -66,6 +66,7 @@ class DeviceLinkAuthenticationRequest extends AbstractAuthenticationRequest
         ?string $nonce = null,
         ?array $capabilities = null,
         private readonly ?string $initialCallbackUrl = null,
+        bool $shareMdClientIpAddress = false,
     ) {
         parent::__construct(
             $relyingPartyUUID,
@@ -76,6 +77,7 @@ class DeviceLinkAuthenticationRequest extends AbstractAuthenticationRequest
             $certificateLevel,
             $nonce,
             $capabilities,
+            $shareMdClientIpAddress,
         );
     }
 

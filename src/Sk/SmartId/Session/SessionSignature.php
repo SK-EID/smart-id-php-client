@@ -35,7 +35,7 @@ use Sk\SmartId\Exception\ValidationException;
 class SessionSignature
 {
     /**
-     * @param array<string, string>|null $signatureAlgorithmParameters
+     * @param array<string, mixed>|null $signatureAlgorithmParametersRaw
      */
     public function __construct(
         private readonly string $value,
@@ -44,7 +44,8 @@ class SessionSignature
         private readonly ?string $userChallenge = null,
         private readonly ?string $flowType = null,
         private readonly ?string $interactionTypeUsed = null,
-        private readonly ?array $signatureAlgorithmParameters = null,
+        private readonly ?array $signatureAlgorithmParametersRaw = null,
+        private readonly ?SignatureAlgorithmParameters $parsedAlgorithmParameters = null,
     ) {
     }
 
@@ -65,8 +66,13 @@ class SessionSignature
         $flowType = $data['flowType'] ?? null;
         $interactionTypeUsed = $data['interactionTypeUsed'] ?? null;
 
-        /** @var array<string, string>|null $algorithmParams */
-        $algorithmParams = $data['signatureAlgorithmParameters'] ?? null;
+        /** @var array<string, mixed>|null $algorithmParamsRaw */
+        $algorithmParamsRaw = $data['signatureAlgorithmParameters'] ?? null;
+
+        $parsedParams = null;
+        if (is_array($algorithmParamsRaw)) {
+            $parsedParams = SignatureAlgorithmParameters::fromArray($algorithmParamsRaw);
+        }
 
         return new self(
             $value,
@@ -75,7 +81,8 @@ class SessionSignature
             is_string($userChallenge) ? $userChallenge : null,
             is_string($flowType) ? $flowType : null,
             is_string($interactionTypeUsed) ? $interactionTypeUsed : null,
-            $algorithmParams,
+            $algorithmParamsRaw,
+            $parsedParams,
         );
     }
 
@@ -110,11 +117,16 @@ class SessionSignature
     }
 
     /**
-     * @return array<string, string>|null
+     * @return array<string, mixed>|null
      */
     public function getSignatureAlgorithmParameters(): ?array
     {
-        return $this->signatureAlgorithmParameters;
+        return $this->signatureAlgorithmParametersRaw;
+    }
+
+    public function getParsedAlgorithmParameters(): ?SignatureAlgorithmParameters
+    {
+        return $this->parsedAlgorithmParameters;
     }
 
     public function getDecodedValue(): string

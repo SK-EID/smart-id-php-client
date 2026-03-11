@@ -36,6 +36,9 @@ class SessionStatus
 
     public const STATE_COMPLETE = 'COMPLETE';
 
+    /**
+     * @param string[]|null $ignoredProperties
+     */
     public function __construct(
         private readonly string $state,
         private readonly ?SessionResult $result = null,
@@ -44,6 +47,7 @@ class SessionStatus
         private readonly ?string $signatureProtocol = null,
         private readonly ?string $deviceIpAddress = null,
         private readonly ?string $interactionTypeUsed = null,
+        private readonly ?array $ignoredProperties = null,
     ) {
     }
 
@@ -82,6 +86,12 @@ class SessionStatus
         $deviceIpAddress = $data['deviceIpAddress'] ?? null;
         $interactionTypeUsed = $data['interactionTypeUsed'] ?? null;
 
+        $ignoredProperties = null;
+        if (isset($data['ignoredProperties']) && is_array($data['ignoredProperties'])) {
+            /** @var string[] $ignoredProperties */
+            $ignoredProperties = array_filter($data['ignoredProperties'], 'is_string');
+        }
+
         return new self(
             $state,
             $result,
@@ -90,6 +100,7 @@ class SessionStatus
             is_string($signatureProtocol) ? $signatureProtocol : null,
             is_string($deviceIpAddress) ? $deviceIpAddress : null,
             is_string($interactionTypeUsed) ? $interactionTypeUsed : null,
+            $ignoredProperties,
         );
     }
 
@@ -136,5 +147,13 @@ class SessionStatus
     public function getInteractionTypeUsed(): ?string
     {
         return $this->interactionTypeUsed;
+    }
+
+    /**
+     * @return string[]|null
+     */
+    public function getIgnoredProperties(): ?array
+    {
+        return $this->ignoredProperties;
     }
 }

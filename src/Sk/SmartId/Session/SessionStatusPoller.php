@@ -32,10 +32,13 @@ namespace Sk\SmartId\Session;
 
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Exception\DocumentUnusableException;
+use Sk\SmartId\Exception\ProtocolFailureException;
 use Sk\SmartId\Exception\RequiredInteractionNotSupportedException;
+use Sk\SmartId\Exception\ServerErrorException;
 use Sk\SmartId\Exception\SessionTimeoutException;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\UserRefusedException;
+use Sk\SmartId\Exception\UserRefusedInteractionException;
 use Sk\SmartId\Exception\WrongVerificationCodeException;
 
 class SessionStatusPoller
@@ -117,6 +120,14 @@ class SessionStatusPoller
 
         $endResult = $result->getEndResult();
 
+        if ($result->isUserRefusedInteraction()) {
+            $interaction = $result->getDetails()?->getInteraction();
+            throw new UserRefusedInteractionException(
+                $interaction,
+                'User refused interaction' . ($interaction !== null ? ': ' . $interaction : ''),
+            );
+        }
+
         if ($result->isUserRefused()) {
             throw new UserRefusedException('User refused: ' . $endResult);
         }
@@ -135,6 +146,18 @@ class SessionStatusPoller
 
         if ($result->isRequiredInteractionNotSupported()) {
             throw new RequiredInteractionNotSupportedException('Required interaction not supported by app');
+        }
+
+        if ($result->isProtocolFailure()) {
+            throw new ProtocolFailureException('Protocol failure');
+        }
+
+        if ($result->isServerError()) {
+            throw new ServerErrorException('Server error');
+        }
+
+        if ($result->isAccountUnusable()) {
+            throw new SmartIdException('Account unusable');
         }
 
         throw new SmartIdException('Session ended with error: ' . $endResult);

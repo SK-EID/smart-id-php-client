@@ -54,10 +54,21 @@ class SessionResult
 
     public const END_RESULT_USER_REFUSED_CONFIRMATIONMESSAGE_WITH_VC_CHOICE = 'USER_REFUSED_CONFIRMATIONMESSAGE_WITH_VC_CHOICE';
 
+    public const END_RESULT_USER_REFUSED_INTERACTION = 'USER_REFUSED_INTERACTION';
+
+    public const END_RESULT_PROTOCOL_FAILURE = 'PROTOCOL_FAILURE';
+
+    public const END_RESULT_EXPECTED_LINKED_SESSION = 'EXPECTED_LINKED_SESSION';
+
+    public const END_RESULT_SERVER_ERROR = 'SERVER_ERROR';
+
+    public const END_RESULT_ACCOUNT_UNUSABLE = 'ACCOUNT_UNUSABLE';
+
     public function __construct(
         private readonly string $endResult,
         private readonly ?string $documentNumber = null,
         private readonly ?string $interactionFlowUsed = null,
+        private readonly ?SessionResultDetails $details = null,
     ) {
     }
 
@@ -74,10 +85,18 @@ class SessionResult
         $documentNumber = $data['documentNumber'] ?? null;
         $interactionFlowUsed = $data['interactionFlowUsed'] ?? null;
 
+        $details = null;
+        if (isset($data['details']) && is_array($data['details'])) {
+            /** @var array<string, mixed> $detailsData */
+            $detailsData = $data['details'];
+            $details = SessionResultDetails::fromArray($detailsData);
+        }
+
         return new self(
             $endResult,
             is_string($documentNumber) ? $documentNumber : null,
             is_string($interactionFlowUsed) ? $interactionFlowUsed : null,
+            $details,
         );
     }
 
@@ -124,5 +143,30 @@ class SessionResult
     public function isRequiredInteractionNotSupported(): bool
     {
         return $this->endResult === self::END_RESULT_REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP;
+    }
+
+    public function isUserRefusedInteraction(): bool
+    {
+        return $this->endResult === self::END_RESULT_USER_REFUSED_INTERACTION;
+    }
+
+    public function isProtocolFailure(): bool
+    {
+        return $this->endResult === self::END_RESULT_PROTOCOL_FAILURE;
+    }
+
+    public function isServerError(): bool
+    {
+        return $this->endResult === self::END_RESULT_SERVER_ERROR;
+    }
+
+    public function isAccountUnusable(): bool
+    {
+        return $this->endResult === self::END_RESULT_ACCOUNT_UNUSABLE;
+    }
+
+    public function getDetails(): ?SessionResultDetails
+    {
+        return $this->details;
     }
 }

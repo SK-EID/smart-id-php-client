@@ -75,6 +75,8 @@ class DeviceLinkAuthenticationRequestBuilder
 
     private ?string $callbackUrl = null;
 
+    private bool $shareMdClientIpAddress = false;
+
     /** @var Interaction[] */
     private array $allowedInteractionsOrder = [];
 
@@ -152,6 +154,13 @@ class DeviceLinkAuthenticationRequestBuilder
         return $this;
     }
 
+    public function withShareMdClientIpAddress(bool $shareMdClientIpAddress = true): self
+    {
+        $this->shareMdClientIpAddress = $shareMdClientIpAddress;
+
+        return $this;
+    }
+
     public function initiate(): DeviceLinkAuthenticationSession
     {
         if ($this->rpChallenge === null) {
@@ -174,6 +183,7 @@ class DeviceLinkAuthenticationRequestBuilder
             $this->nonce,
             $this->capabilities,
             $this->callbackUrl,
+            $this->shareMdClientIpAddress,
         );
 
         $response = $this->connector->initiateDeviceLinkAuthentication($request);

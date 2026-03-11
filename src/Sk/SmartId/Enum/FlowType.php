@@ -30,46 +30,20 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Enum;
 
-enum HashAlgorithm: string
+enum FlowType: string
 {
-    case SHA256 = 'SHA-256';
-    case SHA384 = 'SHA-384';
-    case SHA512 = 'SHA-512';
-    case SHA3_256 = 'SHA3-256';
-    case SHA3_384 = 'SHA3-384';
-    case SHA3_512 = 'SHA3-512';
-
-    public function getDigestAlgorithm(): string
-    {
-        return match ($this) {
-            self::SHA256 => 'sha256',
-            self::SHA384 => 'sha384',
-            self::SHA512 => 'sha512',
-            self::SHA3_256 => 'sha3-256',
-            self::SHA3_384 => 'sha3-384',
-            self::SHA3_512 => 'sha3-512',
-        };
-    }
-
-    public function getHashLength(): int
-    {
-        return match ($this) {
-            self::SHA256, self::SHA3_256 => 32,
-            self::SHA384, self::SHA3_384 => 48,
-            self::SHA512, self::SHA3_512 => 64,
-        };
-    }
+    case QR = 'qr';
+    case WEB2APP = 'web2app';
+    case APP2APP = 'app2app';
+    case NOTIFICATION = 'notification';
 
     public static function fromString(string $value): ?self
     {
-        return self::tryFrom($value) ?? match (strtoupper(str_replace('-', '', $value))) {
-            'SHA256' => self::SHA256,
-            'SHA384' => self::SHA384,
-            'SHA512' => self::SHA512,
-            'SHA3256' => self::SHA3_256,
-            'SHA3384' => self::SHA3_384,
-            'SHA3512' => self::SHA3_512,
-            default => null,
-        };
+        return self::tryFrom(strtolower($value));
+    }
+
+    public static function isSupported(string $value): bool
+    {
+        return self::fromString($value) !== null;
     }
 }

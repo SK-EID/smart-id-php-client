@@ -63,9 +63,13 @@ use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Util\AuthCodeCalculator;
+use Sk\SmartId\Util\CallbackUrlUtil;
 use Sk\SmartId\Util\CallbackUrlValidator;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
+use Sk\SmartId\Exception\UserRefusedInteractionException;
+use Sk\SmartId\Exception\ProtocolFailureException;
+use Sk\SmartId\Exception\ServerErrorException;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 
@@ -102,10 +106,12 @@ if (isset($_GET['action'])) {
 
         // For Web2App, the callback URL must be sent to API during session init!
         // This is required so the Smart-ID backend can validate the authCode
-        $callbackUrl = $publicBaseUrl . '/web2app.php?action=callback';
-
-        // Validate callback URL format — Smart-ID API requires HTTPS
-        CallbackUrlValidator::validateOrThrow($callbackUrl, requireHttps: true);
+        // CallbackUrlUtil generates a random URL-safe token as the `value` query parameter
+        $callbackBase = $publicBaseUrl . '/web2app.php?action=callback';
+        CallbackUrlValidator::validateOrThrow($callbackBase, requireHttps: true);
+        $callbackResult = CallbackUrlUtil::createCallbackUrl($callbackBase);
+        $callbackUrl = $callbackResult['callbackUrl'];
+        $callbackToken = $callbackResult['token'];
 
         $interactions = [Interaction::displayTextAndPin('Test login')];
         $interactionsBase64 = base64_encode(json_encode(
@@ -136,7 +142,8 @@ if (isset($_GET['action'])) {
             'interactionsBase64' => $interactionsBase64,
             'verificationCode' => $verificationCode,
             'createdAt' => time(),
-            'callbackUrl' => $callbackUrl,  // Store for link generation
+            'callbackUrl' => $callbackUrl,   // Store for link generation
+            'callbackToken' => $callbackToken, // Store token to verify callback origin
         ];
 
         echo json_encode([
@@ -194,7 +201,7 @@ if (isset($_GET['action'])) {
     if ($_GET['action'] === 'callback') {
         // =========================================================
         // Per Smart-ID docs, validate callback query parameters:
-        // 1. `value` must match sessionToken from init response
+        // 1. `value` must match the random token from CallbackUrlUtil
         // 2. `sessionSecretDigest` must be present (validated later)
         // 3. `userChallengeVerifier` must be present for auth flows
         // =========================================================
@@ -205,9 +212,9 @@ if (isset($_GET['action'])) {
             exit;
         }
 
-        // Step 1: Verify URL token matches sessionToken
+        // Step 1: Verify URL token matches the random token we generated
         $urlToken = $_GET['value'] ?? '';
-        $expectedToken = $_SESSION['auth']['sessionToken'] ?? '';
+        $expectedToken = $_SESSION['auth']['callbackToken'] ?? '';
         if (!hash_equals($expectedToken, $urlToken)) {
             header('Content-Type: text/html; charset=utf-8');
             http_response_code(403);
@@ -366,11 +373,11 @@ if (isset($_GET['action'])) {
                     // =========================================================
                     // STEP 1: Verify sessionSecretDigest from callback URL
                     // Proves the callback came from Smart-ID (not spoofed)
+                    // Uses CallbackUrlUtil which throws ValidationException on mismatch
                     // =========================================================
-                    $validator = new AuthenticationResponseValidator();
-                    $validator->verifySessionSecret(
-                        $_SESSION['auth']['sessionSecret'],
+                    CallbackUrlUtil::validateSessionSecretDigest(
                         $_SESSION['auth']['callbackSessionSecretDigest'],
+                        $_SESSION['auth']['sessionSecret'],
                     );
                     $checks[] = ['label' => 'Session secret digest', 'ok' => true];
 
@@ -379,6 +386,7 @@ if (isset($_GET['action'])) {
                     // Proves the user actually completed authentication
                     // =========================================================
                     if ($status->getSignature() !== null) {
+                        $validator = new AuthenticationResponseValidator();
                         $validator->verifyUserChallenge(
                             $_SESSION['auth']['callbackUserChallengeVerifier'],
                             $status->getSignature()->getUserChallenge(),
@@ -425,6 +433,15 @@ if (isset($_GET['action'])) {
 
                 } catch (\Sk\SmartId\Exception\ValidationException $e) {
                     $response['endResult'] = 'VALIDATION_ERROR';
+                    $response['error'] = $e->getMessage();
+                } catch (UserRefusedInteractionException $e) {
+                    $response['endResult'] = 'USER_REFUSED_INTERACTION';
+                    $response['error'] = 'User refused interaction: ' . ($e->getInteraction() ?? 'unknown');
+                } catch (ProtocolFailureException $e) {
+                    $response['endResult'] = 'PROTOCOL_FAILURE';
+                    $response['error'] = $e->getMessage();
+                } catch (ServerErrorException $e) {
+                    $response['endResult'] = 'SERVER_ERROR';
                     $response['error'] = $e->getMessage();
                 }
             }

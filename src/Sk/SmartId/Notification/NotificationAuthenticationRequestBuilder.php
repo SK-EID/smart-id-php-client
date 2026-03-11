@@ -77,6 +77,8 @@ class NotificationAuthenticationRequestBuilder
     /** @var string[]|null */
     private ?array $capabilities = null;
 
+    private bool $shareMdClientIpAddress = false;
+
     /** @var Interaction[] */
     private array $allowedInteractionsOrder = [];
 
@@ -154,6 +156,13 @@ class NotificationAuthenticationRequestBuilder
         return $this;
     }
 
+    public function withShareMdClientIpAddress(bool $shareMdClientIpAddress = true): self
+    {
+        $this->shareMdClientIpAddress = $shareMdClientIpAddress;
+
+        return $this;
+    }
+
     public function initiate(): NotificationAuthenticationSession
     {
         if ($this->documentNumber === null && $this->semanticsIdentifier === null) {
@@ -179,6 +188,7 @@ class NotificationAuthenticationRequestBuilder
             $this->certificateLevel,
             $this->nonce,
             $this->capabilities,
+            $this->shareMdClientIpAddress,
         );
 
         $response = $this->connector->initiateNotificationAuthentication(

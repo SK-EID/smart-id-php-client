@@ -44,8 +44,11 @@ use Sk\SmartId\Session\SessionStatus;
 
 class AuthenticationResponseValidator
 {
-    /** @var string[] */
+    /** @var string[] PEM-encoded CA certificates */
     private array $trustedCaCertificates = [];
+
+    /** @var string[] File paths to trusted CA certificate files */
+    private array $trustedCaCertificateFiles = [];
 
     private bool $skipSignatureVerification = false;
 
@@ -65,6 +68,16 @@ class AuthenticationResponseValidator
     public function setTrustedCaCertificates(array $certificates): self
     {
         $this->trustedCaCertificates = $certificates;
+
+        return $this;
+    }
+
+    /**
+     * @param string[] $files Array of file paths to trusted CA certificate files
+     */
+    public function setTrustedCaCertificateFiles(array $files): self
+    {
+        $this->trustedCaCertificateFiles = $files;
 
         return $this;
     }
@@ -252,7 +265,7 @@ class AuthenticationResponseValidator
      */
     private function verifyCertificateTrust(SessionCertificate $cert): void
     {
-        if (empty($this->trustedCaCertificates)) {
+        if (empty($this->trustedCaCertificateFiles) && empty($this->trustedCaCertificates)) {
             throw new ValidationException('No trusted CA certificates configured');
         }
 
@@ -277,16 +290,35 @@ class AuthenticationResponseValidator
             throw new ValidationException('Certificate has expired');
         }
 
-        $verified = false;
-        foreach ($this->trustedCaCertificates as $caCert) {
-            if (openssl_x509_verify($certResource, $caCert) === 1) {
-                $verified = true;
-                break;
+        // Use openssl_x509_checkpurpose for proper certificate chain validation.
+        // Unlike openssl_x509_verify (direct issuer check only), this builds the
+        // full chain from leaf through intermediates to root trust anchors.
+        $caFiles = $this->trustedCaCertificateFiles;
+        $tempFiles = [];
+
+        // If only PEM strings available (no file paths), write to temp files
+        if (empty($caFiles) && !empty($this->trustedCaCertificates)) {
+            foreach ($this->trustedCaCertificates as $pemCert) {
+                $tmpFile = tempnam(sys_get_temp_dir(), 'smartid_ca_');
+                if ($tmpFile === false) {
+                    throw new ValidationException('Failed to create temporary file for CA certificate');
+                }
+                file_put_contents($tmpFile, $pemCert);
+                $caFiles[] = $tmpFile;
+                $tempFiles[] = $tmpFile;
             }
         }
 
-        if (!$verified) {
-            throw new ValidationException('Certificate is not signed by a trusted CA');
+        try {
+            $result = openssl_x509_checkpurpose($certPem, X509_PURPOSE_ANY, $caFiles);
+
+            if ($result !== true) {
+                throw new ValidationException('Certificate is not signed by a trusted CA');
+            }
+        } finally {
+            foreach ($tempFiles as $tmpFile) {
+                @unlink($tmpFile);
+            }
         }
     }
 
@@ -366,7 +398,19 @@ class AuthenticationResponseValidator
             return null;
         }
 
-        foreach ($this->trustedCaCertificates as $caCert) {
+        $pemCerts = $this->trustedCaCertificates;
+
+        // If no PEM strings available, read from file paths
+        if (empty($pemCerts) && !empty($this->trustedCaCertificateFiles)) {
+            foreach ($this->trustedCaCertificateFiles as $file) {
+                $content = file_get_contents($file);
+                if ($content !== false) {
+                    $pemCerts[] = $content;
+                }
+            }
+        }
+
+        foreach ($pemCerts as $caCert) {
             if (openssl_x509_verify($certResource, $caCert) === 1) {
                 return $caCert;
             }
@@ -533,17 +577,63 @@ class AuthenticationResponseValidator
         SessionSignature $sessionSignature,
         SessionCertificate $cert,
     ): void {
-        $params = $sessionSignature->getSignatureAlgorithmParameters();
-        $hashAlgorithm = $params['hashAlgorithm'] ?? 'SHA-512';
+        $parsed = $sessionSignature->getParsedAlgorithmParameters();
+        if ($parsed === null) {
+            throw new ValidationException('signatureAlgorithmParameters is missing from signature');
+        }
 
-        $hashAlgo = match (strtoupper(str_replace('-', '', $hashAlgorithm))) {
-            'SHA256' => 'sha256',
-            'SHA384' => 'sha384',
-            'SHA512' => 'sha512',
-            default => throw new ValidationException("Unsupported hash algorithm for RSA-PSS: {$hashAlgorithm}"),
-        };
+        $resolved = $parsed->getResolvedHashAlgorithm();
+        if ($resolved === null) {
+            throw new ValidationException(
+                "Unsupported hash algorithm for RSA-PSS: {$parsed->getHashAlgorithm()}",
+            );
+        }
+        $hashAlgo = $resolved->getDigestAlgorithm();
 
-        $saltLength = (int) ($params['saltLength'] ?? 64);
+        $saltLength = $parsed->getSaltLength();
+        if ($saltLength === null) {
+            throw new ValidationException('signatureAlgorithmParameters.saltLength is missing');
+        }
+        if ($saltLength !== $resolved->getHashLength()) {
+            throw new ValidationException(
+                sprintf(
+                    'signatureAlgorithmParameters.saltLength %d does not match hash octet length %d for %s',
+                    $saltLength,
+                    $resolved->getHashLength(),
+                    $resolved->value,
+                ),
+            );
+        }
+
+        if ($parsed->getMaskGenAlgorithm() !== null && $parsed->getMaskGenAlgorithm() !== 'id-mgf1') {
+            throw new ValidationException(
+                sprintf('Unsupported maskGenAlgorithm: %s', $parsed->getMaskGenAlgorithm()),
+            );
+        }
+
+        if ($parsed->getMaskGenHashAlgorithm() !== null) {
+            $mgfHash = \Sk\SmartId\Enum\HashAlgorithm::fromString($parsed->getMaskGenHashAlgorithm());
+            if ($mgfHash === null) {
+                throw new ValidationException(
+                    sprintf('Unsupported maskGenAlgorithm hash: %s', $parsed->getMaskGenHashAlgorithm()),
+                );
+            }
+            if ($mgfHash !== $resolved) {
+                throw new ValidationException(
+                    'maskGenAlgorithm hashAlgorithm does not match signatureAlgorithmParameters hashAlgorithm',
+                );
+            }
+        }
+
+        if ($parsed->getTrailerField() !== null
+            && strcasecmp($parsed->getTrailerField(), 'BC') !== 0
+            && strcasecmp($parsed->getTrailerField(), '0xBC') !== 0
+        ) {
+            throw new ValidationException(
+                sprintf('Unsupported trailerField: %s', $parsed->getTrailerField()),
+            );
+        }
+
         $signatureValue = $sessionSignature->getDecodedValue();
 
         $certPem = $cert->getPemEncodedCertificate();

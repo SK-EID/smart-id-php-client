@@ -44,8 +44,11 @@ class TrustedCACertificateStore
         return dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'tests' . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'trusted_certificates';
     }
 
-    /** @var string[] */
+    /** @var string[] PEM-encoded certificate contents */
     private array $certificates = [];
+
+    /** @var string[] Absolute file paths to certificate files */
+    private array $certificateFilePaths = [];
 
     /**
      * Load certificates from the default location bundled with the SDK.
@@ -112,6 +115,7 @@ class TrustedCACertificateStore
         }
 
         $this->certificates[] = $content;
+        $this->certificateFilePaths[] = $filePath;
 
         return $this;
     }
@@ -144,11 +148,22 @@ class TrustedCACertificateStore
     }
 
     /**
+     * @return string[]
+     */
+    public function getCertificateFilePaths(): array
+    {
+        return $this->certificateFilePaths;
+    }
+
+    /**
      * Configure an AuthenticationResponseValidator with these certificates.
      */
     public function configureValidator(AuthenticationResponseValidator $validator): AuthenticationResponseValidator
     {
-        return $validator->setTrustedCaCertificates($this->certificates);
+        $validator->setTrustedCaCertificates($this->certificates);
+        $validator->setTrustedCaCertificateFiles($this->certificateFilePaths);
+
+        return $validator;
     }
 
     /**
@@ -159,6 +174,7 @@ class TrustedCACertificateStore
         ?OcspCertificateRevocationChecker $ocspChecker = null,
     ): AuthenticationResponseValidator {
         $validator->setTrustedCaCertificates($this->certificates);
+        $validator->setTrustedCaCertificateFiles($this->certificateFilePaths);
         $validator->setOcspRevocationChecker($ocspChecker ?? new OcspCertificateRevocationChecker());
 
         return $validator;

@@ -50,6 +50,7 @@ abstract class AbstractAuthenticationRequest
         protected readonly ?CertificateLevel $certificateLevel = null,
         protected readonly ?string $nonce = null,
         protected readonly ?array $capabilities = null,
+        protected readonly bool $shareMdClientIpAddress = false,
     ) {
     }
 
@@ -99,6 +100,11 @@ abstract class AbstractAuthenticationRequest
         return $this->capabilities;
     }
 
+    public function getShareMdClientIpAddress(): bool
+    {
+        return $this->shareMdClientIpAddress;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -132,6 +138,12 @@ abstract class AbstractAuthenticationRequest
 
         if ($this->capabilities !== null) {
             $data['capabilities'] = $this->capabilities;
+        }
+
+        if ($this->shareMdClientIpAddress) {
+            $data['requestProperties'] = [
+                'shareMdClientIpAddress' => true,
+            ];
         }
 
         return $data;

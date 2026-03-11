@@ -62,6 +62,9 @@ use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Util\RpChallengeGenerator;
+use Sk\SmartId\Exception\UserRefusedInteractionException;
+use Sk\SmartId\Exception\ProtocolFailureException;
+use Sk\SmartId\Exception\ServerErrorException;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 use chillerlan\QRCode\QRCode;
@@ -262,6 +265,15 @@ if (isset($_GET['action'])) {
                 } catch (\Sk\SmartId\Exception\ValidationException $e) {
                     // Validation failed - do not trust this authentication!
                     $response['endResult'] = 'VALIDATION_ERROR';
+                    $response['error'] = $e->getMessage();
+                } catch (UserRefusedInteractionException $e) {
+                    $response['endResult'] = 'USER_REFUSED_INTERACTION';
+                    $response['error'] = 'User refused interaction: ' . ($e->getInteraction() ?? 'unknown');
+                } catch (ProtocolFailureException $e) {
+                    $response['endResult'] = 'PROTOCOL_FAILURE';
+                    $response['error'] = $e->getMessage();
+                } catch (ServerErrorException $e) {
+                    $response['endResult'] = 'SERVER_ERROR';
                     $response['error'] = $e->getMessage();
                 }
             }

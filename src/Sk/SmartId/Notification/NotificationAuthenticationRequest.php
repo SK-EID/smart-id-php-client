@@ -60,6 +60,7 @@ class NotificationAuthenticationRequest extends AbstractAuthenticationRequest
         ?CertificateLevel $certificateLevel = null,
         ?string $nonce = null,
         ?array $capabilities = null,
+        bool $shareMdClientIpAddress = false,
     ) {
         parent::__construct(
             $relyingPartyUUID,
@@ -70,6 +71,7 @@ class NotificationAuthenticationRequest extends AbstractAuthenticationRequest
             $certificateLevel,
             $nonce,
             $capabilities,
+            $shareMdClientIpAddress,
         );
     }
 
