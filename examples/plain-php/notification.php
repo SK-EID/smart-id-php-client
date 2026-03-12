@@ -50,7 +50,6 @@ use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Notification\NotificationInteraction;
 use Sk\SmartId\Model\SemanticsIdentifier;
 use Sk\SmartId\Notification\NotificationAuthenticationRequestBuilder;
-use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Exception\UserRefusedInteractionException;
 use Sk\SmartId\Exception\ProtocolFailureException;
 use Sk\SmartId\Exception\ServerErrorException;

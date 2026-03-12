@@ -189,7 +189,6 @@ class DeviceLinkAuthenticationRequestBuilder
 
         $verificationCode = VerificationCodeCalculator::calculateFromRpChallenge(
             $this->rpChallenge,
-            $this->hashAlgorithm,
         );
 
         return new DeviceLinkAuthenticationSession(

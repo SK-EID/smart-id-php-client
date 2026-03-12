@@ -61,7 +61,6 @@ use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Enum\SchemeName;
-use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Exception\UserRefusedInteractionException;
 use Sk\SmartId\Exception\ProtocolFailureException;

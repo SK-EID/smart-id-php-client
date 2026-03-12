@@ -33,7 +33,6 @@ namespace Sk\SmartId\Tests\Util;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Util\VerificationCodeCalculator;
 
 class VerificationCodeCalculatorTest extends TestCase
@@ -76,22 +75,13 @@ class VerificationCodeCalculatorTest extends TestCase
     }
 
     #[Test]
-    public function calculateFromRpChallengeWithSha512(): void
+    public function calculateFromRpChallengeReturns4DigitCode(): void
     {
         $rpChallenge = base64_encode(random_bytes(32));
-        $code = VerificationCodeCalculator::calculateFromRpChallenge($rpChallenge, HashAlgorithm::SHA512);
+        $code = VerificationCodeCalculator::calculateFromRpChallenge($rpChallenge);
 
         $this->assertSame(4, strlen($code));
         $this->assertMatchesRegularExpression('/^\d{4}$/', $code);
-    }
-
-    #[Test]
-    public function calculateFromRpChallengeWithSha256(): void
-    {
-        $rpChallenge = base64_encode(random_bytes(32));
-        $code = VerificationCodeCalculator::calculateFromRpChallenge($rpChallenge, HashAlgorithm::SHA256);
-
-        $this->assertSame(4, strlen($code));
     }
 
     #[Test]
@@ -100,7 +90,7 @@ class VerificationCodeCalculatorTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid base64 encoded rpChallenge');
 
-        VerificationCodeCalculator::calculateFromRpChallenge('not-valid-base64!!!', HashAlgorithm::SHA512);
+        VerificationCodeCalculator::calculateFromRpChallenge('not-valid-base64!!!');
     }
 
     #[Test]

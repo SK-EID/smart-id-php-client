@@ -198,7 +198,6 @@ class NotificationAuthenticationRequestBuilder
 
         $verificationCode = VerificationCodeCalculator::calculateFromRpChallenge(
             $this->rpChallenge,
-            $this->hashAlgorithm,
         );
 
         return new NotificationAuthenticationSession(

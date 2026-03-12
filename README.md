@@ -711,7 +711,8 @@ $store->configureValidator($validator);
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 use Sk\SmartId\Enum\CertificateLevel;
-use Sk\SmartId\Util\AuthCodeCalculator;
+use Sk\SmartId\Enum\SchemeName;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
 // Set up validator
 $validator = new AuthenticationResponseValidator();

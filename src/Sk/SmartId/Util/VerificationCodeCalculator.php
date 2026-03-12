@@ -30,8 +30,6 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Util;
 
-use Sk\SmartId\Enum\HashAlgorithm;
-
 class VerificationCodeCalculator
 {
     public static function calculate(string $hash): string
@@ -52,7 +50,6 @@ class VerificationCodeCalculator
 
     public static function calculateFromRpChallenge(
         string $rpChallenge,
-        HashAlgorithm $algorithm = HashAlgorithm::SHA512,
     ): string {
         $decodedChallenge = base64_decode($rpChallenge, true);
         if ($decodedChallenge === false) {
