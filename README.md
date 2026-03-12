@@ -167,12 +167,22 @@ Live SSL certificates: https://sk-eid.github.io/smart-id-documentation/https_pin
 
 Demo SSL certificates: https://sk-eid.github.io/smart-id-documentation/https_pinning.html#_sid_demo_sk_ee_certificates
 
+#### Demo / testing
+
+For development against `sid.demo.sk.ee`, the SDK bundles demo keys:
+
+```php
+$connector = new SmartIdRestConnector(
+    'https://sid.demo.sk.ee/smart-id-rp/v3',
+    SslPinnedPublicKeyStore::loadDemo(),
+);
+```
+
 #### Providing SSL public key hashes manually
 
-For production, you must configure your own SPKI hashes. Get the current certificate hashes from
-[SK's HTTPS pinning documentation](https://sk-eid.github.io/smart-id-documentation/https_pinning.html).
-
-Extract the SPKI hash from a PEM certificate:
+For production, you must configure your own SPKI hashes. Download the current certificates from
+[SK's HTTPS pinning documentation](https://sk-eid.github.io/smart-id-documentation/https_pinning.html)
+and extract each certificate's SPKI hash:
 
 ```bash
 openssl x509 -inform PEM -in certificate.pem -noout -pubkey \
@@ -188,6 +198,15 @@ $sslKeys = SslPinnedPublicKeyStore::create()
     ->addPublicKeyHash('sha256//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=')
     ->addPublicKeyHash('sha256//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY=');
 
+$connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
+```
+
+#### Loading hashes from a directory
+
+You can load hashes from a directory of `.key` files (each containing one `sha256//...` hash):
+
+```php
+$sslKeys = SslPinnedPublicKeyStore::loadFromDirectory('/path/to/your/keys');
 $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
 ```
 
@@ -226,26 +245,6 @@ $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys
 
 All methods that accept hashes (`addPublicKeyHash()`, `fromString()`, `fromArray()`) validate
 every hash immediately and throw `\InvalidArgumentException` if the format is invalid or the input is empty.
-
-#### Loading hashes from a directory
-
-You can load hashes from a directory of `.key` files (each containing one `sha256//...` hash):
-
-```php
-$sslKeys = SslPinnedPublicKeyStore::loadFromDirectory('/path/to/your/keys');
-$connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
-```
-
-#### Demo / testing
-
-For development against `sid.demo.sk.ee`, the SDK bundles demo keys:
-
-```php
-$connector = new SmartIdRestConnector(
-    'https://sid.demo.sk.ee/smart-id-rp/v3',
-    SslPinnedPublicKeyStore::loadDemo(),
-);
-```
 
 ## Device link flows
 
