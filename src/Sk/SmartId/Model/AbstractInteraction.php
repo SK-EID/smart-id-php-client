@@ -32,7 +32,7 @@ namespace Sk\SmartId\Model;
 
 use Sk\SmartId\Enum\InteractionType;
 
-class Interaction
+abstract class AbstractInteraction
 {
     public const MAX_DISPLAY_TEXT_60 = 60;
 
@@ -61,30 +61,9 @@ class Interaction
     {
         return match ($this->type) {
             InteractionType::DISPLAY_TEXT_AND_PIN => self::MAX_DISPLAY_TEXT_60,
-            InteractionType::VERIFICATION_CODE_CHOICE => 0,
             InteractionType::CONFIRMATION_MESSAGE,
             InteractionType::CONFIRMATION_MESSAGE_AND_VERIFICATION_CODE_CHOICE => self::MAX_DISPLAY_TEXT_200,
         };
-    }
-
-    public static function displayTextAndPin(string $displayText): self
-    {
-        return new self(InteractionType::DISPLAY_TEXT_AND_PIN, $displayText);
-    }
-
-    public static function verificationCodeChoice(): self
-    {
-        return new self(InteractionType::VERIFICATION_CODE_CHOICE);
-    }
-
-    public static function confirmationMessage(string $displayText): self
-    {
-        return new self(InteractionType::CONFIRMATION_MESSAGE, $displayText);
-    }
-
-    public static function confirmationMessageAndVerificationCodeChoice(string $displayText): self
-    {
-        return new self(InteractionType::CONFIRMATION_MESSAGE_AND_VERIFICATION_CODE_CHOICE, $displayText);
     }
 
     public function getType(): InteractionType

@@ -33,7 +33,6 @@ namespace Sk\SmartId\DeviceLink;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
 
@@ -77,7 +76,7 @@ class DeviceLinkAuthenticationRequestBuilder
 
     private bool $shareMdClientIpAddress = false;
 
-    /** @var Interaction[] */
+    /** @var DeviceLinkInteraction[] */
     private array $allowedInteractionsOrder = [];
 
     public function __construct(
@@ -129,7 +128,7 @@ class DeviceLinkAuthenticationRequestBuilder
     }
 
     /**
-     * @param Interaction[] $interactions
+     * @param DeviceLinkInteraction[] $interactions
      */
     public function withAllowedInteractionsOrder(array $interactions): self
     {
@@ -168,9 +167,9 @@ class DeviceLinkAuthenticationRequestBuilder
         }
 
         if (empty($this->allowedInteractionsOrder)) {
-            $this->allowedInteractionsOrder = [
-                Interaction::verificationCodeChoice(),
-            ];
+            throw new \InvalidArgumentException(
+                'At least one interaction must be set. Use withAllowedInteractionsOrder() with DeviceLinkInteraction instances.',
+            );
         }
 
         $request = new DeviceLinkAuthenticationRequest(

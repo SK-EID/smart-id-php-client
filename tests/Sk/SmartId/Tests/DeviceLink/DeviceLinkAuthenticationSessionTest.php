@@ -35,7 +35,7 @@ use PHPUnit\Framework\TestCase;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationResponse;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
 use Sk\SmartId\DeviceLink\DeviceLinkBuilder;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
 class DeviceLinkAuthenticationSessionTest extends TestCase
 {
@@ -45,7 +45,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
     private string $rpName;
 
-    /** @var Interaction[] */
+    /** @var DeviceLinkInteraction[] */
     private array $interactions;
 
     private string $verificationCode;
@@ -60,7 +60,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
         );
         $this->rpChallenge = base64_encode('test-challenge-32-bytes-long!!!');
         $this->rpName = 'Test RP';
-        $this->interactions = [Interaction::verificationCodeChoice()];
+        $this->interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
         $this->verificationCode = '1234';
     }
 

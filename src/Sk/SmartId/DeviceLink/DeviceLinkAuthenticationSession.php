@@ -30,7 +30,6 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\DeviceLink;
 
-use Sk\SmartId\Model\Interaction;
 
 /**
  * Session wrapper for device link-based authentication.
@@ -54,7 +53,7 @@ class DeviceLinkAuthenticationSession
     private readonly float $createdAt;
 
     /**
-     * @param Interaction[] $interactions
+     * @param DeviceLinkInteraction[] $interactions
      */
     public function __construct(
         private readonly DeviceLinkAuthenticationResponse $response,

@@ -39,7 +39,7 @@ use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationResponse;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
 class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
 {
@@ -70,7 +70,9 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $session = $builder->initiate();
+        $session = $builder
+            ->withAllowedInteractionsOrder([DeviceLinkInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $this->assertInstanceOf(DeviceLinkAuthenticationSession::class, $session);
         $this->assertSame('session-123', $session->getSessionId());
@@ -102,7 +104,10 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $session = $builder->withRpChallenge($providedChallenge)->initiate();
+        $session = $builder
+            ->withRpChallenge($providedChallenge)
+            ->withAllowedInteractionsOrder([DeviceLinkInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $this->assertSame($providedChallenge, $capturedRequest->getRpChallenge());
         $this->assertSame($providedChallenge, $session->getRpChallenge());
@@ -132,7 +137,10 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $builder->withHashAlgorithm(HashAlgorithm::SHA256)->initiate();
+        $builder
+            ->withHashAlgorithm(HashAlgorithm::SHA256)
+            ->withAllowedInteractionsOrder([DeviceLinkInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $this->assertSame(HashAlgorithm::SHA256, $capturedRequest->getHashAlgorithm());
     }
@@ -161,7 +169,10 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $builder->withCertificateLevel(CertificateLevel::QUALIFIED)->initiate();
+        $builder
+            ->withCertificateLevel(CertificateLevel::QUALIFIED)
+            ->withAllowedInteractionsOrder([DeviceLinkInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $this->assertSame(CertificateLevel::QUALIFIED, $capturedRequest->getCertificateLevel());
     }
@@ -190,7 +201,10 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $builder->withNonce('test-nonce')->initiate();
+        $builder
+            ->withNonce('test-nonce')
+            ->withAllowedInteractionsOrder([DeviceLinkInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $array = $capturedRequest->toArray();
         $this->assertSame('test-nonce', $array['nonce']);
@@ -220,7 +234,10 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $builder->withCapabilities(['ADVANCED'])->initiate();
+        $builder
+            ->withCapabilities(['ADVANCED'])
+            ->withAllowedInteractionsOrder([DeviceLinkInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $array = $capturedRequest->toArray();
         $this->assertSame(['ADVANCED'], $array['capabilities']);
@@ -237,8 +254,8 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
         );
 
         $interactions = [
-            Interaction::displayTextAndPin('Please confirm'),
-            Interaction::verificationCodeChoice(),
+            DeviceLinkInteraction::displayTextAndPin('Please confirm'),
+            DeviceLinkInteraction::confirmationMessage('Confirm login'),
         ];
 
         $capturedRequest = null;
@@ -261,33 +278,18 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
     }
 
     #[Test]
-    public function initiateUsesDefaultInteractionsWhenNotProvided(): void
+    public function initiateThrowsWhenNoInteractionsProvided(): void
     {
-        $response = new DeviceLinkAuthenticationResponse(
-            'session-123',
-            'token',
-            base64_encode('secret'),
-            'https://example.com',
-        );
-
-        $capturedRequest = null;
-        $this->connector->method('initiateDeviceLinkAuthentication')
-            ->willReturnCallback(function (DeviceLinkAuthenticationRequest $request) use ($response, &$capturedRequest) {
-                $capturedRequest = $request;
-
-                return $response;
-            });
-
         $builder = new DeviceLinkAuthenticationRequestBuilder(
             $this->connector,
             'rp-uuid',
             'Test RP',
         );
 
-        $builder->initiate();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('At least one interaction must be set');
 
-        $interactions = $capturedRequest->getAllowedInteractionsOrder();
-        $this->assertCount(1, $interactions);
+        $builder->initiate();
     }
 
     #[Test]
@@ -314,7 +316,9 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $builder->initiate();
+        $builder
+            ->withAllowedInteractionsOrder([DeviceLinkInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $this->assertNotEmpty($capturedRequest->getRpChallenge());
         $decoded = base64_decode($capturedRequest->getRpChallenge(), true);

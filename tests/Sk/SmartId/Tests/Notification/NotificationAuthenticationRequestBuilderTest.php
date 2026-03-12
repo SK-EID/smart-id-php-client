@@ -36,7 +36,7 @@ use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Notification\NotificationInteraction;
 use Sk\SmartId\Model\SemanticsIdentifier;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
 use Sk\SmartId\Notification\NotificationAuthenticationRequestBuilder;
@@ -72,7 +72,10 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $session = $builder->withDocumentNumber('PNOEE-12345678901')->initiate();
+        $session = $builder
+            ->withDocumentNumber('PNOEE-12345678901')
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $this->assertInstanceOf(NotificationAuthenticationSession::class, $session);
         $this->assertSame('session-123', $session->getSessionId());
@@ -99,7 +102,10 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $session = $builder->withSemanticsIdentifier($semanticsId)->initiate();
+        $session = $builder
+            ->withSemanticsIdentifier($semanticsId)
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $this->assertInstanceOf(NotificationAuthenticationSession::class, $session);
     }
@@ -143,6 +149,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $builder
             ->withSemanticsIdentifier($semanticsId)
             ->withDocumentNumber('PNOEE-12345678901')
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
             ->initiate();
     }
 
@@ -170,6 +177,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $builder
             ->withDocumentNumber('SOME-DOC-NUMBER')
             ->withSemanticsIdentifier($semanticsId)
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
             ->initiate();
     }
 
@@ -196,6 +204,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $session = $builder
             ->withDocumentNumber('DOC123')
             ->withRpChallenge($providedChallenge)
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
             ->initiate();
 
         $this->assertSame($providedChallenge, $capturedRequest->getRpChallenge());
@@ -224,6 +233,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $builder
             ->withDocumentNumber('DOC123')
             ->withHashAlgorithm(HashAlgorithm::SHA256)
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
             ->initiate();
 
         $this->assertSame(HashAlgorithm::SHA256, $capturedRequest->getHashAlgorithm());
@@ -251,6 +261,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $builder
             ->withDocumentNumber('DOC123')
             ->withCertificateLevel(CertificateLevel::QUALIFIED)
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
             ->initiate();
 
         $this->assertSame(CertificateLevel::QUALIFIED, $capturedRequest->getCertificateLevel());
@@ -278,6 +289,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $builder
             ->withDocumentNumber('DOC123')
             ->withNonce('test-nonce')
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
             ->initiate();
 
         $array = $capturedRequest->toArray();
@@ -306,6 +318,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $builder
             ->withDocumentNumber('DOC123')
             ->withCapabilities(['ADVANCED'])
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
             ->initiate();
 
         $array = $capturedRequest->toArray();
@@ -318,8 +331,8 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $response = new NotificationAuthenticationResponse('session-123');
 
         $interactions = [
-            Interaction::displayTextAndPin('Please confirm'),
-            Interaction::verificationCodeChoice(),
+            NotificationInteraction::displayTextAndPin('Please confirm'),
+            NotificationInteraction::confirmationMessage('Confirm login'),
         ];
 
         $capturedRequest = null;
@@ -345,6 +358,21 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
     }
 
     #[Test]
+    public function initiateThrowsWhenNoInteractionsProvided(): void
+    {
+        $builder = new NotificationAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('At least one interaction must be set');
+
+        $builder->withDocumentNumber('DOC123')->initiate();
+    }
+
+    #[Test]
     public function initiateGeneratesVerificationCode(): void
     {
         $response = new NotificationAuthenticationResponse('session-123');
@@ -357,7 +385,10 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
             'Test RP',
         );
 
-        $session = $builder->withDocumentNumber('DOC123')->initiate();
+        $session = $builder
+            ->withDocumentNumber('DOC123')
+            ->withAllowedInteractionsOrder([NotificationInteraction::displayTextAndPin('Test')])
+            ->initiate();
 
         $this->assertSame(4, strlen($session->getVerificationCode()));
         $this->assertMatchesRegularExpression('/^\d{4}$/', $session->getVerificationCode());

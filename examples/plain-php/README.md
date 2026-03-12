@@ -98,7 +98,7 @@ Environment details: https://sk-eid.github.io/smart-id-documentation/environment
 - For production, replace `configureValidator()` with `configureValidatorWithOcsp()` and use `TrustedCACertificateStore::loadFromDefaults()` instead of `loadTestCertificates()`.
 - Replace the demo relying party UUID and name with your own production credentials.
 - Replace `SslPinnedPublicKeyStore::loadDemo()` with your production SSL pin configuration.
-- Replace `AuthCodeCalculator::SCHEME_NAME_DEMO` with `AuthCodeCalculator::SCHEME_NAME_PRODUCTION`.
+- Replace `SchemeName::DEMO` with `SchemeName::PRODUCTION`.
 
 ## File Structure
 

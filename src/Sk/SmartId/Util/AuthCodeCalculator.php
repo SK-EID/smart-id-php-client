@@ -30,26 +30,23 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Util;
 
+use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Enum\SignatureProtocol;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Model\AbstractInteraction;
 
 class AuthCodeCalculator
 {
-    public const SCHEME_NAME_PRODUCTION = 'smart-id';
-
-    public const SCHEME_NAME_DEMO = 'smart-id-demo';
-
     /**
      * Calculate the authCode for Device Link authentication.
      *
      * @param string $sessionSecret Base64-encoded session secret from API response
      * @param string $rpChallenge Base64-encoded RP challenge
      * @param string $rpName Relying Party name
-     * @param Interaction[] $interactions Array of interaction objects
+     * @param AbstractInteraction[] $interactions Array of interaction objects
      * @param string|null $initialCallbackUrl Optional callback URL (for Web2App flows)
      * @param string|null $brokeredRpName Optional brokered RP name
      * @param string $unprotectedDeviceLink The device link URL without authCode parameter
-     * @param string $schemeName Scheme name ('smart-id' for production, 'smart-id-demo' for demo)
+     * @param SchemeName $schemeName Scheme name for the target environment
      */
     public static function calculate(
         string $sessionSecret,
@@ -59,7 +56,7 @@ class AuthCodeCalculator
         ?string $initialCallbackUrl = null,
         ?string $brokeredRpName = null,
         string $unprotectedDeviceLink = '',
-        string $schemeName = self::SCHEME_NAME_PRODUCTION,
+        SchemeName $schemeName = SchemeName::PRODUCTION,
     ): string {
         $decodedSecret = base64_decode($sessionSecret, true);
         if ($decodedSecret === false) {
@@ -67,7 +64,7 @@ class AuthCodeCalculator
         }
 
         $payload = self::buildPayload(
-            $schemeName,
+            $schemeName->value,
             $rpChallenge,
             $rpName,
             $interactions,
@@ -82,7 +79,7 @@ class AuthCodeCalculator
     }
 
     /**
-     * @param Interaction[] $interactions
+     * @param AbstractInteraction[] $interactions
      */
     private static function buildPayload(
         string $schemeName,
@@ -113,7 +110,7 @@ class AuthCodeCalculator
     /**
      * Format interactions as Base64-encoded JSON array.
      *
-     * @param Interaction[] $interactions
+     * @param AbstractInteraction[] $interactions
      */
     private static function formatInteractions(array $interactions): string
     {
@@ -122,7 +119,7 @@ class AuthCodeCalculator
         }
 
         $interactionsArray = array_map(
-            fn (Interaction $interaction) => $interaction->toArray(),
+            fn (AbstractInteraction $interaction) => $interaction->toArray(),
             $interactions,
         );
 

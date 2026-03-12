@@ -33,7 +33,6 @@ namespace Sk\SmartId\Notification;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Model\SemanticsIdentifier;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
@@ -79,7 +78,7 @@ class NotificationAuthenticationRequestBuilder
 
     private bool $shareMdClientIpAddress = false;
 
-    /** @var Interaction[] */
+    /** @var NotificationInteraction[] */
     private array $allowedInteractionsOrder = [];
 
     public function __construct(
@@ -147,7 +146,7 @@ class NotificationAuthenticationRequestBuilder
     }
 
     /**
-     * @param Interaction[] $interactions
+     * @param NotificationInteraction[] $interactions
      */
     public function withAllowedInteractionsOrder(array $interactions): self
     {
@@ -174,9 +173,9 @@ class NotificationAuthenticationRequestBuilder
         }
 
         if (empty($this->allowedInteractionsOrder)) {
-            $this->allowedInteractionsOrder = [
-                Interaction::verificationCodeChoice(),
-            ];
+            throw new \InvalidArgumentException(
+                'At least one interaction must be set. Use withAllowedInteractionsOrder() with NotificationInteraction instances.',
+            );
         }
 
         $request = new NotificationAuthenticationRequest(

@@ -33,7 +33,7 @@ namespace Sk\SmartId\Tests\Util;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Util\AuthCodeCalculator;
 
 class AuthCodeCalculatorTest extends TestCase
@@ -44,7 +44,7 @@ class AuthCodeCalculatorTest extends TestCase
         $sessionSecret = base64_encode(random_bytes(32));
         $rpChallenge = base64_encode(random_bytes(32));
         $rpName = 'Test RP';
-        $interactions = [Interaction::verificationCodeChoice()];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
 
         $authCode = AuthCodeCalculator::calculate(
             $sessionSecret,
@@ -66,7 +66,7 @@ class AuthCodeCalculatorTest extends TestCase
         $sessionSecret = base64_encode(random_bytes(32));
         $rpChallenge = base64_encode(random_bytes(32));
         $rpName = 'Test RP';
-        $interactions = [Interaction::verificationCodeChoice()];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
 
         $authCodeWithLink = AuthCodeCalculator::calculate(
             $sessionSecret,
@@ -97,7 +97,7 @@ class AuthCodeCalculatorTest extends TestCase
         $sessionSecret = base64_encode(random_bytes(32));
         $rpChallenge = base64_encode(random_bytes(32));
         $rpName = 'Test RP';
-        $interactions = [Interaction::verificationCodeChoice()];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
 
         $authCodeWithCallback = AuthCodeCalculator::calculate(
             $sessionSecret,
@@ -124,7 +124,7 @@ class AuthCodeCalculatorTest extends TestCase
         $sessionSecret = base64_encode(random_bytes(32));
         $rpChallenge = base64_encode(random_bytes(32));
         $rpName = 'Test RP';
-        $interactions = [Interaction::verificationCodeChoice()];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
 
         $authCodeWithBrokered = AuthCodeCalculator::calculate(
             $sessionSecret,
@@ -153,7 +153,7 @@ class AuthCodeCalculatorTest extends TestCase
         $sessionSecret = base64_encode(random_bytes(32));
         $rpChallenge = base64_encode(random_bytes(32));
         $rpName = 'Test RP';
-        $interactions = [Interaction::verificationCodeChoice()];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
 
         $authCode1 = AuthCodeCalculator::calculate(
             $sessionSecret,
@@ -185,10 +185,10 @@ class AuthCodeCalculatorTest extends TestCase
         $rpChallenge = base64_encode(random_bytes(32));
         $rpName = 'Test RP';
 
-        $interactions1 = [Interaction::verificationCodeChoice()];
+        $interactions1 = [DeviceLinkInteraction::displayTextAndPin('Test')];
         $interactions2 = [
-            Interaction::displayTextAndPin('Please confirm'),
-            Interaction::verificationCodeChoice(),
+            DeviceLinkInteraction::displayTextAndPin('Please confirm'),
+            DeviceLinkInteraction::displayTextAndPin('Test'),
         ];
 
         $authCode1 = AuthCodeCalculator::calculate(
@@ -218,7 +218,7 @@ class AuthCodeCalculatorTest extends TestCase
             'not-valid-base64!!!',
             base64_encode(random_bytes(32)),
             'Test RP',
-            [Interaction::verificationCodeChoice()],
+            [DeviceLinkInteraction::displayTextAndPin('Test')],
         );
     }
 
@@ -245,7 +245,7 @@ class AuthCodeCalculatorTest extends TestCase
         $sessionSecret = base64_encode('fixed-secret-for-testing-32bytes');
         $rpChallenge = base64_encode('fixed-challenge-for-testing!!!!');
         $rpName = 'Test RP';
-        $interactions = [Interaction::verificationCodeChoice()];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
         $unprotectedDeviceLink = 'https://smart-id.com?deviceLinkType=QR&sessionToken=test';
 
         $authCode1 = AuthCodeCalculator::calculate(

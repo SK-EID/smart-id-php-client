@@ -35,14 +35,14 @@ use PHPUnit\Framework\TestCase;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
 class DeviceLinkAuthenticationRequestTest extends TestCase
 {
     #[Test]
     public function constructorSetsRequiredProperties(): void
     {
-        $interactions = [Interaction::verificationCodeChoice()];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
         $request = new DeviceLinkAuthenticationRequest(
             relyingPartyUUID: 'rp-uuid',
             relyingPartyName: 'Test RP',
@@ -80,8 +80,8 @@ class DeviceLinkAuthenticationRequestTest extends TestCase
     public function toArrayReturnsCorrectStructure(): void
     {
         $interactions = [
-            Interaction::displayTextAndPin('Please confirm'),
-            Interaction::verificationCodeChoice(),
+            DeviceLinkInteraction::displayTextAndPin('Please confirm'),
+            DeviceLinkInteraction::confirmationMessage('Confirm login'),
         ];
         $request = new DeviceLinkAuthenticationRequest(
             relyingPartyUUID: 'rp-uuid',

@@ -33,8 +33,6 @@ namespace Sk\SmartId\DeviceLink;
 use Sk\SmartId\Api\AbstractAuthenticationRequest;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
-
 /**
  * Request data transfer object for device link-based authentication.
  *
@@ -52,7 +50,7 @@ use Sk\SmartId\Model\Interaction;
 class DeviceLinkAuthenticationRequest extends AbstractAuthenticationRequest
 {
     /**
-     * @param Interaction[] $allowedInteractionsOrder
+     * @param DeviceLinkInteraction[] $allowedInteractionsOrder
      * @param string[]|null $capabilities
      * @param string|null $initialCallbackUrl Callback URL for Web2App flows (must be HTTPS)
      */

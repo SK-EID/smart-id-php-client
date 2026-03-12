@@ -73,10 +73,79 @@ class SslPinnedPublicKeyStore
     }
 
     /**
+     * Create a store from an array of SHA256 public key hashes.
+     * Each hash must be in "sha256//..." format.
+     *
+     * Useful when loading hashes from a secret manager or configuration that returns an array.
+     *
+     * @param string[] $hashes
+     */
+    public static function fromArray(array $hashes): self
+    {
+        if (empty($hashes)) {
+            throw new \InvalidArgumentException('Public key hash array must not be empty.');
+        }
+
+        $store = new self();
+
+        foreach ($hashes as $hash) {
+            $store->addPublicKeyHash($hash);
+        }
+
+        return $store;
+    }
+
+    /**
+     * Create a store by parsing a delimited string of SHA256 public key hashes.
+     * Each hash must be in "sha256//..." format.
+     *
+     * Useful when loading hashes from an environment variable, e.g.:
+     *   SMARTID_SSL_PINS="sha256//AAA=,sha256//BBB="
+     *
+     * @param string $delimited The string containing one or more hashes separated by $separator
+     * @param string $separator Delimiter between hashes (default: ",")
+     */
+    public static function fromString(string $delimited, string $separator = ','): self
+    {
+        $trimmed = trim($delimited);
+
+        if ($trimmed === '') {
+            throw new \InvalidArgumentException('Public key hash string must not be empty.');
+        }
+
+        $hashes = array_filter(
+            array_map('trim', explode($separator, $trimmed)),
+            static fn (string $h): bool => $h !== '',
+        );
+
+        if (empty($hashes)) {
+            throw new \InvalidArgumentException('No valid public key hashes found in the provided string.');
+        }
+
+        return self::fromArray($hashes);
+    }
+
+    private const HASH_PATTERN = '/^sha256\/\/[A-Za-z0-9+\/]+=*$/';
+
+    /**
      * Add a SHA256 public key hash in "sha256//..." format.
+     *
+     * @throws \InvalidArgumentException if the hash format is invalid
      */
     public function addPublicKeyHash(string $hash): self
     {
+        $hash = trim($hash);
+
+        if ($hash === '') {
+            throw new \InvalidArgumentException('Public key hash must not be empty.');
+        }
+
+        if (!preg_match(self::HASH_PATTERN, $hash)) {
+            throw new \InvalidArgumentException(
+                "Invalid public key hash format: \"{$hash}\". Expected format: sha256//<base64-encoded-hash>"
+            );
+        }
+
         $this->publicKeyHashes[] = $hash;
 
         return $this;
@@ -103,7 +172,7 @@ class SslPinnedPublicKeyStore
 
             $hash = trim($content);
             if (!empty($hash)) {
-                $this->publicKeyHashes[] = $hash;
+                $this->addPublicKeyHash($hash);
             }
         }
 

@@ -34,7 +34,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Notification\NotificationInteraction;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
 
 class NotificationAuthenticationRequestTest extends TestCase
@@ -42,7 +42,7 @@ class NotificationAuthenticationRequestTest extends TestCase
     #[Test]
     public function constructorSetsRequiredProperties(): void
     {
-        $interactions = [Interaction::verificationCodeChoice()];
+        $interactions = [NotificationInteraction::displayTextAndPin('Test')];
         $request = new NotificationAuthenticationRequest(
             relyingPartyUUID: 'rp-uuid',
             relyingPartyName: 'Test RP',
@@ -80,8 +80,8 @@ class NotificationAuthenticationRequestTest extends TestCase
     public function toArrayReturnsCorrectStructure(): void
     {
         $interactions = [
-            Interaction::displayTextAndPin('Please confirm'),
-            Interaction::verificationCodeChoice(),
+            NotificationInteraction::displayTextAndPin('Please confirm'),
+            NotificationInteraction::confirmationMessage('Confirm login'),
         ];
         $request = new NotificationAuthenticationRequest(
             relyingPartyUUID: 'rp-uuid',

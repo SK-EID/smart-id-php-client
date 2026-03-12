@@ -46,7 +46,8 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Sk\SmartId\Api\SmartIdRestConnector;
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 use Sk\SmartId\Enum\CertificateLevel;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Enum\SchemeName;
+use Sk\SmartId\Notification\NotificationInteraction;
 use Sk\SmartId\Model\SemanticsIdentifier;
 use Sk\SmartId\Notification\NotificationAuthenticationRequestBuilder;
 use Sk\SmartId\Util\AuthCodeCalculator;
@@ -69,7 +70,10 @@ $relyingPartyUUID = '00000000-0000-4000-8000-000000000000';
 $relyingPartyName = 'DEMO';
 
 // Initialize the Smart-ID connector with HTTPS pinning
-// For production, use SslPinnedPublicKeyStore::loadFromDirectory() or create()->addPublicKeyHash()
+// For production, load hashes from an array (e.g. from a secret manager):
+// $hashes = $secretManager->getSecret('smartid-ssl-pins'); // returns string[]
+// $sslKeys = SslPinnedPublicKeyStore::fromArray($hashes);
+// $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
 $connector = new SmartIdRestConnector(
     $baseUrl,
     SslPinnedPublicKeyStore::loadDemo(),
@@ -103,11 +107,11 @@ if (isset($_GET['action'])) {
             );
 
             $interactions = [
-                Interaction::confirmationMessageAndVerificationCodeChoice('Login to Demo'),
-                Interaction::displayTextAndPin('Login to Demo'),
+                NotificationInteraction::confirmationMessageAndVerificationCodeChoice('Login to Demo'),
+                NotificationInteraction::displayTextAndPin('Login to Demo'),
             ];
             $interactionsBase64 = base64_encode(json_encode(
-                array_map(fn (Interaction $i) => $i->toArray(), $interactions),
+                array_map(fn (NotificationInteraction $i) => $i->toArray(), $interactions),
                 JSON_THROW_ON_ERROR,
             ));
 
@@ -187,7 +191,7 @@ if (isset($_GET['action'])) {
                         $_SESSION['auth']['rpName'],
                         $_SESSION['auth']['interactionsBase64'],
                         requiredCertificateLevel: CertificateLevel::QUALIFIED,
-                        schemeName: AuthCodeCalculator::SCHEME_NAME_DEMO,
+                        schemeName: SchemeName::DEMO,
                     );
 
                     // User information extracted from the certificate

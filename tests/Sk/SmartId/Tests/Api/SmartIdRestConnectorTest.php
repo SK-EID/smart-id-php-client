@@ -46,8 +46,9 @@ use Sk\SmartId\Exception\SessionNotFoundException;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\UnauthorizedException;
 use Sk\SmartId\Exception\UserAccountException;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
+use Sk\SmartId\Notification\NotificationInteraction;
 
 class SmartIdRestConnectorTest extends TestCase
 {
@@ -90,7 +91,7 @@ class SmartIdRestConnectorTest extends TestCase
             'Test RP',
             base64_encode('challenge'),
             HashAlgorithm::SHA512,
-            [Interaction::verificationCodeChoice()],
+            [DeviceLinkInteraction::displayTextAndPin('Test')],
         );
 
         $response = $this->connector->initiateDeviceLinkAuthentication($request);
@@ -112,7 +113,7 @@ class SmartIdRestConnectorTest extends TestCase
             'Test RP',
             base64_encode('challenge'),
             HashAlgorithm::SHA512,
-            [Interaction::verificationCodeChoice()],
+            [NotificationInteraction::displayTextAndPin('Test')],
         );
 
         $response = $this->connector->initiateNotificationAuthentication(
@@ -135,7 +136,7 @@ class SmartIdRestConnectorTest extends TestCase
             'Test RP',
             base64_encode('challenge'),
             HashAlgorithm::SHA512,
-            [Interaction::verificationCodeChoice()],
+            [NotificationInteraction::displayTextAndPin('Test')],
         );
 
         $response = $this->connector->initiateNotificationAuthentication(

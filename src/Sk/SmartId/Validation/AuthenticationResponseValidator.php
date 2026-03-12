@@ -34,6 +34,7 @@ use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 use phpseclib3\Crypt\RSA\PublicKey as RSAPublicKey;
 use Sk\SmartId\Enum\CertificateLevel;
+use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\ValidationException;
@@ -170,7 +171,7 @@ class AuthenticationResponseValidator
      * @param string $interactionsBase64 Base64-encoded interactions JSON as sent in the initial request
      * @param string|null $initialCallbackUrl Callback URL if Web2App flow was used, null otherwise
      * @param string|null $brokeredRpName Brokered RP name if acting as broker, null otherwise
-     * @param string $schemeName Scheme name ('smart-id' for production, 'smart-id-demo' for demo)
+     * @param SchemeName $schemeName Scheme name for the target environment
      *
      * @throws SmartIdException
      * @throws ValidationException
@@ -183,7 +184,7 @@ class AuthenticationResponseValidator
         ?string $initialCallbackUrl = null,
         ?string $brokeredRpName = null,
         ?CertificateLevel $requiredCertificateLevel = null,
-        string $schemeName = AuthCodeCalculator::SCHEME_NAME_PRODUCTION,
+        SchemeName $schemeName = SchemeName::PRODUCTION,
     ): AuthenticationIdentity {
         if (!$sessionStatus->isComplete()) {
             throw new ValidationException('Cannot validate incomplete session');
@@ -513,7 +514,7 @@ class AuthenticationResponseValidator
         string $interactionsBase64,
         ?string $initialCallbackUrl,
         ?string $brokeredRpName,
-        string $schemeName,
+        SchemeName $schemeName,
     ): void {
         $cert = $sessionStatus->getCert();
         $signature = $sessionStatus->getSignature();
@@ -553,7 +554,7 @@ class AuthenticationResponseValidator
         $interactionsHashBase64 = base64_encode($interactionsHash);
 
         $acspV2Payload = implode('|', [
-            $schemeName,
+            $schemeName->value,
             'ACSP_V2',
             $serverRandom,
             $rpChallenge,

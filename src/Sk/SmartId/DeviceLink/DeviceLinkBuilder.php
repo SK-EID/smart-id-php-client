@@ -31,8 +31,8 @@ declare(strict_types=1);
 namespace Sk\SmartId\DeviceLink;
 
 use Sk\SmartId\Enum\DeviceLinkType;
+use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Enum\SessionType;
-use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Util\AuthCodeCalculator;
 
 /**
@@ -61,7 +61,7 @@ class DeviceLinkBuilder
 
     private string $rpName;
 
-    /** @var Interaction[] */
+    /** @var DeviceLinkInteraction[] */
     private array $interactions;
 
     private int $elapsedSeconds = 0;
@@ -76,10 +76,10 @@ class DeviceLinkBuilder
 
     private string $lang = 'eng';
 
-    private string $schemeName = AuthCodeCalculator::SCHEME_NAME_PRODUCTION;
+    private SchemeName $schemeName = SchemeName::PRODUCTION;
 
     /**
-     * @param Interaction[] $interactions
+     * @param DeviceLinkInteraction[] $interactions
      */
     public function __construct(
         DeviceLinkAuthenticationResponse $response,
@@ -125,7 +125,7 @@ class DeviceLinkBuilder
         return $clone;
     }
 
-    public function withSchemeName(string $schemeName): self
+    public function withSchemeName(SchemeName $schemeName): self
     {
         $clone = clone $this;
         $clone->schemeName = $schemeName;
@@ -135,12 +135,12 @@ class DeviceLinkBuilder
 
     public function withDemoEnvironment(): self
     {
-        return $this->withSchemeName(AuthCodeCalculator::SCHEME_NAME_DEMO);
+        return $this->withSchemeName(SchemeName::DEMO);
     }
 
     public function withProductionEnvironment(): self
     {
-        return $this->withSchemeName(AuthCodeCalculator::SCHEME_NAME_PRODUCTION);
+        return $this->withSchemeName(SchemeName::PRODUCTION);
     }
 
     public function buildQrCodeUrl(): string

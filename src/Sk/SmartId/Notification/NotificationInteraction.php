@@ -28,32 +28,36 @@
 
 declare(strict_types=1);
 
-namespace Sk\SmartId\Tests\Enum;
+namespace Sk\SmartId\Notification;
 
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Enum\InteractionType;
+use Sk\SmartId\Model\AbstractInteraction;
 
-class InteractionTypeTest extends TestCase
+/**
+ * Interaction types available for notification-based flows.
+ *
+ * Notification-based flows support three interaction types:
+ * - displayTextAndPIN: short text (up to 60 characters) with PIN input
+ * - confirmationMessage: longer text (up to 200 characters) with Confirm/Cancel buttons
+ * - confirmationMessageAndVerificationCodeChoice: longer text (up to 200 characters) with verification code selection
+ *
+ * For device link flows, use DeviceLinkInteraction which supports only
+ * displayTextAndPIN and confirmationMessage.
+ */
+class NotificationInteraction extends AbstractInteraction
 {
-    #[Test]
-    public function displayTextAndPinHasCorrectValue(): void
+    public static function displayTextAndPin(string $displayText): self
     {
-        $this->assertSame('displayTextAndPIN', InteractionType::DISPLAY_TEXT_AND_PIN->value);
+        return new self(InteractionType::DISPLAY_TEXT_AND_PIN, $displayText);
     }
 
-    #[Test]
-    public function confirmationMessageHasCorrectValue(): void
+    public static function confirmationMessage(string $displayText): self
     {
-        $this->assertSame('confirmationMessage', InteractionType::CONFIRMATION_MESSAGE->value);
+        return new self(InteractionType::CONFIRMATION_MESSAGE, $displayText);
     }
 
-    #[Test]
-    public function confirmationMessageAndVerificationCodeChoiceHasCorrectValue(): void
+    public static function confirmationMessageAndVerificationCodeChoice(string $displayText): self
     {
-        $this->assertSame(
-            'confirmationMessageAndVerificationCodeChoice',
-            InteractionType::CONFIRMATION_MESSAGE_AND_VERIFICATION_CODE_CHOICE->value,
-        );
+        return new self(InteractionType::CONFIRMATION_MESSAGE_AND_VERIFICATION_CODE_CHOICE, $displayText);
     }
 }

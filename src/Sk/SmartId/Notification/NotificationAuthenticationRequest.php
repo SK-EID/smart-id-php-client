@@ -33,7 +33,6 @@ namespace Sk\SmartId\Notification;
 use Sk\SmartId\Api\AbstractAuthenticationRequest;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
 
 /**
  * Request data transfer object for push notification-based authentication.
@@ -48,7 +47,7 @@ use Sk\SmartId\Model\Interaction;
 class NotificationAuthenticationRequest extends AbstractAuthenticationRequest
 {
     /**
-     * @param Interaction[] $allowedInteractionsOrder
+     * @param NotificationInteraction[] $allowedInteractionsOrder
      * @param string[]|null $capabilities
      */
     public function __construct(

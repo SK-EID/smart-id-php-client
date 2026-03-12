@@ -61,7 +61,8 @@ use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Enum\SchemeName;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Util\CallbackUrlUtil;
 use Sk\SmartId\Util\CallbackUrlValidator;
@@ -87,6 +88,12 @@ $relyingPartyName = 'DEMO';
 // Use ngrok or similar tunnel for local development: ngrok http 8080
 $publicBaseUrl = 'https://3519-2001-7d0-89b7-e80-248e-5ba0-afc2-af4e.ngrok-free.app';
 
+// Initialize the Smart-ID connector with HTTPS pinning
+// For production, add key hashes manually:
+// $sslKeys = SslPinnedPublicKeyStore::create()
+//     ->addPublicKeyHash('sha256//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=')
+//     ->addPublicKeyHash('sha256//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY=');
+// $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
 $connector = new SmartIdRestConnector(
     $baseUrl,
     SslPinnedPublicKeyStore::loadDemo(),
@@ -113,9 +120,9 @@ if (isset($_GET['action'])) {
         $callbackUrl = $callbackResult['callbackUrl'];
         $callbackToken = $callbackResult['token'];
 
-        $interactions = [Interaction::displayTextAndPin('Test login')];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test login')];
         $interactionsBase64 = base64_encode(json_encode(
-            array_map(fn (Interaction $i) => $i->toArray(), $interactions),
+            array_map(fn (DeviceLinkInteraction $i) => $i->toArray(), $interactions),
             JSON_THROW_ON_ERROR,
         ));
 
@@ -176,7 +183,7 @@ if (isset($_GET['action'])) {
             $response,
             $auth['rpChallenge'],
             $auth['rpName'],
-            [Interaction::displayTextAndPin('Test login')],
+            [DeviceLinkInteraction::displayTextAndPin('Test login')],
             $auth['verificationCode'],
         );
 
@@ -409,7 +416,7 @@ if (isset($_GET['action'])) {
                         $_SESSION['auth']['interactionsBase64'],
                         $_SESSION['auth']['callbackUrl'],
                         requiredCertificateLevel: CertificateLevel::QUALIFIED,
-                        schemeName: AuthCodeCalculator::SCHEME_NAME_DEMO,
+                        schemeName: SchemeName::DEMO,
                     );
 
                     $checks[] = ['label' => 'Certificate trust chain', 'ok' => true];

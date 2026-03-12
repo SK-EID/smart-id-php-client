@@ -28,32 +28,30 @@
 
 declare(strict_types=1);
 
-namespace Sk\SmartId\Tests\Enum;
+namespace Sk\SmartId\DeviceLink;
 
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Enum\InteractionType;
+use Sk\SmartId\Model\AbstractInteraction;
 
-class InteractionTypeTest extends TestCase
+/**
+ * Interaction types available for device link flows.
+ *
+ * Device link flows support only two interaction types:
+ * - displayTextAndPIN: short text (up to 60 characters) with PIN input
+ * - confirmationMessage: longer text (up to 200 characters) with Confirm/Cancel buttons
+ *
+ * For notification-based flows, use NotificationInteraction which supports
+ * additional interaction types like confirmationMessageAndVerificationCodeChoice.
+ */
+class DeviceLinkInteraction extends AbstractInteraction
 {
-    #[Test]
-    public function displayTextAndPinHasCorrectValue(): void
+    public static function displayTextAndPin(string $displayText): self
     {
-        $this->assertSame('displayTextAndPIN', InteractionType::DISPLAY_TEXT_AND_PIN->value);
+        return new self(InteractionType::DISPLAY_TEXT_AND_PIN, $displayText);
     }
 
-    #[Test]
-    public function confirmationMessageHasCorrectValue(): void
+    public static function confirmationMessage(string $displayText): self
     {
-        $this->assertSame('confirmationMessage', InteractionType::CONFIRMATION_MESSAGE->value);
-    }
-
-    #[Test]
-    public function confirmationMessageAndVerificationCodeChoiceHasCorrectValue(): void
-    {
-        $this->assertSame(
-            'confirmationMessageAndVerificationCodeChoice',
-            InteractionType::CONFIRMATION_MESSAGE_AND_VERIFICATION_CODE_CHOICE->value,
-        );
+        return new self(InteractionType::CONFIRMATION_MESSAGE, $displayText);
     }
 }

@@ -193,6 +193,42 @@ $sslKeys = SslPinnedPublicKeyStore::create()
 $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
 ```
 
+#### Loading hashes from an environment variable
+
+When hashes are stored in a single environment variable (e.g. from `.env` or container config):
+
+```bash
+SMARTID_SSL_PINS="sha256//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=,sha256//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY="
+```
+
+```php
+$sslKeys = SslPinnedPublicKeyStore::fromString(getenv('SMARTID_SSL_PINS'));
+
+$connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
+```
+
+A custom separator can be provided as the second argument:
+
+```php
+// Semicolon-separated
+$sslKeys = SslPinnedPublicKeyStore::fromString(getenv('SMARTID_SSL_PINS'), ';');
+```
+
+#### Loading hashes from an array (secret managers, config files)
+
+When your secret manager or configuration returns an array of hash strings:
+
+```php
+$hashes = $secretManager->getSecret('smartid-ssl-pins'); // returns string[]
+
+$sslKeys = SslPinnedPublicKeyStore::fromArray($hashes);
+
+$connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
+```
+
+Both `fromString()` and `fromArray()` validate every hash immediately and throw
+`\InvalidArgumentException` if the format is invalid or the input is empty.
+
 #### Loading hashes from a directory
 
 You can load hashes from a directory of `.key` files (each containing one `sha256//...` hash):
@@ -226,7 +262,7 @@ More info: https://sk-eid.github.io/smart-id-documentation/rp-api/device_link_fl
 - **relyingPartyName** — Required. Friendly name of the Relying Party, limited to 32 bytes in UTF-8 encoding.
 - **certificateLevel** — Level of certificate requested. Possible values: `QUALIFIED`, `ADVANCED`. Defaults to `QUALIFIED`.
 - **hashAlgorithm** — Hash algorithm for signatures. Supported: `SHA-256`, `SHA-384`, `SHA-512`, `SHA3-256`, `SHA3-384`, `SHA3-512`. Defaults to `SHA-512`.
-- **interactions** — Required. Array of `Interaction` objects defining the allowed interactions in order of preference.
+- **interactions** — Required. Array of `DeviceLinkInteraction` objects defining the allowed interactions in order of preference.
 - **callbackUrl** — Optional. HTTPS callback URL for Web2App same-device flows.
 - **nonce** — Optional. Random string, up to 30 characters. Used to override idempotent behaviour (if the same request is made within a 15-second window, the same response is returned unless a nonce is provided).
 - **capabilities** — Optional. Array of capability strings. Used only when agreed with Smart-ID provider.
@@ -244,7 +280,7 @@ More info: https://sk-eid.github.io/smart-id-documentation/rp-api/device_link_fl
 ```php
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequestBuilder;
 use Sk\SmartId\Enum\CertificateLevel;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
 $builder = new DeviceLinkAuthenticationRequestBuilder(
     $connector,
@@ -256,7 +292,7 @@ $builder = new DeviceLinkAuthenticationRequestBuilder(
 $session = $builder
     ->withCertificateLevel(CertificateLevel::QUALIFIED)
     ->withAllowedInteractionsOrder([
-        Interaction::displayTextAndPin('Log in to example.com'),
+        DeviceLinkInteraction::displayTextAndPin('Log in to example.com'),
     ])
     ->initiate();
 
@@ -281,7 +317,7 @@ $rpChallenge = RpChallengeGenerator::generate();
 $session = $builder
     ->withRpChallenge($rpChallenge)
     ->withAllowedInteractionsOrder([
-        Interaction::displayTextAndPin('Log in to example.com'),
+        DeviceLinkInteraction::displayTextAndPin('Log in to example.com'),
     ])
     ->initiate();
 ```
@@ -294,13 +330,13 @@ For lower-level control, construct request objects directly:
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Util\RpChallengeGenerator;
 
 // For security, generate a new challenge for each request
 $rpChallenge = RpChallengeGenerator::generate();
 
-$interactions = [Interaction::displayTextAndPin('Log in to example.com')];
+$interactions = [DeviceLinkInteraction::displayTextAndPin('Log in to example.com')];
 
 $request = new DeviceLinkAuthenticationRequest(
     relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
@@ -324,8 +360,8 @@ $deviceLinkBase = $response->getDeviceLinkBase();
 
 Documentation: https://sk-eid.github.io/smart-id-documentation/rp-api/device_link_flows.html
 
-To use the Smart-ID **demo environment**, you must specify `smart-id-demo` as the scheme name
-(use `->withDemoEnvironment()` or `->withSchemeName('smart-id-demo')`).
+To use the Smart-ID **demo environment**, you must specify `SchemeName::DEMO` as the scheme name
+(use `->withDemoEnvironment()` or `->withSchemeName(SchemeName::DEMO)`).
 See: https://sk-eid.github.io/smart-id-documentation/environments.html#_demo
 
 #### Device link parameters
@@ -335,7 +371,7 @@ See: https://sk-eid.github.io/smart-id-documentation/environments.html#_demo
 - **sessionToken** — Token from the session response.
 - **elapsedSeconds** — Seconds since the session-init response was received. Required for QR codes.
 - **lang** — User language. Default: `eng`.
-- **schemeName** — Controls environment. Default: `smart-id` (production). Use `smart-id-demo` for demo.
+- **schemeName** — Controls environment. Default: `SchemeName::PRODUCTION`. Use `SchemeName::DEMO` for demo.
 - **callbackUrl** — Required for Web2App flows. Must be HTTPS.
 
 #### Generating QR code URL
@@ -375,14 +411,14 @@ use Sk\SmartId\Util\CallbackUrlValidator;
 $callbackBase = 'https://your-app.com/callback';
 CallbackUrlValidator::validateOrThrow($callbackBase, requireHttps: true);
 $callbackResult = CallbackUrlUtil::createCallbackUrl($callbackBase);
-$callbackUrl = $callbackResult['callbackUrl'];   // https://your-app.com/callback?value=<random-token>
+$callbackUrl = $callbackResult['callbackUrl']; // e.g., https://your-app.com/callback?value=<random-token>
 $callbackToken = $callbackResult['token'];        // Store to verify the callback later
 
 // Callback URL must be set when initiating the session
 $session = $builder
     ->withCallbackUrl($callbackUrl)
     ->withAllowedInteractionsOrder([
-        Interaction::displayTextAndPin('Log in'),
+        DeviceLinkInteraction::displayTextAndPin('Log in'),
     ])
     ->initiate();
 
@@ -393,7 +429,7 @@ $web2AppUrl = $session->buildWeb2AppUrl();
 
 ```php
 $builder = $session->createDeviceLinkBuilder()
-    ->withSchemeName('smart-id-demo')  // override scheme for demo
+    ->withDemoEnvironment()             // override scheme for demo
     ->withLang('est')                  // override language
     ->withElapsedSeconds($elapsed);
 
@@ -413,8 +449,8 @@ The RP's first choice is `confirmationMessage`; if not available, then fall back
 
 ```php
 $builder->withAllowedInteractionsOrder([
-    Interaction::confirmationMessage('Up to 200 characters of text here..'),
-    Interaction::displayTextAndPin('Up to 60 characters of text here..'),
+    DeviceLinkInteraction::confirmationMessage('Up to 200 characters of text here..'),
+    DeviceLinkInteraction::displayTextAndPin('Up to 60 characters of text here..'),
 ]);
 ```
 
@@ -424,7 +460,7 @@ If the interaction is not supported by the app, the process will fail if no fall
 
 ```php
 $builder->withAllowedInteractionsOrder([
-    Interaction::confirmationMessage('Up to 200 characters of text here..'),
+    DeviceLinkInteraction::confirmationMessage('Up to 200 characters of text here..'),
 ]);
 ```
 
@@ -444,7 +480,7 @@ $builder->withAllowedInteractionsOrder([
 - **documentNumber** or **semanticsIdentifier** — Required (one of). Identifies the user.
 - **certificateLevel** — Optional. `QUALIFIED` or `ADVANCED`. Defaults to `QUALIFIED`.
 - **hashAlgorithm** — Optional. Supported: `SHA-256`, `SHA-384`, `SHA-512`, `SHA3-256`, `SHA3-384`, `SHA3-512`. Defaults to `SHA-512`.
-- **interactions** — Array of `Interaction` objects.
+- **interactions** — Required. Array of `NotificationInteraction` objects defining the allowed interactions in order of preference.
 - **nonce** — Optional. Random string, up to 30 characters. Used to override idempotent behaviour (if the same request is made within a 15-second window, the same response is returned unless a nonce is provided).
 - **capabilities** — Optional. Array of capability strings.
 - **requestProperties** — Optional. Set `shareMdClientIpAddress` to `true` to request the IP address of the user's device (see [Requesting IP address](#requesting-ip-address-of-users-device)).
@@ -459,8 +495,8 @@ More info about Semantics Identifiers: [ETSI EN 319 412-1](https://www.etsi.org/
 
 ```php
 use Sk\SmartId\Notification\NotificationAuthenticationRequestBuilder;
+use Sk\SmartId\Notification\NotificationInteraction;
 use Sk\SmartId\Enum\CertificateLevel;
-use Sk\SmartId\Model\Interaction;
 use Sk\SmartId\Model\SemanticsIdentifier;
 
 // Create semantics identifier:
@@ -480,8 +516,8 @@ $session = $builder
     ->withSemanticsIdentifier($semanticsIdentifier)
     ->withCertificateLevel(CertificateLevel::QUALIFIED)
     ->withAllowedInteractionsOrder([
-        Interaction::confirmationMessageAndVerificationCodeChoice('Log in to example.com'),
-        Interaction::displayTextAndPin('Log in to example.com'),
+        NotificationInteraction::confirmationMessageAndVerificationCodeChoice('Log in to example.com'),
+        NotificationInteraction::displayTextAndPin('Log in to example.com'),
     ])
     ->initiate();
 
@@ -501,7 +537,7 @@ $session = $builder
     ->withDocumentNumber('PNOLT-40504040001-MOCK-Q')
     ->withCertificateLevel(CertificateLevel::QUALIFIED)
     ->withAllowedInteractionsOrder([
-        Interaction::displayTextAndPin('Log in to example.com'),
+        NotificationInteraction::displayTextAndPin('Log in to example.com'),
     ])
     ->initiate();
 
@@ -520,9 +556,9 @@ The RP's first choice is `confirmationMessageAndVerificationCodeChoice`; the sec
 
 ```php
 $builder->withAllowedInteractionsOrder([
-    Interaction::confirmationMessageAndVerificationCodeChoice('Up to 200 characters of text here...'),
-    Interaction::confirmationMessage('Up to 200 characters of text here...'),
-    Interaction::displayTextAndPin('Up to 60 characters of text here...'),
+    NotificationInteraction::confirmationMessageAndVerificationCodeChoice('Up to 200 characters of text here...'),
+    NotificationInteraction::confirmationMessage('Up to 200 characters of text here...'),
+    NotificationInteraction::displayTextAndPin('Up to 60 characters of text here...'),
 ]);
 ```
 
@@ -532,7 +568,7 @@ Process will fail if interaction is not supported and there is no fallback.
 
 ```php
 $builder->withAllowedInteractionsOrder([
-    Interaction::confirmationMessageAndVerificationCodeChoice('Up to 200 characters of text here...'),
+    NotificationInteraction::confirmationMessageAndVerificationCodeChoice('Up to 200 characters of text here...'),
 ]);
 ```
 
@@ -685,9 +721,9 @@ $validator = new AuthenticationResponseValidator();
 TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 
 // The interactions Base64 value must match what was sent in the original request
-$interactions = [Interaction::displayTextAndPin('Log in to example.com')];
+$interactions = [DeviceLinkInteraction::displayTextAndPin('Log in to example.com')];
 $interactionsBase64 = base64_encode(json_encode(
-    array_map(fn (Interaction $i) => $i->toArray(), $interactions),
+    array_map(fn (DeviceLinkInteraction $i) => $i->toArray(), $interactions),
     JSON_THROW_ON_ERROR,
 ));
 
@@ -698,7 +734,7 @@ $identity = $validator->validate(
     'DEMO',                                   // Relying Party name
     $interactionsBase64,                      // Base64-encoded interactions JSON
     requiredCertificateLevel: CertificateLevel::QUALIFIED,
-    schemeName: AuthCodeCalculator::SCHEME_NAME_DEMO, // Use SCHEME_NAME_PRODUCTION for live
+    schemeName: SchemeName::DEMO, // Use SchemeName::PRODUCTION for live
 );
 ```
 
@@ -706,13 +742,14 @@ The validator performs the following checks:
 1. Session state is `COMPLETE` and result is `OK`
 2. Signature protocol is `ACSP_V2`
 3. Certificate level meets the requested level (if specified)
-4. Certificate is signed by a trusted CA
+4. Certificate is signed by a trusted CA and within its validity period
 5. Certificate basic constraints (not a CA certificate)
 6. Certificate revocation via OCSP (if configured)
 7. Certificate policies contain Smart-ID scheme OIDs
 8. Certificate key usage includes `digitalSignature`
 9. Certificate Extended Key Usage includes Smart-ID authentication or `clientAuth`
-10. RSA-PSS signature verification against the ACSP_V2 payload
+10. `signatureAlgorithmParameters` validation (hashAlgorithm, saltLength, maskGenAlgorithm, trailerField)
+11. RSA-PSS signature verification against the ACSP_V2 payload
 
 ### Validating notification-based authentication
 
@@ -725,7 +762,7 @@ $identity = $validator->validate(
     'DEMO',
     $interactionsBase64,
     requiredCertificateLevel: CertificateLevel::QUALIFIED,
-    schemeName: AuthCodeCalculator::SCHEME_NAME_DEMO,
+    schemeName: SchemeName::DEMO,
 );
 ```
 
@@ -849,7 +886,7 @@ More info: [https://sk-eid.github.io/smart-id-documentation/rp-api/3.0.3/request
 $session = $builder
     ->withCertificateLevel(CertificateLevel::QUALIFIED)
     ->withAllowedInteractionsOrder([
-        Interaction::displayTextAndPin('Log in to example.com'),
+        DeviceLinkInteraction::displayTextAndPin('Log in to example.com'),
     ])
     ->withShareMdClientIpAddress()
     ->initiate();

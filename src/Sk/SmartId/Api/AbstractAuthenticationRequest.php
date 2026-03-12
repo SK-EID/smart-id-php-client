@@ -33,12 +33,12 @@ namespace Sk\SmartId\Api;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Enum\SignatureProtocol;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\Model\AbstractInteraction;
 
 abstract class AbstractAuthenticationRequest
 {
     /**
-     * @param Interaction[] $allowedInteractionsOrder
+     * @param AbstractInteraction[] $allowedInteractionsOrder
      * @param string[]|null $capabilities
      */
     public function __construct(
@@ -75,7 +75,7 @@ abstract class AbstractAuthenticationRequest
     }
 
     /**
-     * @return Interaction[]
+     * @return AbstractInteraction[]
      */
     public function getAllowedInteractionsOrder(): array
     {
@@ -155,7 +155,7 @@ abstract class AbstractAuthenticationRequest
     protected function mapInteractionsToArray(): array
     {
         return array_values(array_map(
-            fn (Interaction $i) => $i->toArray(),
+            fn (AbstractInteraction $i) => $i->toArray(),
             $this->allowedInteractionsOrder,
         ));
     }

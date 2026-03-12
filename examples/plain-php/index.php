@@ -59,7 +59,8 @@ use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Model\Interaction;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
+use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Exception\UserRefusedInteractionException;
@@ -83,7 +84,9 @@ $relyingPartyUUID = '00000000-0000-4000-8000-000000000000';
 $relyingPartyName = 'DEMO';
 
 // Initialize the Smart-ID connector with HTTPS pinning
-// For production, use SslPinnedPublicKeyStore::loadFromDirectory() or create()->addPublicKeyHash()
+// For production, load hashes from an environment variable:
+// $sslKeys = SslPinnedPublicKeyStore::fromString(getenv('SMARTID_SSL_PINS'));
+// $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
 $connector = new SmartIdRestConnector(
     $baseUrl,
     SslPinnedPublicKeyStore::loadDemo(),
@@ -105,9 +108,9 @@ if (isset($_GET['action'])) {
 
         // Build the interactions and store their Base64 representation
         // This exact Base64 value is needed later for response signature verification
-        $interactions = [Interaction::displayTextAndPin('Test login')];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test login')];
         $interactionsBase64 = base64_encode(json_encode(
-            array_map(fn (Interaction $i) => $i->toArray(), $interactions),
+            array_map(fn (DeviceLinkInteraction $i) => $i->toArray(), $interactions),
             JSON_THROW_ON_ERROR,
         ));
 
@@ -167,7 +170,7 @@ if (isset($_GET['action'])) {
             $response,
             $auth['rpChallenge'],
             $auth['rpName'],
-            [Interaction::displayTextAndPin('Test login')],
+            [DeviceLinkInteraction::displayTextAndPin('Test login')],
         );
 
         // Calculate how many seconds have passed since session creation
@@ -244,7 +247,7 @@ if (isset($_GET['action'])) {
                         $_SESSION['auth']['rpName'],
                         $_SESSION['auth']['interactionsBase64'],
                         requiredCertificateLevel: CertificateLevel::QUALIFIED,
-                        schemeName: AuthCodeCalculator::SCHEME_NAME_DEMO,
+                        schemeName: SchemeName::DEMO,
                     );
 
                     // User information extracted from the certificate
