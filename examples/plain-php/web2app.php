@@ -50,7 +50,8 @@
  * 2. Deep link button is displayed
  * 3. User taps the button -> Smart-ID app opens
  * 4. User confirms authentication in the app
- * 5. Page polls for completion and shows success message
+ * 5. Smart-ID app redirects to callback URL
+ * 6. Callback page polls session status once and validates the response
  */
 
 require_once __DIR__ . '/vendor/autoload.php';
@@ -315,8 +316,8 @@ if (isset($_GET['action'])) {
 
     // -------------------------------------------------------------------------
     // ACTION: status - Poll for authentication session status
-    // Performs full production-like validation when session is complete
-    // AND callback parameters have been received
+    // Only called from the callback page after Smart-ID app redirects back.
+    // Performs full production-like validation when session is complete.
     // -------------------------------------------------------------------------
     if ($_GET['action'] === 'status') {
         if (!isset($_SESSION['auth'])) {
@@ -324,6 +325,9 @@ if (isset($_GET['action'])) {
             exit;
         }
 
+        // In Web2App flow, status is only polled from the callback page
+        // where callback params (sessionSecretDigest, userChallengeVerifier)
+        // have already been stored in the session by the callback handler.
         $status = $connector->getSessionStatus($_SESSION['auth']['sessionId'], timeoutMs: 1000);
 
         $response = [
@@ -334,27 +338,6 @@ if (isset($_GET['action'])) {
             $response['endResult'] = $status->getResult()->getEndResult();
 
             if ($status->getResult()->isOk()) {
-                // =========================================================
-                // In Web2App flow, we MUST wait for the callback URL redirect
-                // before validating. The callback delivers sessionSecretDigest
-                // and userChallengeVerifier which prove the redirect actually
-                // came from Smart-ID and the user completed authentication.
-                // Without these, authentication should NOT be considered valid.
-                // =========================================================
-                $hasCallbackParams = isset(
-                    $_SESSION['auth']['callbackSessionSecretDigest'],
-                    $_SESSION['auth']['callbackUserChallengeVerifier'],
-                );
-
-                if (!$hasCallbackParams) {
-                    // Session is complete but callback hasn't been received yet.
-                    // Tell the frontend to keep waiting.
-                    $response['state'] = 'WAITING_FOR_CALLBACK';
-                    $response['endResult'] = null;
-                    echo json_encode($response);
-                    exit;
-                }
-
                 try {
                     $checks = [];
 
@@ -467,11 +450,6 @@ if (isset($_GET['action'])) {
 
         <div id="auth-container" class="hidden">
             <a href="#" id="smart-id-btn" class="btn">Open Smart-ID App</a>
-
-            <p class="status waiting" id="status">
-                <span class="spinner"></span>
-                <span>Waiting for authentication...</span>
-            </p>
         </div>
 
         <div id="loading">
