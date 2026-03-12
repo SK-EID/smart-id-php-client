@@ -226,8 +226,8 @@ $sslKeys = SslPinnedPublicKeyStore::fromArray($hashes);
 $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
 ```
 
-Both `fromString()` and `fromArray()` validate every hash immediately and throw
-`\InvalidArgumentException` if the format is invalid or the input is empty.
+All methods that accept hashes (`addPublicKeyHash()`, `fromString()`, `fromArray()`) validate
+every hash immediately and throw `\InvalidArgumentException` if the format is invalid or the input is empty.
 
 #### Loading hashes from a directory
 
