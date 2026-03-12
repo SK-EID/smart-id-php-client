@@ -46,6 +46,11 @@ use Sk\SmartId\Exception\ValidationException;
  *
  * Uses phpseclib3 for all certificate parsing and ASN.1 encoding/decoding.
  *
+ * TODO: OCSP revocation checking has not been verified against the production environment.
+ *   The demo OCSP responder at aia.demo.sk.ee intentionally reports test certificates as revoked,
+ *   so only production can confirm correctness. Use configureValidator() (without OCSP) for demo
+ *   and configureValidatorWithOcsp() for production.
+ *
  * Known limitations (see Smart-ID documentation "Response verification" for full requirements):
  * - CRL fallback: If OCSP fails or is unavailable, the docs recommend falling back to CRL checking.
  *   This implementation does not perform CRL checking; OCSP failure results in a ValidationException.

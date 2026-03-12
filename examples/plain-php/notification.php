@@ -181,8 +181,8 @@ if (isset($_GET['action'])) {
                     // For DEMO environment (sid.demo.sk.ee) - use TEST certificates
                     TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 
-                    // For PRODUCTION environment - use production certificates with OCSP:
-                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator);
+                    // For PRODUCTION environment - use production certificates:
+                    // TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
 
                     // Validate the authentication response and extract user identity
                     $identity = $validator->validate(

@@ -36,7 +36,6 @@ This library supports Smart-ID API v3.
         - [Setting up trusted CA certificates](#setting-up-trusted-ca-certificates)
         - [Validating device link authentication](#validating-device-link-authentication)
         - [Validating notification-based authentication](#validating-notification-based-authentication)
-        - [OCSP certificate revocation checking](#ocsp-certificate-revocation-checking)
         - [Web2App flow validation](#web2app-flow-validation)
         - [Validating callback URL with CallbackUrlUtil](#validating-callback-url-with-callbackurlutil)
     - [Extracting user identity](#extracting-user-identity)
@@ -57,7 +56,6 @@ The Smart-ID PHP client can be used for easy integration of the [Smart-ID](https
 - ACSP_V2 signature protocol with RSA-PSS verification
 - SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384, SHA3-512 hash algorithm support
 - Certificate trust chain validation with full signatureAlgorithmParameters validation
-- OCSP certificate revocation checking
 - Verification code calculation
 - CallbackUrlUtil for Web2App/App2App callback URL creation and validation
 
@@ -744,12 +742,11 @@ The validator performs the following checks:
 3. Certificate level meets the requested level (if specified)
 4. Certificate is signed by a trusted CA and within its validity period
 5. Certificate basic constraints (not a CA certificate)
-6. Certificate revocation via OCSP (if configured)
-7. Certificate policies contain Smart-ID scheme OIDs
-8. Certificate key usage includes `digitalSignature`
-9. Certificate Extended Key Usage includes Smart-ID authentication or `clientAuth`
-10. `signatureAlgorithmParameters` validation (hashAlgorithm, saltLength, maskGenAlgorithm, trailerField)
-11. RSA-PSS signature verification against the ACSP_V2 payload
+6. Certificate policies contain Smart-ID scheme OIDs
+7. Certificate key usage includes `digitalSignature`
+8. Certificate Extended Key Usage includes Smart-ID authentication or `clientAuth`
+9. `signatureAlgorithmParameters` validation (hashAlgorithm, saltLength, maskGenAlgorithm, trailerField)
+10. RSA-PSS signature verification against the ACSP_V2 payload
 
 ### Validating notification-based authentication
 
@@ -765,24 +762,6 @@ $identity = $validator->validate(
     schemeName: SchemeName::DEMO,
 );
 ```
-
-### OCSP certificate revocation checking
-
-Per Smart-ID documentation, OCSP revocation checking is a required validation step for production.
-
-```php
-use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
-
-// Enable OCSP checking (production)
-TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator);
-
-// Or with a custom OCSP checker
-$ocspChecker = new OcspCertificateRevocationChecker(timeoutSeconds: 10);
-TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
-```
-
-> **Note:** The demo OCSP responder at `aia.demo.sk.ee` intentionally reports test certificates as revoked.
-> Use `configureValidator()` (without OCSP) for the demo environment and `configureValidatorWithOcsp()` for production.
 
 ### Web2App flow validation
 
@@ -934,7 +913,7 @@ These cover scenarios where user actions or inactions lead to session terminatio
 
 ### Validation exceptions
 
-- **`ValidationException`** — Thrown during response validation: certificate trust, signature mismatch, OCSP revocation, etc.
+- **`ValidationException`** — Thrown during response validation: certificate trust, signature mismatch, etc.
 
 ### Technical exceptions
 

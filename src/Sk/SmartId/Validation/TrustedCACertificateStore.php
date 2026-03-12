@@ -168,15 +168,22 @@ class TrustedCACertificateStore
 
     /**
      * Configure an AuthenticationResponseValidator with these certificates and OCSP revocation checking enabled.
+     *
+     * TODO: OCSP revocation checking has not been verified against the production environment.
+     *   The demo OCSP responder at aia.demo.sk.ee intentionally reports test certificates as revoked,
+     *   so only production can confirm correctness. This method is currently disabled until OCSP
+     *   has been verified in production.
+     *
+     * @throws \RuntimeException always — OCSP support is not yet available
      */
     public function configureValidatorWithOcsp(
         AuthenticationResponseValidator $validator,
         ?OcspCertificateRevocationChecker $ocspChecker = null,
     ): AuthenticationResponseValidator {
-        $validator->setTrustedCaCertificates($this->certificates);
-        $validator->setTrustedCaCertificateFiles($this->certificateFilePaths);
-        $validator->setOcspRevocationChecker($ocspChecker ?? new OcspCertificateRevocationChecker());
-
-        return $validator;
+        throw new \RuntimeException(
+            'OCSP revocation checking is not yet available. '
+            . 'OCSP has not been verified against the production environment. '
+            . 'Use configureValidator() instead until OCSP support is completed.',
+        );
     }
 }

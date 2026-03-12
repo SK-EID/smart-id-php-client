@@ -94,8 +94,7 @@ Environment details: https://sk-eid.github.io/smart-id-documentation/environment
 
 ## Demo Environment Notes
 
-- The demo OCSP responder (`aia.demo.sk.ee`) intentionally reports all test certificates as revoked, so OCSP checking is not used in these examples.
-- For production, replace `configureValidator()` with `configureValidatorWithOcsp()` and use `TrustedCACertificateStore::loadFromDefaults()` instead of `loadTestCertificates()`.
+- For production, use `TrustedCACertificateStore::loadFromDefaults()` instead of `loadTestCertificates()`.
 - Replace the demo relying party UUID and name with your own production credentials.
 - Replace `SslPinnedPublicKeyStore::loadDemo()` with your production SSL pin configuration.
 - Replace `SchemeName::DEMO` with `SchemeName::PRODUCTION`.
@@ -106,6 +105,7 @@ Environment details: https://sk-eid.github.io/smart-id-documentation/environment
 examples/plain-php/
 ├── css/
 │   ├── style.css          # Shared styles
+│   ├── callback.css       # Web2App callback verification page styles (dark theme)
 │   ├── index.css           # QR code page styles
 │   ├── notification.css    # Notification page styles
 │   └── web2app.css         # Web2App page styles

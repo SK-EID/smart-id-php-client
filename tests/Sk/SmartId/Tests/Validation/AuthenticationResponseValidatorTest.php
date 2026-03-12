@@ -360,24 +360,26 @@ class AuthenticationResponseValidatorTest extends TestCase
     }
 
     #[Test]
-    public function setOcspRevocationCheckerReturnsSelf(): void
+    public function setOcspRevocationCheckerThrowsRuntimeException(): void
     {
         $validator = new AuthenticationResponseValidator();
         $checker = new OcspCertificateRevocationChecker();
 
-        $result = $validator->setOcspRevocationChecker($checker);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('OCSP revocation checking is not yet available');
 
-        $this->assertSame($validator, $result);
+        $validator->setOcspRevocationChecker($checker);
     }
 
     #[Test]
-    public function setOcspRevocationCheckerAcceptsNull(): void
+    public function setOcspRevocationCheckerWithNullThrowsRuntimeException(): void
     {
         $validator = new AuthenticationResponseValidator();
 
-        $result = $validator->setOcspRevocationChecker(null);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('OCSP revocation checking is not yet available');
 
-        $this->assertSame($validator, $result);
+        $validator->setOcspRevocationChecker(null);
     }
 
     #[Test]

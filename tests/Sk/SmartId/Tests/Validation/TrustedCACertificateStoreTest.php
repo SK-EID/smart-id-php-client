@@ -89,28 +89,28 @@ class TrustedCACertificateStoreTest extends TestCase
     }
 
     #[Test]
-    public function configureValidatorWithOcspSetsCertificatesAndOcspChecker(): void
+    public function configureValidatorWithOcspThrowsRuntimeException(): void
     {
         $store = TrustedCACertificateStore::loadFromDefaults();
         $validator = new AuthenticationResponseValidator();
 
-        $result = $store->configureValidatorWithOcsp($validator);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('OCSP revocation checking is not yet available');
 
-        $this->assertSame($validator, $result);
-        $this->assertNotEmpty($validator->getTrustedCaCertificates());
-        $this->assertSame($store->getCertificates(), $validator->getTrustedCaCertificates());
+        $store->configureValidatorWithOcsp($validator);
     }
 
     #[Test]
-    public function configureValidatorWithOcspAcceptsCustomChecker(): void
+    public function configureValidatorWithOcspWithCustomCheckerThrowsRuntimeException(): void
     {
         $store = TrustedCACertificateStore::loadFromDefaults();
         $validator = new AuthenticationResponseValidator();
         $checker = new OcspCertificateRevocationChecker();
 
-        $result = $store->configureValidatorWithOcsp($validator, $checker);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('OCSP revocation checking is not yet available');
 
-        $this->assertSame($validator, $result);
+        $store->configureValidatorWithOcsp($validator, $checker);
     }
 
     #[Test]

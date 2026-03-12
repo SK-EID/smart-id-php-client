@@ -106,12 +106,18 @@ class AuthenticationResponseValidator
      * Enable OCSP revocation checking.
      * When set, the validator will verify that end-entity certificates have not been revoked
      * by querying the OCSP responder specified in the certificate's AIA extension.
+     *
+     * TODO: OCSP revocation checking has not been verified against the production environment.
+     *   This method is currently disabled until OCSP has been verified in production.
+     *
+     * @throws \RuntimeException always — OCSP support is not yet available
      */
     public function setOcspRevocationChecker(?OcspCertificateRevocationChecker $checker): self
     {
-        $this->ocspChecker = $checker;
-
-        return $this;
+        throw new \RuntimeException(
+            'OCSP revocation checking is not yet available. '
+            . 'OCSP has not been verified against the production environment.',
+        );
     }
 
     /**

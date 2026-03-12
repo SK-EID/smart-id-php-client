@@ -245,32 +245,14 @@ if (isset($_GET['action'])) {
         <head>
             <title>Verifying Authentication...</title>
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                       background: #0F172A; color: #E2E8F0; padding: 20px; text-align: center; }
-                .card { background: #1E293B; border-radius: 16px; padding: 32px; max-width: 400px; margin: 40px auto; }
-                h1 { margin: 16px 0 8px; font-size: 22px; }
-                .spinner { width: 24px; height: 24px; border: 3px solid #334155; border-top-color: #22C55E;
-                           border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
-                @keyframes spin { to { transform: rotate(360deg); } }
-                .success-icon { color: #22C55E; font-size: 48px; }
-                .error-icon { color: #EF4444; font-size: 48px; }
-                .user-info { background: #334155; border-radius: 8px; padding: 16px; margin: 16px 0;
-                             text-align: left; font-size: 14px; }
-                .user-info p { margin: 8px 0; }
-                .check-item { background: #334155; border-radius: 8px; padding: 10px 14px; margin: 6px 0;
-                              text-align: left; font-size: 13px; display: flex; align-items: center; gap: 8px; }
-                .check-ok { color: #22C55E; }
-                .check-fail { color: #EF4444; }
-                .hidden { display: none; }
-            </style>
+            <link rel="stylesheet" href="css/callback.css">
         </head>
         <body>
             <div class="card">
                 <div id="loading">
                     <div class="spinner"></div>
                     <h1>Verifying authentication...</h1>
-                    <p style="color: #94A3B8; font-size: 13px;">Polling session status and validating response</p>
+                    <p class="subtitle">Polling session status and validating response</p>
                 </div>
                 <div id="result" class="hidden"></div>
             </div>
@@ -302,7 +284,7 @@ if (isset($_GET['action'])) {
                             resultEl.innerHTML = `
                                 <div class="success-icon">✓</div>
                                 <h1>Authentication Verified!</h1>
-                                <p style="color: #94A3B8; font-size: 13px; margin-bottom: 12px;">
+                                <p class="subtitle">
                                     All production validation checks passed
                                 </p>
                                 ${checksHtml}
@@ -316,7 +298,7 @@ if (isset($_GET['action'])) {
                             resultEl.innerHTML = `
                                 <div class="error-icon">✗</div>
                                 <h1>Authentication Failed</h1>
-                                <p style="color: #EF4444; font-size: 14px;">
+                                <p class="subtitle error">
                                     ${data.error || data.endResult || 'Unknown error'}
                                 </p>`;
                         }
@@ -407,7 +389,12 @@ if (isset($_GET['action'])) {
                     // ACSP_V2 signature verification — everything
                     // =========================================================
                     $validator = new AuthenticationResponseValidator();
+
+                    // For DEMO environment (sid.demo.sk.ee) - use TEST certificates
                     TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
+
+                    // For PRODUCTION environment - use production certificates:
+                    // TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
 
                     $identity = $validator->validate(
                         $status,
