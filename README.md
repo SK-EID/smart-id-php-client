@@ -62,8 +62,8 @@ The Smart-ID PHP client can be used for easy integration of the [Smart-ID](https
 ## Requirements
 
 - PHP >= 8.4
-- ext-openssl
-- ext-json
+- ext-openssl (for certificate parsing, signature verification and OCSP)
+- ext-json (for API request/response serialization)
 - ext-curl (for HTTPS pinning via `CURLOPT_PINNEDPUBLICKEY`)
 
 ## Getting the library
