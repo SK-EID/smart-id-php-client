@@ -2,12 +2,64 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [3.0.0] - 2026-01-19
+## [3.0.0] - 2026-03-13
+
+Complete rewrite of the SDK to support **Smart-ID RP API v3**. This release is not backwards compatible with 2.x.
+
+### Added
+- Smart-ID RP API v3 support
+- Device link authentication flows with QR code and Web2App URL generation
+- `SmartIdClient` facade as the main entry point (replaces setter-based `Client`)
+- `DeviceLinkAuthenticationRequestBuilder` and `NotificationAuthenticationRequestBuilder` (replace single `AuthenticationRequestBuilder`)
+- `DeviceLinkInteraction` and `NotificationInteraction` models with `confirmationMessage`, `displayTextAndPin`, and `confirmationMessageAndVerificationCodeChoice` interaction types (replace generic `Interaction`)
+- ACSP_V2 signature protocol with RSA-PSS verification and `signatureAlgorithmParameters` validation
+- SHA3-256, SHA3-384, SHA3-512 hash algorithm support (in addition to existing SHA-256, SHA-384, SHA-512)
+- `RpChallengeGenerator` for generating RP challenges (replaces client-side `AuthenticationHash`/`SignableData` approach)
+- `DeviceLinkBuilder` for generating time-based QR code URLs and Web2App deep links
+- `CallbackUrlUtil` and `CallbackUrlValidator` for Web2App/App2App callback URL creation and validation
+- `TrustedCACertificateStore` for flexible CA certificate management — load from defaults, directory, or manually (replaces directory-only approach in `AuthenticationResponseValidator`)
+- `SslPinnedPublicKeyStore` with SPKI hash-based (`sha256//...`) HTTPS public key pinning via `CURLOPT_PINNEDPUBLICKEY` — supports `addPublicKeyHash()`, `fromString()`, `fromArray()`, `loadFromDirectory()`, `loadDemo()` (replaces raw key string via `setPublicSslKeys()`)
+- `UserAccountException` with `isNoSuitableAccount()`, `isPersonShouldViewApp()`, `isClientTooOld()` for HTTP 471/472/480 responses
+- `ProtocolFailureException`, `ServerErrorException`, `ValidationException`, `UnauthorizedException` exceptions
+- `UserRefusedInteractionException` that extends `UserRefusedException` with `getInteraction()` for identifying which interaction was cancelled
+- Automatic end result to exception mapping in `SessionStatusPoller` (replaces `SmartIdAuthenticationResult` error codes approach)
+- Typed PHP 8.4 enums: `CertificateLevel`, `HashAlgorithm`, `InteractionType`, `SchemeName`, `FlowType`, `SignatureProtocol`, `DeviceLinkType`, `SessionType`
+- `ext-curl` as an explicit composer dependency
+- Bundled demo SSL keys via `SslPinnedPublicKeyStore::loadDemo()`
+- Bundled production and test trusted CA certificates via `TrustedCACertificateStore`
 
 ### Changed
-- Minimum PHP version upgraded to 8.4
-- PHPUnit upgraded to 12.5.x
+- Minimum PHP version upgraded from 7.4 to 8.4
+- PHPUnit upgraded from 9.x to 12.5.x
 - Switched from PSR-0 to PSR-4 autoloading
+- `SmartIdRestConnector` rewritten — SSL pinning is now handled via `SslPinnedPublicKeyStore` instead of raw key strings; API endpoints updated for v3
+- `AuthenticationResponseValidator` rewritten — now validates certificate trust chain, basic constraints, key usage, extended key usage, certificate policy OIDs, and ACSP_V2 RSA-PSS signatures (v2 only verified `openssl_verify` with `OPENSSL_ALGO_SHA512` and `openssl_x509_checkpurpose`)
+- `AuthenticationIdentity` moved from `Api\Data` to `Model` namespace — now provides `getFullName()`, `getGender()`, `getAge()`, and improved `getDateOfBirth()` for Baltic states
+- `SemanticsIdentifier` moved from `Api\Data` to `Model` namespace — simplified with `forPerson()` and `fromString()` factory methods (replaces `SemanticsIdentifierBuilder` and `SemanticsIdentifierTypes`)
+- `SessionStatusPoller` moved from `Api` to `Session` namespace — now uses long polling with configurable timeout (replaces `pollingSleepTimeoutMs` sleep-based approach)
+- Session status response models (`SessionStatus`, `SessionResult`, `SessionSignature`, `SessionCertificate`) moved from `Api\Data` to `Session` namespace with v3 fields (`signatureAlgorithmParameters`, `flowType`, `userChallenge`, `serverRandom`, `deviceIpAddress`)
+- Exception hierarchy simplified — granular per-interaction exceptions (`UserRefusedCertChoiceException`, `UserRefusedDisplayTextAndPinException`, `UserRefusedConfirmationMessageException`, `UserRefusedConfirmationMessageWithVcChoiceException`, `UserRefusedVcChoiceException`) consolidated into `UserRefusedException` and `UserRefusedInteractionException`
+- `WrongVerificationCodeException` renamed from `UserSelectedWrongVerificationCodeException`
+- `RequiredInteractionNotSupportedException` renamed from `RequiredInteractionNotSupportedByAppException`
+
+### Removed
+- Smart-ID RP API v2 support
+- `Client` class (replaced by `SmartIdClient` facade)
+- `AuthenticationRequestBuilder`, `SmartIdRequestBuilder`, `Authentication`, `AbstractApi`, `ApiInterface`, `ApiType` classes
+- `AuthenticationHash`, `SignableData`, `DigestCalculator` classes (RP challenge is now generated server-side via `RpChallengeGenerator`)
+- `SmartIdAuthenticationResponse`, `SmartIdAuthenticationResult`, `SmartIdAuthenticationResultError` classes (validation errors are now thrown as exceptions)
+- `SessionStatusFetcher`, `SessionStatusFetcherBuilder` classes (replaced by `SessionStatusPoller`)
+- `AuthenticationCertificate`, `AuthenticationCertificateSubject`, `AuthenticationCertificateIssuer`, `AuthenticationCertificateExtensions`, `CertificateParser` classes
+- `AuthenticationSessionRequest`, `AuthenticationSessionResponse`, `SessionStatusRequest` classes (replaced by typed request/response objects per flow)
+- `PropertyMapper`, `SessionEndResultCode`, `SessionStatusCode`, `CertificateLevelCode`, `HashType` classes (replaced by typed enums)
+- `SemanticsIdentifierBuilder`, `SemanticsIdentifierTypes` classes
+- `Interaction` class (replaced by `DeviceLinkInteraction` and `NotificationInteraction`)
+- `EnduringSmartIdException`, `UserActionException` intermediate exception classes
+- `UserAccountNotFoundException`, `NotFoundException` exceptions (consolidated into `UserAccountException` and `UnauthorizedException`)
+- `ServerMaintenanceException` (replaced by `ServerErrorException`)
+- `UnprocessableSmartIdResponseException` (replaced by `TechnicalErrorException`)
+- `CertificateAttributeUtil`, `NationalIdentityNumberUtil`, `Curl` utility classes
+- `VerificationCodeCalculator` from `Api\Data` namespace (replaced by `Util\VerificationCodeCalculator`)
 
 ## [2.3.3] - 2025-04-07
 ### Fixed
