@@ -41,8 +41,6 @@
  *
  * Other Device Link Examples:
  * - web2app.php - For mobile web browsers (deep link button)
- * - app2app.php - For native mobile apps (backend API)
- *
  * Flow:
  * 1. User loads the page -> authentication session is initiated
  * 2. QR code is displayed and refreshed every second
