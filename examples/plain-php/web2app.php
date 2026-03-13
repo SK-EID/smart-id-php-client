@@ -86,7 +86,7 @@ $relyingPartyName = 'DEMO';
 
 // Public HTTPS URL for Web2App callback (required by Smart-ID API)
 // Use ngrok or similar tunnel for local development: ngrok http 8080
-$publicBaseUrl = '';
+$publicBaseUrl = 'https://errol-unwithholding-westerly.ngrok-free.dev';
 
 // Initialize the Smart-ID connector with HTTPS pinning
 // For production, add key hashes manually:
@@ -272,22 +272,9 @@ if (isset($_GET['action'])) {
                         resultEl.classList.remove('hidden');
 
                         if (data.endResult === 'OK' && data.user) {
-                            let checksHtml = '';
-                            if (data.checks) {
-                                checksHtml = data.checks.map(c =>
-                                    `<div class="check-item">
-                                        <span class="${c.ok ? 'check-ok' : 'check-fail'}">${c.ok ? '✓' : '✗'}</span>
-                                        <span>${c.label}</span>
-                                    </div>`
-                                ).join('');
-                            }
                             resultEl.innerHTML = `
                                 <div class="success-icon">✓</div>
                                 <h1>Authentication Verified!</h1>
-                                <p class="subtitle">
-                                    All production validation checks passed
-                                </p>
-                                ${checksHtml}
                                 <div class="user-info">
                                     <p><strong>Name:</strong> ${data.user.fullName}</p>
                                     <p><strong>Identity Code:</strong> ${data.user.identityCode}</p>
