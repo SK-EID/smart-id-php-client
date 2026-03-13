@@ -86,7 +86,7 @@ $relyingPartyName = 'DEMO';
 
 // Public HTTPS URL for Web2App callback (required by Smart-ID API)
 // Use ngrok or similar tunnel for local development: ngrok http 8080
-$publicBaseUrl = 'https://3519-2001-7d0-89b7-e80-248e-5ba0-afc2-af4e.ngrok-free.app';
+$publicBaseUrl = '';
 
 // Initialize the Smart-ID connector with HTTPS pinning
 // For production, add key hashes manually:
