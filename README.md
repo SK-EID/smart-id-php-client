@@ -689,20 +689,20 @@ use Sk\SmartId\Validation\TrustedCACertificateStore;
 
 $validator = new AuthenticationResponseValidator();
 
-// Option 1: Load production certificates bundled with the SDK
-TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
+// PRODUCTION — load bundled certificates with OCSP revocation checking
+TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator);
 
-// Option 2: Load test certificates for demo environment
-TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
+// DEMO — demo OCSP responder reports test certs as revoked, so use configureValidator() instead
+// TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 
-// Option 3: Load from a custom directory
-TrustedCACertificateStore::loadFromDirectory('/path/to/certs')->configureValidator($validator);
+// Custom directory (with OCSP)
+// TrustedCACertificateStore::loadFromDirectory('/path/to/certs')->configureValidatorWithOcsp($validator);
 
-// Option 4: Add certificates manually
-$store = TrustedCACertificateStore::create()
-    ->addCertificate($pemEncodedCert)
-    ->addCertificateFromFile('/path/to/cert.pem.crt');
-$store->configureValidator($validator);
+// Manual certificates (with OCSP)
+// $store = TrustedCACertificateStore::create()
+//     ->addCertificate($pemEncodedCert)
+//     ->addCertificateFromFile('/path/to/cert.pem.crt');
+// $store->configureValidatorWithOcsp($validator);
 ```
 
 ### Validating device link authentication
@@ -714,7 +714,7 @@ use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
-// Set up validator
+// Set up validator (demo environment — no OCSP, see note above)
 $validator = new AuthenticationResponseValidator();
 TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 

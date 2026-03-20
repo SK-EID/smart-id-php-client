@@ -30,7 +30,6 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\DeviceLink;
 
-
 /**
  * Session wrapper for device link-based authentication.
  *

@@ -34,8 +34,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationResponse;
 use Sk\SmartId\DeviceLink\DeviceLinkBuilder;
-use Sk\SmartId\Enum\DeviceLinkType;
 use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
+use Sk\SmartId\Enum\DeviceLinkType;
 
 class DeviceLinkBuilderTest extends TestCase
 {

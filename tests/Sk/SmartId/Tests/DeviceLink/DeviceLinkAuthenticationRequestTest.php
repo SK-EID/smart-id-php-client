@@ -33,9 +33,9 @@ namespace Sk\SmartId\Tests\DeviceLink;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
 class DeviceLinkAuthenticationRequestTest extends TestCase
 {

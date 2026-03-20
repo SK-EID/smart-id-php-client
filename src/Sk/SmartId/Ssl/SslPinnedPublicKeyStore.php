@@ -142,7 +142,7 @@ class SslPinnedPublicKeyStore
 
         if (!preg_match(self::HASH_PATTERN, $hash)) {
             throw new \InvalidArgumentException(
-                "Invalid public key hash format: \"{$hash}\". Expected format: sha256//<base64-encoded-hash>"
+                "Invalid public key hash format: \"{$hash}\". Expected format: sha256//<base64-encoded-hash>",
             );
         }
 

@@ -65,6 +65,7 @@ use Sk\SmartId\Exception\ProtocolFailureException;
 use Sk\SmartId\Exception\ServerErrorException;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
+use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 
@@ -225,11 +226,12 @@ if (isset($_GET['action'])) {
                     // Create validator with trusted CA certificates
                     $validator = new AuthenticationResponseValidator();
 
-                    // For DEMO environment (sid.demo.sk.ee) - use TEST certificates
-                    TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
+                    // For DEMO environment - use mock OCSP (demo AIA reports test certs as revoked)
+                    $ocspChecker = new OcspCertificateRevocationChecker(ocspUrlOverride: 'http://demo.sk.ee/ocsp_good');
+                    TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
 
-                    // For PRODUCTION environment - use production certificates:
-                    // TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
+                    // For PRODUCTION environment - use production certificates with OCSP:
+                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator);
 
                     // Validate the authentication response and extract user identity
                     // This verifies:

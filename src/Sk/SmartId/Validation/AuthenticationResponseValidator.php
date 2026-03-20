@@ -35,7 +35,6 @@ use phpseclib3\Crypt\RSA;
 use phpseclib3\Crypt\RSA\PublicKey as RSAPublicKey;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\SchemeName;
-use Sk\SmartId\Util\AuthCodeCalculator;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\ValidationException;
 use Sk\SmartId\Model\AuthenticationIdentity;
@@ -50,8 +49,6 @@ class AuthenticationResponseValidator
 
     /** @var string[] File paths to trusted CA certificate files */
     private array $trustedCaCertificateFiles = [];
-
-    private bool $skipSignatureVerification = false;
 
     private ?OcspCertificateRevocationChecker $ocspChecker = null;
 
@@ -90,34 +87,11 @@ class AuthenticationResponseValidator
         return $this;
     }
 
-    /**
-     * Skip signature verification.
-     * WARNING: Only use this if you understand the security implications.
-     * Certificate trust verification still provides authentication.
-     */
-    public function setSkipSignatureVerification(bool $skip = true): self
-    {
-        $this->skipSignatureVerification = $skip;
-
-        return $this;
-    }
-
-    /**
-     * Enable OCSP revocation checking.
-     * When set, the validator will verify that end-entity certificates have not been revoked
-     * by querying the OCSP responder specified in the certificate's AIA extension.
-     *
-     * TODO: OCSP revocation checking has not been verified against the production environment.
-     *   This method is currently disabled until OCSP has been verified in production.
-     *
-     * @throws \RuntimeException always — OCSP support is not yet available
-     */
     public function setOcspRevocationChecker(?OcspCertificateRevocationChecker $checker): self
     {
-        throw new \RuntimeException(
-            'OCSP revocation checking is not yet available. '
-            . 'OCSP has not been verified against the production environment.',
-        );
+        $this->ocspChecker = $checker;
+
+        return $this;
     }
 
     /**
@@ -228,17 +202,15 @@ class AuthenticationResponseValidator
         $this->verifyCertificatePolicies($cert);
         $this->verifyCertificatePurpose($cert);
 
-        if (!$this->skipSignatureVerification) {
-            $this->verifySignature(
-                $sessionStatus,
-                $rpChallenge,
-                $relyingPartyName,
-                $interactionsBase64,
-                $initialCallbackUrl,
-                $brokeredRpName,
-                $schemeName,
-            );
-        }
+        $this->verifySignature(
+            $sessionStatus,
+            $rpChallenge,
+            $relyingPartyName,
+            $interactionsBase64,
+            $initialCallbackUrl,
+            $brokeredRpName,
+            $schemeName,
+        );
 
         return $this->extractIdentity($cert);
     }
@@ -365,21 +337,9 @@ class AuthenticationResponseValidator
         }
     }
 
-    /**
-     * Check certificate revocation status via OCSP if an OCSP checker is configured.
-     *
-     * @throws ValidationException if certificate is revoked or OCSP check fails
-     */
     private function verifyCertificateRevocation(SessionCertificate $cert): void
     {
         if ($this->ocspChecker === null) {
-            @trigger_error(
-                'Smart-ID certificate revocation check (OCSP) is not configured. '
-                . 'Per Smart-ID documentation, OCSP revocation checking is a required validation step. '
-                . 'Use setOcspRevocationChecker() or TrustedCACertificateStore::configureValidatorWithOcsp() to enable it.',
-                E_USER_NOTICE,
-            );
-
             return;
         }
 

@@ -34,8 +34,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Notification\NotificationInteraction;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
+use Sk\SmartId\Notification\NotificationInteraction;
 
 class NotificationAuthenticationRequestTest extends TestCase
 {

@@ -37,6 +37,7 @@ use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 class SslPinnedPublicKeyStoreTest extends TestCase
 {
     private const VALID_HASH_1 = 'sha256//Ps1Im3KeB0Q4AlR+/J9KFd/MOznaARdwo4gURPCLaVA=';
+
     private const VALID_HASH_2 = 'sha256//fqp7yWK7iGGKj+3unYdm2DA3VCPDkwtyX+DrdZYSC6o=';
 
     #[Test]
@@ -69,7 +70,7 @@ class SslPinnedPublicKeyStoreTest extends TestCase
     public function addPublicKeyHashTrimsWhitespace(): void
     {
         $store = SslPinnedPublicKeyStore::create()
-            ->addPublicKeyHash("  " . self::VALID_HASH_1 . "  ");
+            ->addPublicKeyHash('  ' . self::VALID_HASH_1 . '  ');
 
         $this->assertSame(self::VALID_HASH_1, $store->getPublicKeyHashes()[0]);
     }
@@ -153,7 +154,7 @@ class SslPinnedPublicKeyStoreTest extends TestCase
     #[Test]
     public function fromStringHandlesWhitespaceAroundHashes(): void
     {
-        $input = "  " . self::VALID_HASH_1 . " , " . self::VALID_HASH_2 . "  ";
+        $input = '  ' . self::VALID_HASH_1 . ' , ' . self::VALID_HASH_2 . '  ';
 
         $store = SslPinnedPublicKeyStore::fromString($input);
 

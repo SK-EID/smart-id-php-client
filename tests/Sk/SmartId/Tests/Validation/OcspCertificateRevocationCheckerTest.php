@@ -66,9 +66,8 @@ class OcspCertificateRevocationCheckerTest extends TestCase
     {
         $checker = new OcspCertificateRevocationChecker();
 
-        // TEST_of_EID-SK_2016 has no AIA extension (root CA cert)
         $certWithoutOcsp = file_get_contents(self::getTestCertificatesDir() . DIRECTORY_SEPARATOR . 'TEST_of_EID-SK_2016.pem.crt');
-        $issuerCert = $certWithoutOcsp; // self-signed, so use itself as issuer
+        $issuerCert = $certWithoutOcsp;
 
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('OCSP responder URL');
@@ -81,15 +80,12 @@ class OcspCertificateRevocationCheckerTest extends TestCase
         return dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'test_end_entity_certs';
     }
 
-    /**
-     * Returns a [subjectPem, issuerPem] pair where subjectPem has an AIA OCSP extension.
-     * Uses generated test end-entity cert with OCSP URL + its signing CA.
-     */
     private static function getCertPairWithOcspUrl(): array
     {
         $dir = self::getTestEndEntityCertsDir();
         $subjectCert = file_get_contents($dir . DIRECTORY_SEPARATOR . 'ocsp_ee.pem.crt');
         $issuerCert = file_get_contents($dir . DIRECTORY_SEPARATOR . 'test_ca.pem.crt');
+
         return [$subjectCert, $issuerCert];
     }
 
@@ -106,7 +102,6 @@ class OcspCertificateRevocationCheckerTest extends TestCase
         [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
 
         $this->expectException(ValidationException::class);
-        // Guzzle throws ServerException for 5xx responses, caught as GuzzleException
         $this->expectExceptionMessage('OCSP request failed');
 
         $checker->checkRevocationStatus($subjectCert, $issuerCert);

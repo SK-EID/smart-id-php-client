@@ -40,13 +40,13 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 use Sk\SmartId\Api\SmartIdRestConnector;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Exception\InvalidParametersException;
 use Sk\SmartId\Exception\SessionNotFoundException;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\UnauthorizedException;
 use Sk\SmartId\Exception\UserAccountException;
-use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
 use Sk\SmartId\Notification\NotificationInteraction;
 

@@ -37,9 +37,9 @@ use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequestBuilder;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationResponse;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
+use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
 class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
 {

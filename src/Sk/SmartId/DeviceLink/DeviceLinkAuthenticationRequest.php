@@ -33,6 +33,7 @@ namespace Sk\SmartId\DeviceLink;
 use Sk\SmartId\Api\AbstractAuthenticationRequest;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
+
 /**
  * Request data transfer object for device link-based authentication.
  *

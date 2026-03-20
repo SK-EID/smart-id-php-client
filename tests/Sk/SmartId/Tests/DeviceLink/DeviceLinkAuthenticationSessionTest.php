@@ -215,5 +215,4 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
         $session->buildWeb2AppUrl();
     }
-
 }

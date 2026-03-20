@@ -47,5 +47,4 @@ class DeviceLinkTypeTest extends TestCase
     {
         $this->assertSame('Web2App', DeviceLinkType::WEB2APP->value);
     }
-
 }

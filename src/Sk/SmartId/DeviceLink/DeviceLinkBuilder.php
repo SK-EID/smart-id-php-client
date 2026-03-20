@@ -158,14 +158,14 @@ class DeviceLinkBuilder
         if ($type === DeviceLinkType::WEB2APP && $this->callbackUrl === null) {
             throw new \InvalidArgumentException(
                 "Parameter 'callbackUrl' must be provided when deviceLinkType is WEB2APP. " .
-                "Use withCallbackUrl() to set it. Example: https://your-app.com/callback"
+                'Use withCallbackUrl() to set it. Example: https://your-app.com/callback',
             );
         }
 
         // QR code flow must NOT have initialCallbackUrl
         if ($type === DeviceLinkType::QR && $this->callbackUrl !== null) {
             throw new \InvalidArgumentException(
-                "Parameter 'callbackUrl' must be empty when deviceLinkType is QR"
+                "Parameter 'callbackUrl' must be empty when deviceLinkType is QR",
             );
         }
 

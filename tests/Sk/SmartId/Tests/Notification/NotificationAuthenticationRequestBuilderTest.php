@@ -36,12 +36,12 @@ use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
-use Sk\SmartId\Notification\NotificationInteraction;
 use Sk\SmartId\Model\SemanticsIdentifier;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
 use Sk\SmartId\Notification\NotificationAuthenticationRequestBuilder;
 use Sk\SmartId\Notification\NotificationAuthenticationResponse;
 use Sk\SmartId\Notification\NotificationAuthenticationSession;
+use Sk\SmartId\Notification\NotificationInteraction;
 
 class NotificationAuthenticationRequestBuilderTest extends TestCase
 {

@@ -30,6 +30,9 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Tests\Validation;
 
+use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Crypt\RSA;
+use phpseclib3\Crypt\RSA\PrivateKey as RSAPrivateKey;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Enum\CertificateLevel;
@@ -38,11 +41,26 @@ use Sk\SmartId\Session\SessionCertificate;
 use Sk\SmartId\Session\SessionResult;
 use Sk\SmartId\Session\SessionSignature;
 use Sk\SmartId\Session\SessionStatus;
+use Sk\SmartId\Session\SignatureAlgorithmParameters;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 
 class AuthenticationResponseValidatorTest extends TestCase
 {
+    private const TEST_RP_CHALLENGE = 'dGVzdC1ycC1jaGFsbGVuZ2U=';
+
+    private const TEST_RP_NAME = 'DEMO';
+
+    private const TEST_INTERACTIONS_BASE64 = 'aW50ZXJhY3Rpb25z';
+
+    private const TEST_SERVER_RANDOM = 'test-server-random';
+
+    private const TEST_USER_CHALLENGE = 'test-user-challenge';
+
+    private const TEST_FLOW_TYPE = 'deviceLink';
+
+    private const TEST_INTERACTION_TYPE_USED = 'displayTextAndPIN';
+
     private static function getTestEndEntityCertsDir(): string
     {
         return dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'resources'
@@ -61,7 +79,77 @@ class AuthenticationResponseValidatorTest extends TestCase
     {
         $pem = file_get_contents($pemFilePath);
         $pem = str_replace(['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----'], '', $pem);
+
         return str_replace(["\r", "\n", ' '], '', $pem);
+    }
+
+    /**
+     * Build a SessionStatus with a real RSA-PSS ACSP_V2 signature using the EE cert's private key.
+     */
+    private static function createSignedSessionStatus(string $certBaseName, string $certLevel): SessionStatus
+    {
+        $dir = self::getTestEndEntityCertsDir();
+        $eeCertBase64 = self::pemToBase64($dir . DIRECTORY_SEPARATOR . $certBaseName . '.pem.crt');
+        $keyPem = file_get_contents($dir . DIRECTORY_SEPARATOR . $certBaseName . '.key.pem');
+
+        $interactionsHash = hash('sha256', self::TEST_INTERACTIONS_BASE64, true);
+        $interactionsHashBase64 = base64_encode($interactionsHash);
+
+        $acspV2Payload = implode('|', [
+            'smart-id',
+            'ACSP_V2',
+            self::TEST_SERVER_RANDOM,
+            self::TEST_RP_CHALLENGE,
+            self::TEST_USER_CHALLENGE,
+            base64_encode(self::TEST_RP_NAME),
+            base64_encode(''),
+            $interactionsHashBase64,
+            self::TEST_INTERACTION_TYPE_USED,
+            '',
+            self::TEST_FLOW_TYPE,
+        ]);
+
+        $loaded = PublicKeyLoader::load($keyPem);
+        assert($loaded instanceof RSAPrivateKey);
+
+        // @phpstan-ignore-next-line
+        $rsaKey = $loaded
+            ->withHash('sha256')
+            ->withMGFHash('sha256')
+            ->withPadding(RSA::SIGNATURE_PSS)
+            ->withSaltLength(32);
+
+        // @phpstan-ignore method.nonObject
+        $signatureBytes = $rsaKey->sign($acspV2Payload);
+        $signatureBase64 = base64_encode($signatureBytes);
+
+        $algorithmParams = new SignatureAlgorithmParameters(
+            hashAlgorithm: 'SHA-256',
+            saltLength: 32,
+            maskGenAlgorithm: 'id-mgf1',
+            maskGenHashAlgorithm: 'SHA-256',
+        );
+
+        $signature = new SessionSignature(
+            $signatureBase64,
+            'rsassa-pss',
+            self::TEST_SERVER_RANDOM,
+            self::TEST_USER_CHALLENGE,
+            self::TEST_FLOW_TYPE,
+            parsedAlgorithmParameters: $algorithmParams,
+        );
+
+        $result = new SessionResult('OK', 'DOC123');
+        $cert = new SessionCertificate($eeCertBase64, $certLevel);
+
+        return new SessionStatus(
+            'COMPLETE',
+            $result,
+            $cert,
+            $signature,
+            'ACSP_V2',
+            interactionTypeUsed: self::TEST_INTERACTION_TYPE_USED,
+        );
     }
 
     #[Test]
@@ -222,8 +310,13 @@ class AuthenticationResponseValidatorTest extends TestCase
         $this->expectExceptionMessage('Certificate level ADVANCED does not meet required level QUALIFIED');
 
         $validator->validate(
-            $status, base64_encode('challenge'), 'DEMO', 'aW50ZXJhY3Rpb25z',
-            null, null, CertificateLevel::QUALIFIED,
+            $status,
+            base64_encode('challenge'),
+            'DEMO',
+            'aW50ZXJhY3Rpb25z',
+            null,
+            null,
+            CertificateLevel::QUALIFIED,
         );
     }
 
@@ -241,8 +334,13 @@ class AuthenticationResponseValidatorTest extends TestCase
         $this->expectExceptionMessage('Unknown certificate level: UNKNOWN_LEVEL');
 
         $validator->validate(
-            $status, base64_encode('challenge'), 'DEMO', 'aW50ZXJhY3Rpb25z',
-            null, null, CertificateLevel::QUALIFIED,
+            $status,
+            base64_encode('challenge'),
+            'DEMO',
+            'aW50ZXJhY3Rpb25z',
+            null,
+            null,
+            CertificateLevel::QUALIFIED,
         );
     }
 
@@ -250,20 +348,14 @@ class AuthenticationResponseValidatorTest extends TestCase
     public function validatePassesCertificatePoliciesForQualifiedSmartId(): void
     {
         $caCertPem = self::getTestCaCertPem();
-        $eeCertBase64 = self::pemToBase64(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'qualified_smartid_ee.pem.crt');
+        $status = self::createSignedSessionStatus('qualified_smartid_ee', 'QUALIFIED');
 
         $validator = new AuthenticationResponseValidator();
         $validator->setTrustedCaCertificates([$caCertPem]);
-        $validator->setSkipSignatureVerification(true);
-
-        $result = new SessionResult('OK', 'DOC123');
-        $cert = new SessionCertificate($eeCertBase64, 'QUALIFIED');
-        $signature = new SessionSignature(base64_encode('sig'), 'rsassa-pss');
-        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, 'ACSP_V2');
 
         // Test cert has both Smart-ID qualified policy OIDs and clientAuth EKU,
         // so policies and purpose checks both pass. validate() should succeed.
-        $identity = $validator->validate($status, base64_encode('challenge'), 'DEMO', 'aW50ZXJhY3Rpb25z');
+        $identity = $validator->validate($status, self::TEST_RP_CHALLENGE, self::TEST_RP_NAME, self::TEST_INTERACTIONS_BASE64);
 
         $this->assertSame('QUALIFIED', $identity->getGivenName());
         $this->assertSame('TESTNUMBER', $identity->getSurname());
@@ -275,20 +367,14 @@ class AuthenticationResponseValidatorTest extends TestCase
     public function validatePassesCertificatePoliciesForNonQualifiedSmartId(): void
     {
         $caCertPem = self::getTestCaCertPem();
-        $eeCertBase64 = self::pemToBase64(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'non_qualified_smartid_ee.pem.crt');
+        $status = self::createSignedSessionStatus('non_qualified_smartid_ee', 'ADVANCED');
 
         $validator = new AuthenticationResponseValidator();
         $validator->setTrustedCaCertificates([$caCertPem]);
-        $validator->setSkipSignatureVerification(true);
-
-        $result = new SessionResult('OK', 'DOC123');
-        $cert = new SessionCertificate($eeCertBase64, 'ADVANCED');
-        $signature = new SessionSignature(base64_encode('sig'), 'rsassa-pss');
-        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, 'ACSP_V2');
 
         // Test cert has non-qualified Smart-ID policy OID and clientAuth EKU,
         // so policies and purpose checks both pass. validate() should succeed.
-        $identity = $validator->validate($status, base64_encode('challenge'), 'DEMO', 'aW50ZXJhY3Rpb25z');
+        $identity = $validator->validate($status, self::TEST_RP_CHALLENGE, self::TEST_RP_NAME, self::TEST_INTERACTIONS_BASE64);
 
         $this->assertSame('NONQUALIFIED', $identity->getGivenName());
         $this->assertSame('TESTNUMBER', $identity->getSurname());
@@ -300,99 +386,81 @@ class AuthenticationResponseValidatorTest extends TestCase
     public function validateThrowsForNonSmartIdCertificatePolicies(): void
     {
         $caCertPem = self::getTestCaCertPem();
-        $eeCertBase64 = self::pemToBase64(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'non_smartid_ee.pem.crt');
+        $status = self::createSignedSessionStatus('non_smartid_ee', 'QUALIFIED');
 
         $validator = new AuthenticationResponseValidator();
         $validator->setTrustedCaCertificates([$caCertPem]);
-        $validator->setSkipSignatureVerification(true);
-
-        $result = new SessionResult('OK', 'DOC123');
-        $cert = new SessionCertificate($eeCertBase64, 'QUALIFIED');
-        $signature = new SessionSignature(base64_encode('sig'), 'rsassa-pss');
-        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, 'ACSP_V2');
 
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Smart-ID scheme Certificate Policy OIDs');
 
-        $validator->validate($status, base64_encode('challenge'), 'DEMO', 'aW50ZXJhY3Rpb25z');
+        $validator->validate($status, self::TEST_RP_CHALLENGE, self::TEST_RP_NAME, self::TEST_INTERACTIONS_BASE64);
     }
 
     #[Test]
     public function validateThrowsForCertificateWithNoPolicies(): void
     {
         $caCertPem = self::getTestCaCertPem();
-        $eeCertBase64 = self::pemToBase64(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'no_policies_ee.pem.crt');
+        $status = self::createSignedSessionStatus('no_policies_ee', 'QUALIFIED');
 
         $validator = new AuthenticationResponseValidator();
         $validator->setTrustedCaCertificates([$caCertPem]);
-        $validator->setSkipSignatureVerification(true);
-
-        $result = new SessionResult('OK', 'DOC123');
-        $cert = new SessionCertificate($eeCertBase64, 'QUALIFIED');
-        $signature = new SessionSignature(base64_encode('sig'), 'rsassa-pss');
-        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, 'ACSP_V2');
 
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Smart-ID scheme Certificate Policy OIDs');
 
-        $validator->validate($status, base64_encode('challenge'), 'DEMO', 'aW50ZXJhY3Rpb25z');
+        $validator->validate($status, self::TEST_RP_CHALLENGE, self::TEST_RP_NAME, self::TEST_INTERACTIONS_BASE64);
     }
 
     #[Test]
     public function validateThrowsForQualifiedCertMissingEuQcpPolicy(): void
     {
         $caCertPem = self::getTestCaCertPem();
-        $eeCertBase64 = self::pemToBase64(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'qualified_missing_euqcp_ee.pem.crt');
+        $status = self::createSignedSessionStatus('qualified_missing_euqcp_ee', 'QUALIFIED');
 
         $validator = new AuthenticationResponseValidator();
         $validator->setTrustedCaCertificates([$caCertPem]);
-        $validator->setSkipSignatureVerification(true);
-
-        $result = new SessionResult('OK', 'DOC123');
-        $cert = new SessionCertificate($eeCertBase64, 'QUALIFIED');
-        $signature = new SessionSignature(base64_encode('sig'), 'rsassa-pss');
-        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, 'ACSP_V2');
 
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('EU QCP policy OID 0.4.0.2042.1.2');
 
-        $validator->validate($status, base64_encode('challenge'), 'DEMO', 'aW50ZXJhY3Rpb25z');
+        $validator->validate($status, self::TEST_RP_CHALLENGE, self::TEST_RP_NAME, self::TEST_INTERACTIONS_BASE64);
     }
 
     #[Test]
-    public function setOcspRevocationCheckerThrowsRuntimeException(): void
+    public function setOcspRevocationCheckerReturnsSelf(): void
     {
         $validator = new AuthenticationResponseValidator();
         $checker = new OcspCertificateRevocationChecker();
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('OCSP revocation checking is not yet available');
+        $result = $validator->setOcspRevocationChecker($checker);
 
-        $validator->setOcspRevocationChecker($checker);
+        $this->assertSame($validator, $result);
     }
 
     #[Test]
-    public function setOcspRevocationCheckerWithNullThrowsRuntimeException(): void
+    public function setOcspRevocationCheckerWithNullReturnsSelf(): void
     {
         $validator = new AuthenticationResponseValidator();
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('OCSP revocation checking is not yet available');
+        $result = $validator->setOcspRevocationChecker(null);
 
-        $validator->setOcspRevocationChecker(null);
+        $this->assertSame($validator, $result);
     }
 
     #[Test]
     public function validateThrowsForCaCertificateUsedAsEndEntity(): void
     {
         // Use the test CA cert (has CA:TRUE) as if it were an end-entity cert
+        // CA cert has no private key saved, so we must construct the status manually.
+        // The basic constraints check happens before signature verification,
+        // so the signature value doesn't matter — it will throw before reaching it.
         $caCertPem = self::getTestCaCertPem();
         $caCertBase64 = self::pemToBase64(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'test_ca.pem.crt');
 
         $validator = new AuthenticationResponseValidator();
         // Trust itself (self-signed)
         $validator->setTrustedCaCertificates([$caCertPem]);
-        $validator->setSkipSignatureVerification(true);
 
         $result = new SessionResult('OK', 'DOC123');
         $cert = new SessionCertificate($caCertBase64, 'QUALIFIED');
@@ -402,26 +470,20 @@ class AuthenticationResponseValidatorTest extends TestCase
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('CA:TRUE');
 
-        $validator->validate($status, base64_encode('challenge'), 'DEMO', 'aW50ZXJhY3Rpb25z');
+        $validator->validate($status, self::TEST_RP_CHALLENGE, self::TEST_RP_NAME, self::TEST_INTERACTIONS_BASE64);
     }
 
     #[Test]
     public function validatePassesBasicConstraintsForEndEntityCert(): void
     {
         $caCertPem = self::getTestCaCertPem();
-        $eeCertBase64 = self::pemToBase64(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'qualified_smartid_ee.pem.crt');
+        $status = self::createSignedSessionStatus('qualified_smartid_ee', 'QUALIFIED');
 
         $validator = new AuthenticationResponseValidator();
         $validator->setTrustedCaCertificates([$caCertPem]);
-        $validator->setSkipSignatureVerification(true);
-
-        $result = new SessionResult('OK', 'DOC123');
-        $cert = new SessionCertificate($eeCertBase64, 'QUALIFIED');
-        $signature = new SessionSignature(base64_encode('sig'), 'rsassa-pss');
-        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, 'ACSP_V2');
 
         // EE cert has CA:FALSE — should pass basic constraints and all other checks
-        $identity = $validator->validate($status, base64_encode('challenge'), 'DEMO', 'aW50ZXJhY3Rpb25z');
+        $identity = $validator->validate($status, self::TEST_RP_CHALLENGE, self::TEST_RP_NAME, self::TEST_INTERACTIONS_BASE64);
 
         $this->assertSame('QUALIFIED', $identity->getGivenName());
     }

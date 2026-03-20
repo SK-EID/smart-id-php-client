@@ -108,6 +108,7 @@ class AuthenticationIdentity
             if ($date === false) {
                 return null;
             }
+
             return $date->setTime(0, 0, 0);
         } catch (\Exception) {
             return null;
@@ -149,6 +150,7 @@ class AuthenticationIdentity
         }
 
         $now = new \DateTimeImmutable();
+
         return $dob->diff($now)->y;
     }
 }
