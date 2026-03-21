@@ -378,6 +378,9 @@ if (isset($_GET['action'])) {
                         schemeName: SchemeName::DEMO,
                     );
 
+                    // Prevent session fixation: regenerate session ID after successful authentication
+                    session_regenerate_id(true);
+
                     $checks[] = ['label' => 'Certificate trust chain', 'ok' => true];
                     $checks[] = ['label' => 'Basic constraints (CA:FALSE)', 'ok' => true];
                     $checks[] = ['label' => 'Certificate policies', 'ok' => true];

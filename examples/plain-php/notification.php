@@ -195,6 +195,9 @@ if (isset($_GET['action'])) {
                         schemeName: SchemeName::DEMO,
                     );
 
+                    // Prevent session fixation: regenerate session ID after successful authentication
+                    session_regenerate_id(true);
+
                     // User information extracted from the certificate
                     $response['user'] = [
                         'givenName' => $identity->getGivenName(),
