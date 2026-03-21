@@ -38,17 +38,17 @@ async function checkStatus() {
                     Authentication successful!
                 </span>
                 <div class="user-info">
-                    <p><strong>Name:</strong> ${data.user.fullName}</p>
-                    <p><strong>Identity Code:</strong> ${data.user.identityCode}</p>
-                    <p><strong>Country:</strong> ${data.user.country}</p>
-                    ${data.user.dateOfBirth ? `<p><strong>Date of Birth:</strong> ${data.user.dateOfBirth}</p>` : ''}
+                    <p><strong>Name:</strong> ${escapeHtml(data.user.fullName)}</p>
+                    <p><strong>Identity Code:</strong> ${escapeHtml(data.user.identityCode)}</p>
+                    <p><strong>Country:</strong> ${escapeHtml(data.user.country)}</p>
+                    ${data.user.dateOfBirth ? `<p><strong>Date of Birth:</strong> ${escapeHtml(data.user.dateOfBirth)}</p>` : ''}
                     ${data.user.gender ? `<p><strong>Gender:</strong> ${data.user.gender === 'M' ? 'Male' : 'Female'}</p>` : ''}
-                    ${data.user.age !== null ? `<p><strong>Age:</strong> ${data.user.age}</p>` : ''}
+                    ${data.user.age !== null ? `<p><strong>Age:</strong> ${escapeHtml(String(data.user.age))}</p>` : ''}
                 </div>`;
         } else if (data.endResult === 'VALIDATION_ERROR') {
-            statusEl.innerHTML = `<span style="color: #dc2626;">Validation failed: ${data.error || 'Unknown error'}</span>`;
+            statusEl.innerHTML = `<span style="color: #dc2626;">Validation failed: ${escapeHtml(data.error || 'Unknown error')}</span>`;
         } else {
-            statusEl.innerHTML = `<span style="color: #dc2626;">Authentication failed: ${data.endResult || 'Unknown error'}</span>`;
+            statusEl.innerHTML = `<span style="color: #dc2626;">Authentication failed: ${escapeHtml(data.endResult || 'Unknown error')}</span>`;
         }
     }
 }

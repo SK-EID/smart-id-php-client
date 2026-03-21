@@ -298,6 +298,7 @@ if (isset($_GET['action'])) {
         </div>
     </div>
 
+    <script src="js/utils.js"></script>
     <script src="js/notification.js"></script>
 </body>
 </html>

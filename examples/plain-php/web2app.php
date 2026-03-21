@@ -257,6 +257,7 @@ if (isset($_GET['action'])) {
                 </div>
                 <div id="result" class="hidden"></div>
             </div>
+            <script src="js/utils.js"></script>
             <script>
                 async function pollStatus() {
                     try {
@@ -277,17 +278,17 @@ if (isset($_GET['action'])) {
                                 <div class="success-icon">✓</div>
                                 <h1>Authentication Verified!</h1>
                                 <div class="user-info">
-                                    <p><strong>Name:</strong> ${data.user.fullName}</p>
-                                    <p><strong>Identity Code:</strong> ${data.user.identityCode}</p>
-                                    <p><strong>Country:</strong> ${data.user.country}</p>
-                                    ${data.user.dateOfBirth ? `<p><strong>Date of Birth:</strong> ${data.user.dateOfBirth}</p>` : ''}
+                                    <p><strong>Name:</strong> ${escapeHtml(data.user.fullName)}</p>
+                                    <p><strong>Identity Code:</strong> ${escapeHtml(data.user.identityCode)}</p>
+                                    <p><strong>Country:</strong> ${escapeHtml(data.user.country)}</p>
+                                    ${data.user.dateOfBirth ? `<p><strong>Date of Birth:</strong> ${escapeHtml(data.user.dateOfBirth)}</p>` : ''}
                                 </div>`;
                         } else {
                             resultEl.innerHTML = `
                                 <div class="error-icon">✗</div>
                                 <h1>Authentication Failed</h1>
                                 <p class="subtitle error">
-                                    ${data.error || data.endResult || 'Unknown error'}
+                                    ${escapeHtml(data.error || data.endResult || 'Unknown error')}
                                 </p>`;
                         }
                     } catch (e) {

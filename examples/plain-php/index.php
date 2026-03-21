@@ -315,6 +315,7 @@ if (isset($_GET['action'])) {
 
     </div>
 
+    <script src="js/utils.js"></script>
     <script src="js/index.js"></script>
 </body>
 </html>
