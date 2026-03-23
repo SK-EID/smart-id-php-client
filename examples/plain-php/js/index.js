@@ -12,16 +12,27 @@ async function init() {
 }
 
 async function refreshQR() {
-    const res = await fetch('?action=qr&t=' + Date.now());
-    const data = await res.json();
-    if (data.qrImage) {
-        document.getElementById('qr-code').src = data.qrImage;
+    try {
+        const res = await fetch('?action=qr&t=' + Date.now());
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.qrImage) {
+            document.getElementById('qr-code').src = data.qrImage;
+        }
+    } catch (e) {
+        // Ignore transient errors, next refresh will retry
     }
 }
 
 async function checkStatus() {
-    const res = await fetch('?action=status');
-    const data = await res.json();
+    let data;
+    try {
+        const res = await fetch('?action=status');
+        if (!res.ok) return;
+        data = await res.json();
+    } catch (e) {
+        return; // Retry on next interval
+    }
     if (data.state === 'COMPLETE') {
         clearInterval(refreshInterval);
         clearInterval(statusInterval);

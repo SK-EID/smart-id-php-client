@@ -31,12 +31,19 @@ declare(strict_types=1);
 namespace Sk\SmartId\Validation;
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Psr7\HttpFactory;
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use phpseclib3\File\ASN1;
+use phpseclib3\File\ASN1\Maps\Certificate;
 use phpseclib3\File\ASN1\Maps\Name;
 use phpseclib3\File\X509;
 use phpseclib3\Math\BigInteger;
 use Sk\SmartId\Exception\ValidationException;
+use Sk\SmartId\Validation\Maps\OcspBasicResponseMap;
+use Sk\SmartId\Validation\Maps\OcspResponseMap;
 
 class OcspCertificateRevocationChecker
 {
@@ -44,17 +51,50 @@ class OcspCertificateRevocationChecker
 
     private const OCSP_RESPONSE_CONTENT_TYPE = 'application/ocsp-response';
 
-    private Client $httpClient;
+    private ClientInterface $httpClient;
 
-    private int $timeoutSeconds;
+    private RequestFactoryInterface $requestFactory;
+
+    private StreamFactoryInterface $streamFactory;
 
     private ?string $ocspUrlOverride;
 
-    public function __construct(?Client $httpClient = null, int $timeoutSeconds = 10, ?string $ocspUrlOverride = null)
-    {
-        $this->httpClient = $httpClient ?? new Client();
-        $this->timeoutSeconds = $timeoutSeconds;
+    private ?string $designatedResponderCertPem;
+
+    public function __construct(
+        ClientInterface $httpClient,
+        RequestFactoryInterface $requestFactory,
+        StreamFactoryInterface $streamFactory,
+        ?string $ocspUrlOverride = null,
+        ?string $designatedResponderCertPem = null,
+    ) {
+        $this->httpClient = $httpClient;
+        $this->requestFactory = $requestFactory;
+        $this->streamFactory = $streamFactory;
         $this->ocspUrlOverride = $ocspUrlOverride;
+        $this->designatedResponderCertPem = $designatedResponderCertPem;
+    }
+
+    /**
+     * Create a checker that uses the AIA OCSP URL from the certificate
+     * and validates the responder certificate against the issuer CA.
+     */
+    public static function create(): self
+    {
+        $factory = new HttpFactory();
+
+        return new self(new Client(), $factory, $factory);
+    }
+
+    /**
+     * Create a checker with a designated OCSP responder URL and pinned responder certificate.
+     * The responder certificate from the OCSP response must match the provided certificate exactly.
+     */
+    public static function createDesignated(string $ocspUrl, string $responderCertPem): self
+    {
+        $factory = new HttpFactory();
+
+        return new self(new Client(), $factory, $factory, $ocspUrl, $responderCertPem);
     }
 
     public function checkRevocationStatus(string $subjectCertPem, string $issuerCertPem): void
@@ -76,7 +116,7 @@ class OcspCertificateRevocationChecker
             $requestBody = $this->buildOcspRequest($issuerNameDer, $issuerPublicKeyBytes, $serialNumber);
             $responseBody = $this->sendOcspRequest($ocspResponderUrl, $requestBody);
 
-            $this->parseOcspResponse($responseBody);
+            $this->parseOcspResponse($responseBody, $issuerCertPem);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
@@ -112,100 +152,248 @@ class OcspCertificateRevocationChecker
         return $this->derSequence($tbsRequest);
     }
 
-    private function parseOcspResponse(string $responseBody): void
+    private function parseOcspResponse(string $responseBody, string $issuerCertPem): void
     {
         $decoded = ASN1::decodeBER($responseBody);
-        if ($decoded === null || !isset($decoded[0]['content'])) {
+        if (!is_array($decoded) || !isset($decoded[0])) {
             throw new ValidationException('Failed to decode OCSP response');
         }
 
-        $ocspResponse = $decoded[0]['content'];
+        // Capture the raw BasicOCSPResponse DER for signature verification.
+        // ASN1::encodeDER does not always produce byte-identical output to the
+        // original, so we must verify the signature against the original bytes.
+        $basicResponseRawDer = null;
 
-        $statusValue = $ocspResponse[0]['content'] ?? null;
-        if ($statusValue === null) {
-            throw new ValidationException('OCSP response missing responseStatus');
-        }
-        $statusCode = $this->normalizeToInt($statusValue);
-        if ($statusCode !== 0) {
-            $this->throwForOcspStatus($statusCode);
+        $ocspResponse = ASN1::asn1map($decoded[0], OcspResponseMap::MAP, [
+            'response' => function (string $encoded) use (&$basicResponseRawDer): array {
+                $basicResponseRawDer = $encoded;
+
+                $inner = ASN1::decodeBER($encoded);
+                if (!is_array($inner) || !isset($inner[0])) {
+                    throw new ValidationException('Failed to decode BasicOCSPResponse');
+                }
+
+                return ASN1::asn1map($inner[0], OcspBasicResponseMap::MAP);
+            },
+        ]);
+
+        if ($ocspResponse === null) {
+            throw new ValidationException('Failed to decode OCSP response');
         }
 
-        $responseBytes = $ocspResponse[1] ?? null;
-        if ($responseBytes === null || !isset($responseBytes['content'])) {
+        $responseStatus = $ocspResponse['responseStatus'] ?? null;
+        if ($responseStatus !== 'successful') {
+            $this->throwForOcspResponseStatus($responseStatus);
+        }
+
+        if (!isset($ocspResponse['responseBytes']['response'])) {
             throw new ValidationException('OCSP response missing responseBytes');
         }
 
-        $innerSeq = $responseBytes['content'][0] ?? $responseBytes;
-        $basicResponseDer = null;
-        foreach (($innerSeq['content'] ?? []) as $el) {
-            if (($el['type'] ?? 0) === 4) {
-                $basicResponseDer = $el['content'];
-                break;
-            }
-        }
-
-        if ($basicResponseDer === null) {
-            throw new ValidationException('OCSP response missing BasicOCSPResponse');
-        }
-
-        $basicDecoded = ASN1::decodeBER($basicResponseDer);
-        if ($basicDecoded === null || !isset($basicDecoded[0]['content'][0]['content'])) {
+        $basicResponse = $ocspResponse['responseBytes']['response'];
+        if (!is_array($basicResponse)) {
             throw new ValidationException('Failed to decode BasicOCSPResponse');
         }
 
-        $tbsResponseData = $basicDecoded[0]['content'][0]['content'];
-        $responsesSeq = null;
-        foreach ($tbsResponseData as $child) {
-            if (($child['type'] ?? 0) === 16 && ($child['class'] ?? 0) === 0) {
-                $responsesSeq = $child;
+        $this->verifyCertStatus($basicResponse);
+        $this->verifyResponseSignature($basicResponse, $basicResponseRawDer, $issuerCertPem);
+    }
+
+    private function verifyCertStatus(array $basicResponse): void
+    {
+        $responses = $basicResponse['tbsResponseData']['responses'] ?? [];
+        if (count($responses) !== 1) {
+            throw new ValidationException(
+                sprintf('OCSP response must contain exactly one SingleResponse, got %d', count($responses)),
+            );
+        }
+
+        $certStatus = $responses[0]['certStatus'] ?? null;
+        if ($certStatus === null) {
+            throw new ValidationException('OCSP SingleResponse is missing certStatus');
+        }
+
+        if (isset($certStatus['good'])) {
+            return;
+        }
+
+        if (isset($certStatus['revoked'])) {
+            throw new ValidationException('Certificate has been revoked');
+        }
+
+        if (isset($certStatus['unknown'])) {
+            throw new ValidationException('Certificate revocation status is unknown');
+        }
+
+        throw new ValidationException('Unexpected OCSP certStatus');
+    }
+
+    private function verifyResponseSignature(array $basicResponse, string $basicResponseRawDer, string $issuerCertPem): void
+    {
+        $responderCertPem = $this->resolveResponderCertificate($basicResponse, $issuerCertPem);
+
+        $signatureAlgorithm = strtolower($basicResponse['signatureAlgorithm']['algorithm'] ?? '');
+        $opensslAlgo = $this->mapSignatureAlgorithm($signatureAlgorithm);
+
+        $signatureRaw = $basicResponse['signature'] ?? null;
+        if ($signatureRaw === null || $signatureRaw === '') {
+            throw new ValidationException('OCSP BasicOCSPResponse is missing signature');
+        }
+        // BIT STRING has a leading unused-bits byte that must be stripped
+        $signature = substr($signatureRaw, 1);
+
+        // Extract the original tbsResponseData DER bytes directly from the raw
+        // BasicOCSPResponse. We must NOT re-encode via ASN1::encodeDER because
+        // it may produce bytes that differ from the original signed content.
+        $tbsResponseDataDer = $this->extractTbsResponseDataDer($basicResponseRawDer);
+
+        $responderKey = openssl_pkey_get_public($responderCertPem);
+        if ($responderKey === false) {
+            throw new ValidationException('Failed to extract public key from OCSP responder certificate');
+        }
+
+        $result = openssl_verify($tbsResponseDataDer, $signature, $responderKey, $opensslAlgo);
+        if ($result !== 1) {
+            throw new ValidationException('OCSP response signature verification failed');
+        }
+    }
+
+    private function extractTbsResponseDataDer(string $basicResponseRawDer): string
+    {
+        // Decode the raw BasicOCSPResponse to locate the tbsResponseData node.
+        // tbsResponseData is the first child of the outer SEQUENCE.
+        $decoded = ASN1::decodeBER($basicResponseRawDer);
+        if (!is_array($decoded) || !isset($decoded[0]['content'][0])) {
+            throw new ValidationException('Failed to locate tbsResponseData in BasicOCSPResponse');
+        }
+
+        $tbsNode = $decoded[0]['content'][0];
+
+        // In phpseclib's decodeBER, for child nodes: 'start' is the byte offset
+        // within the input and 'length' is the total occupied bytes (header + content).
+        return substr($basicResponseRawDer, $tbsNode['start'], $tbsNode['length']);
+    }
+
+    private function resolveResponderCertificate(array $basicResponse, string $issuerCertPem): string
+    {
+        $embeddedCerts = $basicResponse['certs'] ?? [];
+
+        if (count($embeddedCerts) > 0) {
+            // Use the first embedded certificate as the responder certificate
+            $responderCertDer = ASN1::encodeDER($embeddedCerts[0], Certificate::MAP);
+            $responderCertPem = "-----BEGIN CERTIFICATE-----\n"
+                . chunk_split(base64_encode($responderCertDer), 64)
+                . "-----END CERTIFICATE-----";
+
+            if ($this->designatedResponderCertPem !== null) {
+                $this->validateDesignatedResponderCertificate($responderCertPem);
+            } else {
+                $this->validateResponderCertificate($responderCertPem, $issuerCertPem);
             }
+
+            return $responderCertPem;
         }
 
-        if ($responsesSeq === null || !isset($responsesSeq['content'][0]['content'])) {
-            throw new ValidationException('OCSP response missing SingleResponse');
+        // No embedded certs — the issuer CA itself must be the responder ("Authorized Responder" per RFC 6960 §2.2)
+        return $issuerCertPem;
+    }
+
+    private function validateDesignatedResponderCertificate(string $responderCertPem): void
+    {
+        // Certificate pinning: the responder cert from the OCSP response must match
+        // the pre-configured designated responder certificate exactly.
+        $actualFingerprint = openssl_x509_fingerprint($responderCertPem, 'sha256');
+        $expectedFingerprint = openssl_x509_fingerprint($this->designatedResponderCertPem, 'sha256');
+
+        if ($actualFingerprint === false || $expectedFingerprint === false) {
+            throw new ValidationException('Failed to compute OCSP responder certificate fingerprint');
         }
 
-        $singleResponse = $responsesSeq['content'][0]['content'];
-        if (count($singleResponse) < 2) {
-            throw new ValidationException('OCSP SingleResponse is malformed');
+        if (!hash_equals($expectedFingerprint, $actualFingerprint)) {
+            throw new ValidationException(
+                'OCSP responder certificate does not match the designated responder certificate',
+            );
         }
 
-        $certStatus = $singleResponse[1];
-        $tag = $certStatus['constant'] ?? $certStatus['type'] ?? -1;
-        match ($tag) {
-            0 => null,
-            1 => throw new ValidationException('Certificate has been revoked'),
-            2 => throw new ValidationException('Certificate revocation status is unknown'),
+        // Verify the designated responder certificate is not expired
+        $certInfo = openssl_x509_parse($responderCertPem);
+        if ($certInfo === false) {
+            throw new ValidationException('Failed to parse OCSP responder certificate');
+        }
+
+        $now = time();
+        if (isset($certInfo['validFrom_time_t']) && $certInfo['validFrom_time_t'] > $now) {
+            throw new ValidationException('OCSP responder certificate is not yet valid');
+        }
+        if (isset($certInfo['validTo_time_t']) && $certInfo['validTo_time_t'] < $now) {
+            throw new ValidationException('OCSP responder certificate has expired');
+        }
+    }
+
+    private function validateResponderCertificate(string $responderCertPem, string $issuerCertPem): void
+    {
+        // Verify that the responder certificate is signed by the issuer CA
+        $verifyResult = openssl_x509_verify($responderCertPem, $issuerCertPem);
+        if ($verifyResult !== 1) {
+            throw new ValidationException(
+                'OCSP responder certificate is not signed by the expected issuer CA',
+            );
+        }
+
+        // Verify the responder certificate has id-kp-OCSPSigning EKU (OID 1.3.6.1.5.5.7.3.9)
+        $certInfo = openssl_x509_parse($responderCertPem);
+        if ($certInfo === false) {
+            throw new ValidationException('Failed to parse OCSP responder certificate');
+        }
+
+        $extKeyUsage = $certInfo['extensions']['extendedKeyUsage'] ?? '';
+        $hasOcspSigning = str_contains($extKeyUsage, '1.3.6.1.5.5.7.3.9')
+            || stripos($extKeyUsage, 'OCSP Signing') !== false;
+
+        if (!$hasOcspSigning) {
+            throw new ValidationException(
+                'OCSP responder certificate does not have id-kp-OCSPSigning Extended Key Usage',
+            );
+        }
+
+        // Verify the responder certificate is not expired
+        $now = time();
+        if (isset($certInfo['validFrom_time_t']) && $certInfo['validFrom_time_t'] > $now) {
+            throw new ValidationException('OCSP responder certificate is not yet valid');
+        }
+        if (isset($certInfo['validTo_time_t']) && $certInfo['validTo_time_t'] < $now) {
+            throw new ValidationException('OCSP responder certificate has expired');
+        }
+    }
+
+    private function mapSignatureAlgorithm(string $algorithm): int
+    {
+        // Map OID names from phpseclib ASN1 decoding to OpenSSL algorithm constants
+        return match (true) {
+            str_contains($algorithm, 'sha512') && str_contains($algorithm, 'rsa') => OPENSSL_ALGO_SHA512,
+            str_contains($algorithm, 'sha384') && str_contains($algorithm, 'rsa') => OPENSSL_ALGO_SHA384,
+            str_contains($algorithm, 'sha256') && str_contains($algorithm, 'rsa') => OPENSSL_ALGO_SHA256,
+            str_contains($algorithm, 'sha1') && str_contains($algorithm, 'rsa') => OPENSSL_ALGO_SHA1,
+            str_contains($algorithm, 'sha512') => OPENSSL_ALGO_SHA512,
+            str_contains($algorithm, 'sha384') => OPENSSL_ALGO_SHA384,
+            str_contains($algorithm, 'sha256') => OPENSSL_ALGO_SHA256,
+            str_contains($algorithm, 'sha1') => OPENSSL_ALGO_SHA1,
             default => throw new ValidationException(
-                sprintf('Unexpected OCSP certStatus tag: %d', $tag),
+                sprintf('Unsupported OCSP response signature algorithm: %s', $algorithm),
             ),
         };
     }
 
-    private function normalizeToInt(mixed $value): int
+    private function throwForOcspResponseStatus(?string $status): never
     {
-        if ($value instanceof BigInteger) {
-            return (int) $value->toString();
-        }
-        if (is_int($value)) {
-            return $value;
-        }
-        if (is_string($value)) {
-            return ord($value);
-        }
-
-        return -1;
-    }
-
-    private function throwForOcspStatus(int $code): void
-    {
-        $message = match ($code) {
-            1 => 'OCSP responder: malformed request',
-            2 => 'OCSP responder: internal error',
-            3 => 'OCSP responder: try later',
-            5 => 'OCSP responder: signature required',
-            6 => 'OCSP responder: unauthorized',
-            default => sprintf('OCSP responder returned error status: %d', $code),
+        $message = match ($status) {
+            'malformedRequest' => 'OCSP responder: malformed request',
+            'internalError' => 'OCSP responder: internal error',
+            'tryLater' => 'OCSP responder: try later',
+            'sigRequired' => 'OCSP responder: signature required',
+            'unauthorized' => 'OCSP responder: unauthorized',
+            null => 'OCSP response missing responseStatus',
+            default => sprintf('OCSP responder returned error status: %s', $status),
         };
         throw new ValidationException($message);
     }
@@ -317,13 +505,11 @@ class OcspCertificateRevocationChecker
     private function sendOcspRequest(string $url, string $derRequestBody): string
     {
         try {
-            $response = $this->httpClient->post($url, [
-                'headers' => [
-                    'Content-Type' => self::OCSP_REQUEST_CONTENT_TYPE,
-                ],
-                'body' => $derRequestBody,
-                'timeout' => $this->timeoutSeconds,
-            ]);
+            $request = $this->requestFactory->createRequest('POST', $url)
+                ->withHeader('Content-Type', self::OCSP_REQUEST_CONTENT_TYPE)
+                ->withBody($this->streamFactory->createStream($derRequestBody));
+
+            $response = $this->httpClient->sendRequest($request);
 
             $statusCode = $response->getStatusCode();
             if ($statusCode !== 200) {
@@ -340,7 +526,7 @@ class OcspCertificateRevocationChecker
             }
 
             return $response->getBody()->getContents();
-        } catch (GuzzleException $e) {
+        } catch (ClientExceptionInterface $e) {
             throw new ValidationException(
                 sprintf('OCSP request failed: %s', $e->getMessage()),
             );

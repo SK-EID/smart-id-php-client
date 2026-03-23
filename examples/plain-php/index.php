@@ -94,6 +94,7 @@ $connector = new SmartIdRestConnector(
 // AJAX ENDPOINTS
 // ============================================================================
 if (isset($_GET['action'])) {
+    ob_start();
     header('Content-Type: application/json');
 
     // -------------------------------------------------------------------------
@@ -137,6 +138,7 @@ if (isset($_GET['action'])) {
             'createdAt' => time(),
         ];
 
+        ob_end_clean();
         echo json_encode([
             'success' => true,
         ]);
@@ -150,11 +152,13 @@ if (isset($_GET['action'])) {
     // -------------------------------------------------------------------------
     if ($_GET['action'] === 'qr') {
         if (!isset($_SESSION['auth'])) {
+            ob_end_clean();
             echo json_encode(['error' => 'No session']);
             exit;
         }
 
         $auth = $_SESSION['auth'];
+        session_write_close();
 
         // Reconstruct the response object from stored session data
         $response = new \Sk\SmartId\DeviceLink\DeviceLinkAuthenticationResponse(
@@ -190,6 +194,7 @@ if (isset($_GET['action'])) {
 
         $qrImage = (new QRCode($options))->render($qrUrl);
 
+        ob_end_clean();
         echo json_encode([
             'qrImage' => $qrImage,
             'elapsed' => $elapsedSeconds,
@@ -203,13 +208,18 @@ if (isset($_GET['action'])) {
     // -------------------------------------------------------------------------
     if ($_GET['action'] === 'status') {
         if (!isset($_SESSION['auth'])) {
+            ob_end_clean();
             echo json_encode(['error' => 'No session']);
             exit;
         }
 
+        $authSessionId = $_SESSION['auth']['sessionId'];
+        $authData = $_SESSION['auth'];
+        session_write_close();
+
         // Query Smart-ID API for session status
         // timeoutMs enables long polling - server holds connection until status changes or timeout
-        $status = $connector->getSessionStatus($_SESSION['auth']['sessionId'], timeoutMs: 1000);
+        $status = $connector->getSessionStatus($authSessionId, timeoutMs: 1000);
 
         $response = [
             'state' => $status->getState(),
@@ -226,12 +236,18 @@ if (isset($_GET['action'])) {
                     // Create validator with trusted CA certificates
                     $validator = new AuthenticationResponseValidator();
 
-                    // For DEMO environment - use mock OCSP (demo AIA reports test certs as revoked)
-                    $ocspChecker = new OcspCertificateRevocationChecker(ocspUrlOverride: 'http://demo.sk.ee/ocsp_good');
+                    // For DEMO environment - use mock OCSP with designated responder cert pinning.
+                    // The mock endpoint (ocsp_good) uses its own signing cert not chained to the demo CA,
+                    // so we pin the exact responder certificate instead of CA chain validation.
+                    $ocspChecker = OcspCertificateRevocationChecker::createDesignated(
+                        'http://demo.sk.ee/ocsp_good',
+                        file_get_contents(__DIR__ . '/demo_ocsp_responder.pem'),
+                    );
                     TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
 
-                    // For PRODUCTION environment - use production certificates with OCSP:
-                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator);
+                    // For PRODUCTION environment - use AIA OCSP with CA chain validation:
+                    // $ocspChecker = OcspCertificateRevocationChecker::create();
+                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
 
                     // Validate the authentication response and extract user identity
                     // This verifies:
@@ -241,14 +257,17 @@ if (isset($_GET['action'])) {
                     // - Optionally: certificate level meets requirements
                     $identity = $validator->validate(
                         $status,
-                        $_SESSION['auth']['rpChallenge'],
-                        $_SESSION['auth']['rpName'],
-                        $_SESSION['auth']['interactionsBase64'],
+                        $authData['rpChallenge'],
+                        $authData['rpName'],
+                        $authData['interactionsBase64'],
                         requiredCertificateLevel: CertificateLevel::QUALIFIED,
                         schemeName: SchemeName::DEMO,
                     );
 
                     // Prevent session fixation: regenerate session ID after successful authentication
+                    if (session_status() !== PHP_SESSION_ACTIVE) {
+                        session_start();
+                    }
                     session_regenerate_id(true);
 
                     // User information extracted from the certificate
@@ -283,10 +302,12 @@ if (isset($_GET['action'])) {
             }
         }
 
+        ob_end_clean();
         echo json_encode($response);
         exit;
     }
 
+    ob_end_clean();
     exit;
 }
 ?>

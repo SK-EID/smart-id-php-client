@@ -104,6 +104,7 @@ $connector = new SmartIdRestConnector(
 // AJAX ENDPOINTS
 // ============================================================================
 if (isset($_GET['action'])) {
+    ob_start();
     header('Content-Type: application/json');
 
     // -------------------------------------------------------------------------
@@ -154,6 +155,7 @@ if (isset($_GET['action'])) {
             'callbackToken' => $callbackToken, // Store token to verify callback origin
         ];
 
+        ob_end_clean();
         echo json_encode([
             'success' => true,
             'verificationCode' => $verificationCode,
@@ -167,6 +169,7 @@ if (isset($_GET['action'])) {
     // -------------------------------------------------------------------------
     if ($_GET['action'] === 'link') {
         if (!isset($_SESSION['auth'])) {
+            ob_end_clean();
             echo json_encode(['error' => 'No session']);
             exit;
         }
@@ -194,6 +197,7 @@ if (isset($_GET['action'])) {
             ->withCallbackUrl($auth['callbackUrl'])
             ->buildWeb2AppUrl();
 
+        ob_end_clean();
         echo json_encode([
             'url' => $web2appUrl,
             'verificationCode' => $auth['verificationCode'],
@@ -214,6 +218,7 @@ if (isset($_GET['action'])) {
         // 3. `userChallengeVerifier` must be present for auth flows
         // =========================================================
         if (!isset($_SESSION['auth'])) {
+            ob_end_clean();
             header('Content-Type: text/html; charset=utf-8');
             http_response_code(403);
             echo '<h1>No active session</h1>';
@@ -224,6 +229,7 @@ if (isset($_GET['action'])) {
         $urlToken = $_GET['value'] ?? '';
         $expectedToken = $_SESSION['auth']['callbackToken'] ?? '';
         if (!hash_equals($expectedToken, $urlToken)) {
+            ob_end_clean();
             header('Content-Type: text/html; charset=utf-8');
             http_response_code(403);
             echo '<h1>Invalid callback: URL token mismatch</h1>';
@@ -239,6 +245,7 @@ if (isset($_GET['action'])) {
         }
 
         // Override JSON content type — render HTML page that polls for status
+        ob_end_clean();
         header('Content-Type: text/html; charset=utf-8');
         ?>
         <!DOCTYPE html>
@@ -310,6 +317,7 @@ if (isset($_GET['action'])) {
     // -------------------------------------------------------------------------
     if ($_GET['action'] === 'status') {
         if (!isset($_SESSION['auth'])) {
+            ob_end_clean();
             echo json_encode(['error' => 'No session']);
             exit;
         }
@@ -317,7 +325,10 @@ if (isset($_GET['action'])) {
         // In Web2App flow, status is only polled from the callback page
         // where callback params (sessionSecretDigest, userChallengeVerifier)
         // have already been stored in the session by the callback handler.
-        $status = $connector->getSessionStatus($_SESSION['auth']['sessionId'], timeoutMs: 1000);
+        $authData = $_SESSION['auth'];
+        session_write_close();
+
+        $status = $connector->getSessionStatus($authData['sessionId'], timeoutMs: 1000);
 
         $response = [
             'state' => $status->getState(),
@@ -336,8 +347,8 @@ if (isset($_GET['action'])) {
                     // Uses CallbackUrlUtil which throws ValidationException on mismatch
                     // =========================================================
                     CallbackUrlUtil::validateSessionSecretDigest(
-                        $_SESSION['auth']['callbackSessionSecretDigest'],
-                        $_SESSION['auth']['sessionSecret'],
+                        $authData['callbackSessionSecretDigest'],
+                        $authData['sessionSecret'],
                     );
                     $checks[] = ['label' => 'Session secret digest', 'ok' => true];
 
@@ -348,7 +359,7 @@ if (isset($_GET['action'])) {
                     if ($status->getSignature() !== null) {
                         $validator = new AuthenticationResponseValidator();
                         $validator->verifyUserChallenge(
-                            $_SESSION['auth']['callbackUserChallengeVerifier'],
+                            $authData['callbackUserChallengeVerifier'],
                             $status->getSignature()->getUserChallenge(),
                         );
                         $checks[] = ['label' => 'User challenge verifier', 'ok' => true];
@@ -361,24 +372,33 @@ if (isset($_GET['action'])) {
                     // =========================================================
                     $validator = new AuthenticationResponseValidator();
 
-                    // For DEMO environment - use mock OCSP (demo AIA reports test certs as revoked)
-                    $ocspChecker = new OcspCertificateRevocationChecker(ocspUrlOverride: 'http://demo.sk.ee/ocsp_good');
+                    // For DEMO environment - use mock OCSP with designated responder cert pinning.
+                    // The mock endpoint (ocsp_good) uses its own signing cert not chained to the demo CA,
+                    // so we pin the exact responder certificate instead of CA chain validation.
+                    $ocspChecker = OcspCertificateRevocationChecker::createDesignated(
+                        'http://demo.sk.ee/ocsp_good',
+                        file_get_contents(__DIR__ . '/demo_ocsp_responder.pem'),
+                    );
                     TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
 
-                    // For PRODUCTION environment - use production certificates with OCSP:
-                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator);
+                    // For PRODUCTION environment - use AIA OCSP with CA chain validation:
+                    // $ocspChecker = OcspCertificateRevocationChecker::create();
+                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
 
                     $identity = $validator->validate(
                         $status,
-                        $_SESSION['auth']['rpChallenge'],
-                        $_SESSION['auth']['rpName'],
-                        $_SESSION['auth']['interactionsBase64'],
-                        $_SESSION['auth']['callbackUrl'],
+                        $authData['rpChallenge'],
+                        $authData['rpName'],
+                        $authData['interactionsBase64'],
+                        $authData['callbackUrl'],
                         requiredCertificateLevel: CertificateLevel::QUALIFIED,
                         schemeName: SchemeName::DEMO,
                     );
 
                     // Prevent session fixation: regenerate session ID after successful authentication
+                    if (session_status() !== PHP_SESSION_ACTIVE) {
+                        session_start();
+                    }
                     session_regenerate_id(true);
 
                     $checks[] = ['label' => 'Certificate trust chain', 'ok' => true];
@@ -416,10 +436,12 @@ if (isset($_GET['action'])) {
             }
         }
 
+        ob_end_clean();
         echo json_encode($response);
         exit;
     }
 
+    ob_end_clean();
     exit;
 }
 ?>

@@ -44,6 +44,8 @@ use Sk\SmartId\Session\SessionStatus;
 use Sk\SmartId\Session\SignatureAlgorithmParameters;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
 
 class AuthenticationResponseValidatorTest extends TestCase
 {
@@ -431,7 +433,8 @@ class AuthenticationResponseValidatorTest extends TestCase
     public function setOcspRevocationCheckerReturnsSelf(): void
     {
         $validator = new AuthenticationResponseValidator();
-        $checker = new OcspCertificateRevocationChecker();
+        $factory = new HttpFactory();
+        $checker = new OcspCertificateRevocationChecker(new Client(), $factory, $factory);
 
         $result = $validator->setOcspRevocationChecker($checker);
 
