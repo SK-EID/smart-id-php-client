@@ -115,4 +115,24 @@ class TrustedCACertificateStoreTest extends TestCase
         $this->assertNotEmpty($certificates);
         $this->assertContainsOnly('string', $certificates);
     }
+
+    #[Test]
+    public function loadFromDirectoryReturnsStore(): void
+    {
+        $dir = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'trusted_certificates';
+        $store = TrustedCACertificateStore::loadFromDirectory($dir);
+
+        $this->assertNotEmpty($store->getCertificates());
+        $this->assertNotEmpty($store->getCertificateFilePaths());
+    }
+
+    #[Test]
+    public function addCertificateFromFileThrowsForNonExistentFile(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to read certificate file');
+
+        $store = TrustedCACertificateStore::create();
+        $store->addCertificateFromFile('/nonexistent/path/cert.pem');
+    }
 }

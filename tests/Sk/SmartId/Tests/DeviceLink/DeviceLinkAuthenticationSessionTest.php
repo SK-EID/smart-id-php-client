@@ -215,4 +215,33 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
         $session->buildWeb2AppUrl();
     }
+
+    #[Test]
+    public function getCallbackUrlReturnsNullByDefault(): void
+    {
+        $session = new DeviceLinkAuthenticationSession(
+            $this->response,
+            $this->rpChallenge,
+            $this->rpName,
+            $this->interactions,
+            $this->verificationCode,
+        );
+
+        $this->assertNull($session->getCallbackUrl());
+    }
+
+    #[Test]
+    public function getCallbackUrlReturnsValueWhenSet(): void
+    {
+        $session = new DeviceLinkAuthenticationSession(
+            $this->response,
+            $this->rpChallenge,
+            $this->rpName,
+            $this->interactions,
+            $this->verificationCode,
+            'https://example.com/callback?value=abc',
+        );
+
+        $this->assertSame('https://example.com/callback?value=abc', $session->getCallbackUrl());
+    }
 }

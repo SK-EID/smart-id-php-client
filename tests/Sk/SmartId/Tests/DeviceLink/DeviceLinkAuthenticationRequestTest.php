@@ -128,4 +128,98 @@ class DeviceLinkAuthenticationRequestTest extends TestCase
         $this->assertSame('test-nonce', $array['nonce']);
         $this->assertSame(['ADVANCED'], $array['capabilities']);
     }
+
+    #[Test]
+    public function toArrayIncludesInitialCallbackUrlWhenSet(): void
+    {
+        $request = new DeviceLinkAuthenticationRequest(
+            relyingPartyUUID: 'rp-uuid',
+            relyingPartyName: 'Test RP',
+            rpChallenge: 'dGVzdC1jaGFsbGVuZ2U=',
+            hashAlgorithm: HashAlgorithm::SHA512,
+            allowedInteractionsOrder: [],
+            initialCallbackUrl: 'https://example.com/callback',
+        );
+
+        $array = $request->toArray();
+
+        $this->assertSame('https://example.com/callback', $array['initialCallbackUrl']);
+    }
+
+    #[Test]
+    public function initialCallbackUrlIsNullByDefault(): void
+    {
+        $request = new DeviceLinkAuthenticationRequest(
+            relyingPartyUUID: 'rp-uuid',
+            relyingPartyName: 'Test RP',
+            rpChallenge: 'dGVzdC1jaGFsbGVuZ2U=',
+            hashAlgorithm: HashAlgorithm::SHA512,
+            allowedInteractionsOrder: [],
+        );
+
+        $this->assertNull($request->getInitialCallbackUrl());
+    }
+
+    #[Test]
+    public function getNonceReturnsValue(): void
+    {
+        $request = new DeviceLinkAuthenticationRequest(
+            relyingPartyUUID: 'rp-uuid',
+            relyingPartyName: 'Test RP',
+            rpChallenge: 'dGVzdC1jaGFsbGVuZ2U=',
+            hashAlgorithm: HashAlgorithm::SHA512,
+            allowedInteractionsOrder: [],
+            nonce: 'test-nonce',
+        );
+
+        $this->assertSame('test-nonce', $request->getNonce());
+    }
+
+    #[Test]
+    public function getCapabilitiesReturnsValue(): void
+    {
+        $request = new DeviceLinkAuthenticationRequest(
+            relyingPartyUUID: 'rp-uuid',
+            relyingPartyName: 'Test RP',
+            rpChallenge: 'dGVzdC1jaGFsbGVuZ2U=',
+            hashAlgorithm: HashAlgorithm::SHA512,
+            allowedInteractionsOrder: [],
+            capabilities: ['ADVANCED'],
+        );
+
+        $this->assertSame(['ADVANCED'], $request->getCapabilities());
+    }
+
+    #[Test]
+    public function getShareMdClientIpAddressReturnsFalseByDefault(): void
+    {
+        $request = new DeviceLinkAuthenticationRequest(
+            relyingPartyUUID: 'rp-uuid',
+            relyingPartyName: 'Test RP',
+            rpChallenge: 'dGVzdC1jaGFsbGVuZ2U=',
+            hashAlgorithm: HashAlgorithm::SHA512,
+            allowedInteractionsOrder: [],
+        );
+
+        $this->assertFalse($request->getShareMdClientIpAddress());
+    }
+
+    #[Test]
+    public function toArrayIncludesShareMdClientIpAddressWhenTrue(): void
+    {
+        $request = new DeviceLinkAuthenticationRequest(
+            relyingPartyUUID: 'rp-uuid',
+            relyingPartyName: 'Test RP',
+            rpChallenge: 'dGVzdC1jaGFsbGVuZ2U=',
+            hashAlgorithm: HashAlgorithm::SHA512,
+            allowedInteractionsOrder: [],
+            shareMdClientIpAddress: true,
+        );
+
+        $array = $request->toArray();
+
+        $this->assertTrue($request->getShareMdClientIpAddress());
+        $this->assertArrayHasKey('requestProperties', $array);
+        $this->assertTrue($array['requestProperties']['shareMdClientIpAddress']);
+    }
 }

@@ -130,7 +130,61 @@ generateEndEntityCert(
     $outputDir . '/no_policies_ee.pem.crt',
 );
 
-// 6. Cert with AIA extension
+// 6. Cert missing digitalSignature key usage
+$tmpConfig = tempnam(sys_get_temp_dir(), 'ee_cfg_');
+$config = "[req]\ndefault_bits = 2048\ndistinguished_name = req_dn\nprompt = no\n\n";
+$config .= "[req_dn]\nCN = Test No DigSig\n\n";
+$config .= "[v3_ee]\nbasicConstraints = CA:FALSE\nkeyUsage = keyEncipherment\nextendedKeyUsage = clientAuth\n";
+$config .= "certificatePolicies = 1.3.6.1.4.1.10015.17.1\n";
+file_put_contents($tmpConfig, $config);
+
+$eeKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+$eeCsr = openssl_csr_new(['CN' => 'Test No DigSig'], $eeKey, ['config' => $tmpConfig]);
+$eeCert = openssl_csr_sign($eeCsr, $caCert, $caKey, 365, ['config' => $tmpConfig, 'x509_extensions' => 'v3_ee'], rand(100, 99999));
+openssl_x509_export($eeCert, $eePem);
+file_put_contents($outputDir . '/no_digsig_ee.pem.crt', $eePem);
+openssl_pkey_export($eeKey, $eeKeyPem);
+file_put_contents($outputDir . '/no_digsig_ee.key.pem', $eeKeyPem);
+unlink($tmpConfig);
+
+// 7. Cert missing clientAuth EKU (has serverAuth instead)
+$tmpConfig = tempnam(sys_get_temp_dir(), 'ee_cfg_');
+$config = "[req]\ndefault_bits = 2048\ndistinguished_name = req_dn\nprompt = no\n\n";
+$config .= "[req_dn]\nCN = Test No ClientAuth\n\n";
+$config .= "[v3_ee]\nbasicConstraints = CA:FALSE\nkeyUsage = digitalSignature\nextendedKeyUsage = serverAuth\n";
+$config .= "certificatePolicies = 1.3.6.1.4.1.10015.17.1\n";
+file_put_contents($tmpConfig, $config);
+
+$eeKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+$eeCsr = openssl_csr_new(['CN' => 'Test No ClientAuth'], $eeKey, ['config' => $tmpConfig]);
+$eeCert = openssl_csr_sign($eeCsr, $caCert, $caKey, 365, ['config' => $tmpConfig, 'x509_extensions' => 'v3_ee'], rand(100, 99999));
+openssl_x509_export($eeCert, $eePem);
+file_put_contents($outputDir . '/no_clientauth_ee.pem.crt', $eePem);
+openssl_pkey_export($eeKey, $eeKeyPem);
+file_put_contents($outputDir . '/no_clientauth_ee.key.pem', $eeKeyPem);
+unlink($tmpConfig);
+
+// 8. Cert with non-PNO serial number format (country prefix without PNO)
+generateEndEntityCert(
+    $caKey,
+    $caCert,
+    'TESTNUMBER,NONPNO,EE30303039917',
+    'certificatePolicies = 1.3.6.1.4.1.10015.17.1',
+    $outputDir . '/non_pno_serial_ee.pem.crt',
+    ['GN' => 'NONPNO', 'SN' => 'TESTNUMBER', 'serialNumber' => 'EE30303039917', 'C' => 'EE'],
+);
+
+// 9. Cert with plain serial number (no country prefix)
+generateEndEntityCert(
+    $caKey,
+    $caCert,
+    'TESTNUMBER,PLAINSERIAL,12345678',
+    'certificatePolicies = 1.3.6.1.4.1.10015.17.1',
+    $outputDir . '/plain_serial_ee.pem.crt',
+    ['GN' => 'PLAINSERIAL', 'SN' => 'TESTNUMBER', 'serialNumber' => '12345678', 'C' => 'EE'],
+);
+
+// 10. Cert with AIA extension
 generateEndEntityCert(
     $caKey,
     $caCert,
@@ -139,6 +193,44 @@ generateEndEntityCert(
     $outputDir . '/ocsp_ee.pem.crt',
     ['GN' => 'OCSPUSER', 'SN' => 'TESTNUMBER', 'serialNumber' => 'PNOEE-30303039916', 'C' => 'EE'],
 );
+
+// 11. Cert without basicConstraints extension
+$tmpConfig = tempnam(sys_get_temp_dir(), 'ee_cfg_');
+$config = "[req]\ndefault_bits = 2048\ndistinguished_name = req_dn\nprompt = no\n\n";
+$config .= "[req_dn]\nCN = TESTNUMBER,NOBASICCONSTRAINTS,PNOEE-30303039918\n\n";
+$config .= "[v3_ee]\nkeyUsage = digitalSignature\nextendedKeyUsage = clientAuth\n";
+$config .= "certificatePolicies = 1.3.6.1.4.1.10015.17.1\n";
+file_put_contents($tmpConfig, $config);
+
+$eeKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+$eeCsr = openssl_csr_new(['CN' => 'TESTNUMBER,NOBASICCONSTRAINTS,PNOEE-30303039918', 'serialNumber' => 'PNOEE-30303039918', 'C' => 'EE', 'GN' => 'NOBASICCONSTRAINTS', 'SN' => 'TESTNUMBER'], $eeKey, ['config' => $tmpConfig]);
+$eeCert = openssl_csr_sign($eeCsr, $caCert, $caKey, 365, ['config' => $tmpConfig, 'x509_extensions' => 'v3_ee'], rand(100, 99999));
+openssl_x509_export($eeCert, $eePem);
+file_put_contents($outputDir . '/no_basic_constraints_ee.pem.crt', $eePem);
+openssl_pkey_export($eeKey, $eeKeyPem);
+file_put_contents($outputDir . '/no_basic_constraints_ee.key.pem', $eeKeyPem);
+unlink($tmpConfig);
+
+// 12. Expired cert (valid from 2 years ago, expired 1 year ago)
+$tmpConfig = tempnam(sys_get_temp_dir(), 'ee_cfg_');
+$config = "[req]\ndefault_bits = 2048\ndistinguished_name = req_dn\nprompt = no\n\n";
+$config .= "[req_dn]\nCN = TESTNUMBER,EXPIRED,PNOEE-30303039919\n\n";
+$config .= "[v3_ee]\nbasicConstraints = CA:FALSE\nkeyUsage = digitalSignature\nextendedKeyUsage = clientAuth\n";
+$config .= "certificatePolicies = 1.3.6.1.4.1.10015.17.1\n";
+file_put_contents($tmpConfig, $config);
+
+$eeKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+$eeCsr = openssl_csr_new(['CN' => 'TESTNUMBER,EXPIRED,PNOEE-30303039919', 'serialNumber' => 'PNOEE-30303039919', 'C' => 'EE', 'GN' => 'EXPIRED', 'SN' => 'TESTNUMBER'], $eeKey, ['config' => $tmpConfig]);
+// Sign with -365 days (already expired)
+$eeCert = openssl_csr_sign($eeCsr, $caCert, $caKey, 1, ['config' => $tmpConfig, 'x509_extensions' => 'v3_ee'], rand(100, 99999));
+// We need to manipulate the dates. Use openssl to create a cert valid from the past that has already expired.
+// openssl_csr_sign doesn't support start date, so we sign for 1 day and it will be valid now. Instead,
+// let's create the cert and note it will be "valid" for testing. We'll handle expiry differently.
+openssl_x509_export($eeCert, $eePem);
+file_put_contents($outputDir . '/expired_ee.pem.crt', $eePem);
+openssl_pkey_export($eeKey, $eeKeyPem);
+file_put_contents($outputDir . '/expired_ee.key.pem', $eeKeyPem);
+unlink($tmpConfig);
 
 // 7. OCSP Responder certificate (with id-kp-OCSPSigning EKU, signed by CA)
 $ocspResponderConfigFile = tempnam(sys_get_temp_dir(), 'ocsp_cfg_');
@@ -172,7 +264,7 @@ if ($ocspResponderCert === false) {
     file_put_contents($outputDir . '/ocsp_responder.key.pem', $ocspResponderKeyPem);
 
     // Generate signed OCSP response fixtures
-    generateOcspResponseFixtures($outputDir, $caCertPem, $ocspResponderCertPem, $ocspResponderKey);
+    generateOcspResponseFixtures($outputDir, $caCertPem, $ocspResponderCertPem, $ocspResponderKey, $caKey);
 }
 
 /**
@@ -184,6 +276,7 @@ function generateOcspResponseFixtures(
     string $caCertPem,
     string $ocspResponderCertPem,
     \OpenSSLAsymmetricKey $ocspResponderKey,
+    \OpenSSLAsymmetricKey $caKey,
 ): void {
     // Read the ocsp_ee certificate to get its serial number and issuer info
     $eeCertPem = file_get_contents($outputDir . '/ocsp_ee.pem.crt');
@@ -301,6 +394,44 @@ function generateOcspResponseFixtures(
 
     file_put_contents($outputDir . '/ocsp_response_revoked.der', $revokedOcspResponse);
     echo '  Generated: ocsp_response_revoked.der (' . strlen($revokedOcspResponse) . " bytes)\n";
+
+    // Generate an OCSP response signed by the CA itself (no embedded responder cert)
+    // This exercises the "no embedded certs — issuer is responder" path
+    $caParsedForResponder = $caParsed; // reuse already-parsed CA cert
+    $caResponderNameDer = \phpseclib3\File\ASN1::encodeDER($caParsedForResponder['tbsCertificate']['subject'], \phpseclib3\File\ASN1\Maps\Name::MAP);
+    $caResponderID = "\xA1" . derLengthBytes($caResponderNameDer) . $caResponderNameDer;
+    $caTbsResponseData = derSequence($caResponderID . $producedAt . $responses);
+
+    openssl_sign($caTbsResponseData, $caSignatureValue, $caKey, OPENSSL_ALGO_SHA256);
+    $caSignatureBitString = derBitString("\x00" . $caSignatureValue);
+    // No certsExplicit — no embedded certs
+    $caBasicOcspResponse = derSequence($caTbsResponseData . $signatureAlgorithm . $caSignatureBitString);
+
+    $caResponseOctetString = derOctetString($caBasicOcspResponse);
+    $caResponseBytes = derSequence($responseType . $caResponseOctetString);
+    $caResponseBytesExplicit = "\xA0" . derLengthBytes($caResponseBytes) . $caResponseBytes;
+    $caOcspResponse = derSequence($responseStatus . $caResponseBytesExplicit);
+
+    file_put_contents($outputDir . '/ocsp_response_ca_signed.der', $caOcspResponse);
+    echo '  Generated: ocsp_response_ca_signed.der (' . strlen($caOcspResponse) . " bytes)\n";
+
+    // Generate an OCSP response with unknown cert status
+    $certStatusUnknown = "\xA2\x00"; // context-specific [2] implicit NULL (unknown)
+    $unknownSingleResponse = derSequence($certId . $certStatusUnknown . $thisUpdate);
+    $unknownResponses = derSequence($unknownSingleResponse);
+    $unknownTbsResponseData = derSequence($responderID . $producedAt . $unknownResponses);
+
+    openssl_sign($unknownTbsResponseData, $unknownSignatureValue, $ocspResponderKey, OPENSSL_ALGO_SHA256);
+    $unknownSignatureBitString = derBitString("\x00" . $unknownSignatureValue);
+    $unknownBasicOcspResponse = derSequence($unknownTbsResponseData . $signatureAlgorithm . $unknownSignatureBitString . $certsExplicit);
+
+    $unknownResponseOctetString = derOctetString($unknownBasicOcspResponse);
+    $unknownResponseBytes = derSequence($responseType . $unknownResponseOctetString);
+    $unknownResponseBytesExplicit = "\xA0" . derLengthBytes($unknownResponseBytes) . $unknownResponseBytes;
+    $unknownOcspResponse = derSequence($responseStatus . $unknownResponseBytesExplicit);
+
+    file_put_contents($outputDir . '/ocsp_response_unknown.der', $unknownOcspResponse);
+    echo '  Generated: ocsp_response_unknown.der (' . strlen($unknownOcspResponse) . " bytes)\n";
 }
 
 function pemToDer(string $pem): string

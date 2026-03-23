@@ -156,4 +156,22 @@ class SmartIdClientTest extends TestCase
 
         $this->assertSame($connector, $this->client->getConnector());
     }
+
+    #[Test]
+    public function getConnectorCreatesSmartIdRestConnectorLazily(): void
+    {
+        // Don't set a connector — let it create one lazily
+        $connector = $this->client->getConnector();
+
+        $this->assertInstanceOf(\Sk\SmartId\Api\SmartIdRestConnector::class, $connector);
+    }
+
+    #[Test]
+    public function getConnectorReturnsSameLazyInstance(): void
+    {
+        $connector1 = $this->client->getConnector();
+        $connector2 = $this->client->getConnector();
+
+        $this->assertSame($connector1, $connector2);
+    }
 }

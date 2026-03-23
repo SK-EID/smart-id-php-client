@@ -152,4 +152,65 @@ class SessionStatusTest extends TestCase
         $this->assertNull($status->getSignature());
         $this->assertNull($status->getDeviceIpAddress());
     }
+
+    #[Test]
+    public function fromArrayParsesSignatureProtocolAndInteractionTypeUsed(): void
+    {
+        $status = SessionStatus::fromArray([
+            'state' => 'COMPLETE',
+            'signatureProtocol' => 'ACSP_V2',
+            'interactionTypeUsed' => 'displayTextAndPIN',
+        ]);
+
+        $this->assertSame('ACSP_V2', $status->getSignatureProtocol());
+        $this->assertSame('displayTextAndPIN', $status->getInteractionTypeUsed());
+    }
+
+    #[Test]
+    public function fromArrayParsesIgnoredProperties(): void
+    {
+        $status = SessionStatus::fromArray([
+            'state' => 'COMPLETE',
+            'ignoredProperties' => ['prop1', 'prop2'],
+        ]);
+
+        $this->assertSame(['prop1', 'prop2'], $status->getIgnoredProperties());
+    }
+
+    #[Test]
+    public function constructorWithAllOptionalFields(): void
+    {
+        $result = new SessionResult('OK');
+        $cert = new SessionCertificate('certValue', 'QUALIFIED');
+        $signature = new SessionSignature('sigValue', 'rsassa-pss');
+
+        $status = new SessionStatus(
+            'COMPLETE',
+            $result,
+            $cert,
+            $signature,
+            'ACSP_V2',
+            '10.0.0.1',
+            'displayTextAndPIN',
+            ['ignoredProp'],
+        );
+
+        $this->assertSame('COMPLETE', $status->getState());
+        $this->assertSame($result, $status->getResult());
+        $this->assertSame($cert, $status->getCert());
+        $this->assertSame($signature, $status->getSignature());
+        $this->assertSame('ACSP_V2', $status->getSignatureProtocol());
+        $this->assertSame('10.0.0.1', $status->getDeviceIpAddress());
+        $this->assertSame('displayTextAndPIN', $status->getInteractionTypeUsed());
+        $this->assertSame(['ignoredProp'], $status->getIgnoredProperties());
+    }
+
+    #[Test]
+    public function fromArrayThrowsForNonStringState(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('state must be a string');
+
+        SessionStatus::fromArray(['state' => 123]);
+    }
 }

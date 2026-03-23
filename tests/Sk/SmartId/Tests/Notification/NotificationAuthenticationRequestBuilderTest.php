@@ -411,5 +411,6 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $this->assertSame($builder, $builder->withNonce('nonce'));
         $this->assertSame($builder, $builder->withCapabilities([]));
         $this->assertSame($builder, $builder->withAllowedInteractionsOrder([]));
+        $this->assertSame($builder, $builder->withShareMdClientIpAddress(true));
     }
 }

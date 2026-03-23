@@ -71,4 +71,22 @@ class SessionCertificateTest extends TestCase
         $this->assertStringEndsWith("-----END CERTIFICATE-----\n", $pem);
         $this->assertStringContainsString($certValue, str_replace("\n", '', $pem));
     }
+
+    #[Test]
+    public function fromArrayThrowsForMissingValue(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Certificate value is required');
+
+        SessionCertificate::fromArray(['certificateLevel' => 'QUALIFIED']);
+    }
+
+    #[Test]
+    public function fromArrayThrowsForMissingCertificateLevel(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Certificate level is required');
+
+        SessionCertificate::fromArray(['value' => 'certValue']);
+    }
 }

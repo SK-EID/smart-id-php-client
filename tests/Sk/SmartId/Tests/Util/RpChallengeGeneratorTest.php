@@ -64,4 +64,20 @@ class RpChallengeGeneratorTest extends TestCase
 
         $this->assertNotSame($challenge1, $challenge2);
     }
+
+    #[Test]
+    public function generateThrowsForZeroLength(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        RpChallengeGenerator::generate(0);
+    }
+
+    #[Test]
+    public function generateThrowsForNegativeLength(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        RpChallengeGenerator::generate(-1);
+    }
 }

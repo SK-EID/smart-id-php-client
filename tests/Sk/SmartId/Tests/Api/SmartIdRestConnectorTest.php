@@ -383,6 +383,81 @@ class SmartIdRestConnectorTest extends TestCase
         $this->connector->initiateDeviceLinkAuthentication($request);
     }
 
+    #[Test]
+    public function throwsSmartIdExceptionForUnknownStatusCode(): void
+    {
+        $this->setupMockRequest('POST', '{"error":"unknown"}', 418);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(SmartIdException::class);
+        $this->expectExceptionMessage('Smart-ID API error: HTTP 418');
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
+    #[Test]
+    public function throwsSmartIdExceptionFor502(): void
+    {
+        $this->setupMockRequest('POST', '', 502);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(SmartIdException::class);
+        $this->expectExceptionMessage('Smart-ID service temporarily unavailable');
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
+    #[Test]
+    public function throwsSmartIdExceptionFor503(): void
+    {
+        $this->setupMockRequest('POST', '', 503);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(SmartIdException::class);
+        $this->expectExceptionMessage('Smart-ID service temporarily unavailable');
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
+    #[Test]
+    public function throwsExceptionWithPlainTextErrorBody(): void
+    {
+        $this->setupMockRequest('POST', 'plain text error message', 400);
+
+        $request = new DeviceLinkAuthenticationRequest(
+            'rp-uuid',
+            'Test RP',
+            base64_encode('challenge'),
+            HashAlgorithm::SHA512,
+            [],
+        );
+
+        $this->expectException(\Sk\SmartId\Exception\SmartIdException::class);
+
+        $this->connector->initiateDeviceLinkAuthentication($request);
+    }
+
     private function setupMockRequest(string $method, string $responseBody, int $statusCode): void
     {
         $request = $this->createMock(RequestInterface::class);

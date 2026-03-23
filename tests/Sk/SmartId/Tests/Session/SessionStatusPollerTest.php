@@ -38,6 +38,9 @@ use Sk\SmartId\Exception\RequiredInteractionNotSupportedException;
 use Sk\SmartId\Exception\SessionTimeoutException;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\UserRefusedException;
+use Sk\SmartId\Exception\ProtocolFailureException;
+use Sk\SmartId\Exception\ServerErrorException;
+use Sk\SmartId\Exception\UserRefusedInteractionException;
 use Sk\SmartId\Exception\WrongVerificationCodeException;
 use Sk\SmartId\Session\SessionResult;
 use Sk\SmartId\Session\SessionStatus;
@@ -302,5 +305,80 @@ class SessionStatusPollerTest extends TestCase
         $poller = new SessionStatusPoller($connector);
         $poller->setPollTimeoutMs(60000);
         $poller->poll('session-id');
+    }
+
+    #[Test]
+    public function pollThrowsProtocolFailureExceptionForProtocolFailureResult(): void
+    {
+        $result = new SessionResult('PROTOCOL_FAILURE');
+        $status = new SessionStatus('COMPLETE', $result);
+
+        $connector = $this->createMock(SmartIdConnector::class);
+        $connector->method('getSessionStatus')->willReturn($status);
+
+        $poller = new SessionStatusPoller($connector);
+
+        $this->expectException(ProtocolFailureException::class);
+        $this->expectExceptionMessage('Protocol failure');
+
+        $poller->poll('session-id');
+    }
+
+    #[Test]
+    public function pollThrowsServerErrorExceptionForServerErrorResult(): void
+    {
+        $result = new SessionResult('SERVER_ERROR');
+        $status = new SessionStatus('COMPLETE', $result);
+
+        $connector = $this->createMock(SmartIdConnector::class);
+        $connector->method('getSessionStatus')->willReturn($status);
+
+        $poller = new SessionStatusPoller($connector);
+
+        $this->expectException(ServerErrorException::class);
+        $this->expectExceptionMessage('Server error');
+
+        $poller->poll('session-id');
+    }
+
+    #[Test]
+    public function pollThrowsSmartIdExceptionForAccountUnusableResult(): void
+    {
+        $result = new SessionResult('ACCOUNT_UNUSABLE');
+        $status = new SessionStatus('COMPLETE', $result);
+
+        $connector = $this->createMock(SmartIdConnector::class);
+        $connector->method('getSessionStatus')->willReturn($status);
+
+        $poller = new SessionStatusPoller($connector);
+
+        $this->expectException(SmartIdException::class);
+        $this->expectExceptionMessage('Account unusable');
+
+        $poller->poll('session-id');
+    }
+
+    #[Test]
+    public function pollThrowsUserRefusedInteractionExceptionForUserRefusedInteractionResult(): void
+    {
+        $result = new SessionResult('USER_REFUSED_INTERACTION');
+        $status = new SessionStatus('COMPLETE', $result);
+
+        $connector = $this->createMock(SmartIdConnector::class);
+        $connector->method('getSessionStatus')->willReturn($status);
+
+        $poller = new SessionStatusPoller($connector);
+
+        $this->expectException(UserRefusedInteractionException::class);
+        $this->expectExceptionMessage('User refused interaction');
+
+        $poller->poll('session-id');
+    }
+
+    #[Test]
+    public function userRefusedInteractionExceptionHasInteractionGetter(): void
+    {
+        $exception = new UserRefusedInteractionException('displayTextAndPIN');
+        $this->assertSame('displayTextAndPIN', $exception->getInteraction());
     }
 }

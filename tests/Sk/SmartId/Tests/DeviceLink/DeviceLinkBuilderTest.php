@@ -251,4 +251,66 @@ class DeviceLinkBuilderTest extends TestCase
         $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=QR&', $qrUrl);
         $this->assertStringStartsWith('https://sid.demo.sk.ee/v3/device?deviceLinkType=Web2App&', $web2appUrl);
     }
+
+    #[Test]
+    public function buildWeb2AppUrlThrowsWithoutCallbackUrl(): void
+    {
+        $builder = new DeviceLinkBuilder(
+            $this->response,
+            $this->rpChallenge,
+            $this->rpName,
+            $this->interactions,
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('callbackUrl');
+
+        $builder->buildWeb2AppUrl();
+    }
+
+    #[Test]
+    public function buildQrCodeUrlThrowsWithCallbackUrl(): void
+    {
+        $builder = new DeviceLinkBuilder(
+            $this->response,
+            $this->rpChallenge,
+            $this->rpName,
+            $this->interactions,
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('callbackUrl');
+
+        $builder->withCallbackUrl('https://example.com')->buildQrCodeUrl();
+    }
+
+    #[Test]
+    public function withLangChangesUrlParameter(): void
+    {
+        $builder = new DeviceLinkBuilder(
+            $this->response,
+            $this->rpChallenge,
+            $this->rpName,
+            $this->interactions,
+        );
+
+        $url = $builder->withLang('est')->buildQrCodeUrl();
+
+        $this->assertStringContainsString('lang=est', $url);
+    }
+
+    #[Test]
+    public function withProductionEnvironmentIsImmutable(): void
+    {
+        $builder = new DeviceLinkBuilder(
+            $this->response,
+            $this->rpChallenge,
+            $this->rpName,
+            $this->interactions,
+        );
+
+        $builder2 = $builder->withProductionEnvironment();
+
+        $this->assertNotSame($builder, $builder2);
+    }
 }

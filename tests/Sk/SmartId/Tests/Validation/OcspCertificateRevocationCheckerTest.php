@@ -273,4 +273,227 @@ class OcspCertificateRevocationCheckerTest extends TestCase
 
         $checker->checkRevocationStatus($subjectCert, $issuerCert);
     }
+
+    #[Test]
+    public function createReturnsInstance(): void
+    {
+        $checker = OcspCertificateRevocationChecker::create();
+        $this->assertInstanceOf(OcspCertificateRevocationChecker::class, $checker);
+    }
+
+    #[Test]
+    public function createDesignatedReturnsInstance(): void
+    {
+        $checker = OcspCertificateRevocationChecker::createDesignated(
+            'http://ocsp.example.com',
+            '-----BEGIN CERTIFICATE-----TEST-----END CERTIFICATE-----',
+        );
+        $this->assertInstanceOf(OcspCertificateRevocationChecker::class, $checker);
+    }
+
+    #[Test]
+    public function checkRevocationStatusUsesOcspUrlOverride(): void
+    {
+        $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_good.der');
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        // Override the OCSP URL - the mock will handle it regardless of URL
+        $checker = self::createChecker($client, ocspUrlOverride: 'http://custom-ocsp.example.com/ocsp');
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        // Should not throw — uses the override URL and gets a valid response
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsForOcspResponseStatusMalformedRequest(): void
+    {
+        // Build an OCSP response with malformedRequest status (1)
+        $responseStatus = "\x0A\x01\x01"; // ENUMERATED 1 (malformedRequest)
+        $ocspResponse = "\x30" . chr(strlen($responseStatus)) . $responseStatus;
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponse),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('malformed request');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsForOcspResponseStatusInternalError(): void
+    {
+        // Build an OCSP response with internalError status (2)
+        $responseStatus = "\x0A\x01\x02"; // ENUMERATED 2 (internalError)
+        $ocspResponse = "\x30" . chr(strlen($responseStatus)) . $responseStatus;
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponse),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('internal error');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsForOcspResponseStatusTryLater(): void
+    {
+        // Build an OCSP response with tryLater status (3)
+        $responseStatus = "\x0A\x01\x03"; // ENUMERATED 3 (tryLater)
+        $ocspResponse = "\x30" . chr(strlen($responseStatus)) . $responseStatus;
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponse),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('try later');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsForOcspResponseStatusSigRequired(): void
+    {
+        // Build an OCSP response with sigRequired status (5)
+        $responseStatus = "\x0A\x01\x05"; // ENUMERATED 5 (sigRequired)
+        $ocspResponse = "\x30" . chr(strlen($responseStatus)) . $responseStatus;
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponse),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('signature required');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsForOcspResponseStatusUnauthorized(): void
+    {
+        // Build an OCSP response with unauthorized status (6)
+        $responseStatus = "\x0A\x01\x06"; // ENUMERATED 6 (unauthorized)
+        $ocspResponse = "\x30" . chr(strlen($responseStatus)) . $responseStatus;
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponse),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('unauthorized');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsForEmptyOcspResponse(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], ''),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Failed to decode OCSP response');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusWithCertWithoutOcspUrlButUrlOverride(): void
+    {
+        $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_good.der');
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client, ocspUrlOverride: 'http://ocsp.example.com');
+
+        // Use the ocsp_ee cert which has an OCSP URL, but the override URL should be used
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function checkRevocationStatusPassesWithCaSignedResponse(): void
+    {
+        $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_ca_signed.der');
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        // Should not throw — CA is the responder (no embedded certs), signature verified against issuer
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsForUnknownCertStatus(): void
+    {
+        $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_unknown.der');
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('unknown');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
 }

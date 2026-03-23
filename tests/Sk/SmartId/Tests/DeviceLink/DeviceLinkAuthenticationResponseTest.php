@@ -67,4 +67,31 @@ class DeviceLinkAuthenticationResponseTest extends TestCase
         $this->assertSame('secret-789', $response->getSessionSecret());
         $this->assertSame('https://example.com/device', $response->getDeviceLinkBase());
     }
+
+    #[Test]
+    public function fromArrayThrowsForMissingSessionId(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('sessionID');
+
+        DeviceLinkAuthenticationResponse::fromArray([
+            'sessionToken' => 'token',
+            'sessionSecret' => 'secret',
+            'deviceLinkBase' => 'https://example.com',
+        ]);
+    }
+
+    #[Test]
+    public function fromArrayThrowsForNonStringFields(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must be strings');
+
+        DeviceLinkAuthenticationResponse::fromArray([
+            'sessionID' => 123,
+            'sessionToken' => 'token',
+            'sessionSecret' => 'secret',
+            'deviceLinkBase' => 'https://example.com',
+        ]);
+    }
 }

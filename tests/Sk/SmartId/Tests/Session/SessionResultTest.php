@@ -114,4 +114,110 @@ class SessionResultTest extends TestCase
             SessionResult::END_RESULT_USER_REFUSED_CONFIRMATIONMESSAGE_WITH_VC_CHOICE,
         );
     }
+
+    #[Test]
+    public function isUserRefusedReturnsTrueForAllRefusedVariants(): void
+    {
+        $this->assertTrue((new SessionResult('USER_REFUSED'))->isUserRefused());
+        $this->assertTrue((new SessionResult('USER_REFUSED_CERT_CHOICE'))->isUserRefused());
+        $this->assertTrue((new SessionResult('USER_REFUSED_DISPLAYTEXTANDPIN'))->isUserRefused());
+        $this->assertTrue((new SessionResult('USER_REFUSED_VC_CHOICE'))->isUserRefused());
+        $this->assertTrue((new SessionResult('USER_REFUSED_CONFIRMATIONMESSAGE'))->isUserRefused());
+        $this->assertTrue((new SessionResult('USER_REFUSED_CONFIRMATIONMESSAGE_WITH_VC_CHOICE'))->isUserRefused());
+        $this->assertTrue((new SessionResult('USER_REFUSED_INTERACTION'))->isUserRefused());
+    }
+
+    #[Test]
+    public function isUserRefusedReturnsFalseForNonRefusedResults(): void
+    {
+        $this->assertFalse((new SessionResult('OK'))->isUserRefused());
+        $this->assertFalse((new SessionResult('TIMEOUT'))->isUserRefused());
+    }
+
+    #[Test]
+    public function isTimeoutReturnsTrueForTimeout(): void
+    {
+        $this->assertTrue((new SessionResult('TIMEOUT'))->isTimeout());
+        $this->assertFalse((new SessionResult('OK'))->isTimeout());
+    }
+
+    #[Test]
+    public function isDocumentUnusableReturnsTrueForDocumentUnusable(): void
+    {
+        $this->assertTrue((new SessionResult('DOCUMENT_UNUSABLE'))->isDocumentUnusable());
+        $this->assertFalse((new SessionResult('OK'))->isDocumentUnusable());
+    }
+
+    #[Test]
+    public function isWrongVCReturnsTrueForWrongVC(): void
+    {
+        $this->assertTrue((new SessionResult('WRONG_VC'))->isWrongVC());
+        $this->assertFalse((new SessionResult('OK'))->isWrongVC());
+    }
+
+    #[Test]
+    public function isRequiredInteractionNotSupportedReturnsTrueForUnsupported(): void
+    {
+        $this->assertTrue((new SessionResult('REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP'))->isRequiredInteractionNotSupported());
+        $this->assertFalse((new SessionResult('OK'))->isRequiredInteractionNotSupported());
+    }
+
+    #[Test]
+    public function isUserRefusedInteractionReturnsTrueForRefusedInteraction(): void
+    {
+        $this->assertTrue((new SessionResult('USER_REFUSED_INTERACTION'))->isUserRefusedInteraction());
+        $this->assertFalse((new SessionResult('OK'))->isUserRefusedInteraction());
+    }
+
+    #[Test]
+    public function isProtocolFailureReturnsCorrectValues(): void
+    {
+        $this->assertTrue((new SessionResult('PROTOCOL_FAILURE'))->isProtocolFailure());
+        $this->assertFalse((new SessionResult('OK'))->isProtocolFailure());
+    }
+
+    #[Test]
+    public function isServerErrorReturnsCorrectValues(): void
+    {
+        $this->assertTrue((new SessionResult('SERVER_ERROR'))->isServerError());
+        $this->assertFalse((new SessionResult('OK'))->isServerError());
+    }
+
+    #[Test]
+    public function isAccountUnusableReturnsCorrectValues(): void
+    {
+        $this->assertTrue((new SessionResult('ACCOUNT_UNUSABLE'))->isAccountUnusable());
+        $this->assertFalse((new SessionResult('OK'))->isAccountUnusable());
+    }
+
+    #[Test]
+    public function fromArrayWithDetailsSection(): void
+    {
+        $result = SessionResult::fromArray([
+            'endResult' => 'OK',
+            'documentNumber' => 'DOC123',
+            'details' => [
+                'interaction' => 'displayTextAndPIN',
+            ],
+        ]);
+
+        $this->assertNotNull($result->getDetails());
+        $this->assertSame('displayTextAndPIN', $result->getDetails()->getInteraction());
+    }
+
+    #[Test]
+    public function getDetailsReturnsNullWhenNotPresent(): void
+    {
+        $result = new SessionResult('OK');
+        $this->assertNull($result->getDetails());
+    }
+
+    #[Test]
+    public function fromArrayThrowsForNonStringEndResult(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('endResult must be a string');
+
+        SessionResult::fromArray(['endResult' => 123]);
+    }
 }

@@ -166,10 +166,50 @@ class CallbackUrlValidatorTest extends TestCase
     #[Test]
     public function validateOrThrowWithRequireHttpsThrowsForHttp(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid callback URL (HTTPS required)');
 
-        CallbackUrlValidator::validateOrThrow('http://example.com/callback', true);
+        CallbackUrlValidator::validateOrThrow('http://example.com/callback', requireHttps: true);
+    }
+
+    #[Test]
+    public function validateSessionSecretDigestReturnsTrueForValidDigest(): void
+    {
+        $sessionSecret = base64_encode('test-session-secret');
+        $hash = hash('sha256', base64_decode($sessionSecret), true);
+        $digest = rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
+
+        $this->assertTrue(CallbackUrlValidator::validateSessionSecretDigest($digest, $sessionSecret));
+    }
+
+    #[Test]
+    public function validateSessionSecretDigestReturnsFalseForWrongDigest(): void
+    {
+        $sessionSecret = base64_encode('test-session-secret');
+
+        $this->assertFalse(CallbackUrlValidator::validateSessionSecretDigest('wrong-digest', $sessionSecret));
+    }
+
+    #[Test]
+    public function validateSessionSecretDigestReturnsFalseForInvalidBase64Secret(): void
+    {
+        $this->assertFalse(CallbackUrlValidator::validateSessionSecretDigest('some-digest', '!!!not-base64!!!'));
+    }
+
+    #[Test]
+    public function validateUserChallengeVerifierReturnsTrueForValidVerifier(): void
+    {
+        $verifier = 'test-verifier-value';
+        $hash = hash('sha256', $verifier, true);
+        $expected = rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
+
+        $this->assertTrue(CallbackUrlValidator::validateUserChallengeVerifier($verifier, $expected));
+    }
+
+    #[Test]
+    public function validateUserChallengeVerifierReturnsFalseForWrongVerifier(): void
+    {
+        $this->assertFalse(CallbackUrlValidator::validateUserChallengeVerifier('verifier', 'wrong-challenge'));
     }
 
     #[Test]

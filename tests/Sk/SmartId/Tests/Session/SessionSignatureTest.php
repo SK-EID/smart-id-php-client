@@ -88,4 +88,68 @@ class SessionSignatureTest extends TestCase
 
         $sig->getDecodedValue();
     }
+
+    #[Test]
+    public function fromArrayWithAlgorithmParameters(): void
+    {
+        $data = [
+            'value' => 'base64Value',
+            'signatureAlgorithm' => 'rsassa-pss',
+            'signatureAlgorithmParameters' => [
+                'hashAlgorithm' => 'SHA-256',
+                'saltLength' => 32,
+            ],
+        ];
+
+        $sig = SessionSignature::fromArray($data);
+
+        $this->assertNotNull($sig->getSignatureAlgorithmParameters());
+        $this->assertNotNull($sig->getParsedAlgorithmParameters());
+        $this->assertSame('SHA-256', $sig->getParsedAlgorithmParameters()->getHashAlgorithm());
+    }
+
+    #[Test]
+    public function fromArrayWithMinimalFields(): void
+    {
+        $data = [
+            'value' => 'val',
+            'signatureAlgorithm' => 'alg',
+        ];
+
+        $sig = SessionSignature::fromArray($data);
+
+        $this->assertNull($sig->getServerRandom());
+        $this->assertNull($sig->getUserChallenge());
+        $this->assertNull($sig->getFlowType());
+        $this->assertNull($sig->getSignatureAlgorithmParameters());
+        $this->assertNull($sig->getParsedAlgorithmParameters());
+    }
+
+    #[Test]
+    public function constructorWithAllOptionalFields(): void
+    {
+        $sig = new SessionSignature(
+            'value',
+            'rsassa-pss',
+            'serverRandom',
+            'userChallenge',
+            'deviceLink',
+        );
+
+        $this->assertSame('serverRandom', $sig->getServerRandom());
+        $this->assertSame('userChallenge', $sig->getUserChallenge());
+        $this->assertSame('deviceLink', $sig->getFlowType());
+    }
+
+    #[Test]
+    public function fromArrayThrowsForNonStringValueOrAlgorithm(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('value and signatureAlgorithm must be strings');
+
+        SessionSignature::fromArray([
+            'value' => 123,
+            'signatureAlgorithm' => 'rsassa-pss',
+        ]);
+    }
 }

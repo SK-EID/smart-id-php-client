@@ -241,4 +241,22 @@ class SslPinnedPublicKeyStoreTest extends TestCase
 
         SslPinnedPublicKeyStore::loadFromDirectory(sys_get_temp_dir());
     }
+
+    #[Test]
+    public function fromStringThrowsForEmptyString(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must not be empty');
+
+        SslPinnedPublicKeyStore::fromString('   ');
+    }
+
+    #[Test]
+    public function fromStringThrowsForOnlySeparators(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('No valid public key hashes found');
+
+        SslPinnedPublicKeyStore::fromString(',,,');
+    }
 }

@@ -28,38 +28,46 @@
 
 declare(strict_types=1);
 
-namespace Sk\SmartId\Tests\Notification;
+namespace Sk\SmartId\Tests\Enum;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Sk\SmartId\Notification\NotificationAuthenticationResponse;
+use Sk\SmartId\Enum\FlowType;
 
-class NotificationAuthenticationResponseTest extends TestCase
+class FlowTypeTest extends TestCase
 {
     #[Test]
-    public function fromArrayCreatesResponse(): void
+    public function fromStringReturnsCorrectCases(): void
     {
-        $response = NotificationAuthenticationResponse::fromArray([
-            'sessionID' => 'test-session-id',
-        ]);
-
-        $this->assertSame('test-session-id', $response->getSessionID());
+        $this->assertSame(FlowType::QR, FlowType::fromString('qr'));
+        $this->assertSame(FlowType::WEB2APP, FlowType::fromString('web2app'));
+        $this->assertSame(FlowType::APP2APP, FlowType::fromString('app2app'));
+        $this->assertSame(FlowType::NOTIFICATION, FlowType::fromString('notification'));
     }
 
     #[Test]
-    public function constructorSetsSessionId(): void
+    public function fromStringIsCaseInsensitive(): void
     {
-        $response = new NotificationAuthenticationResponse('session-123');
-
-        $this->assertSame('session-123', $response->getSessionID());
+        $this->assertSame(FlowType::QR, FlowType::fromString('QR'));
+        $this->assertSame(FlowType::WEB2APP, FlowType::fromString('Web2App'));
     }
 
     #[Test]
-    public function fromArrayThrowsForMissingSessionId(): void
+    public function fromStringReturnsNullForUnknown(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('sessionID');
+        $this->assertNull(FlowType::fromString('unknown'));
+    }
 
-        NotificationAuthenticationResponse::fromArray([]);
+    #[Test]
+    public function isSupportedReturnsTrueForValid(): void
+    {
+        $this->assertTrue(FlowType::isSupported('qr'));
+        $this->assertTrue(FlowType::isSupported('notification'));
+    }
+
+    #[Test]
+    public function isSupportedReturnsFalseForInvalid(): void
+    {
+        $this->assertFalse(FlowType::isSupported('unsupported'));
     }
 }
