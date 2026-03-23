@@ -73,15 +73,7 @@ class CallbackUrlUtil
             throw new \InvalidArgumentException('sessionSecret cannot be empty');
         }
 
-        $decoded = base64_decode($sessionSecret, true);
-        if ($decoded === false) {
-            throw new \InvalidArgumentException('sessionSecret is not a valid Base64-encoded value');
-        }
-
-        $hash = hash('sha256', $decoded, true);
-        $calculated = rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
-
-        if (!hash_equals($calculated, $sessionSecretDigest)) {
+        if (!CallbackUrlValidator::validateSessionSecretDigest($sessionSecretDigest, $sessionSecret)) {
             throw new ValidationException(
                 'Session secret digest from callback does not match calculated session secret digest',
             );
@@ -90,8 +82,6 @@ class CallbackUrlUtil
 
     private static function generateUrlSafeToken(int $length = 32): string
     {
-        $bytes = random_bytes($length);
-
-        return rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
+        return Base64Url::encode(random_bytes($length));
     }
 }

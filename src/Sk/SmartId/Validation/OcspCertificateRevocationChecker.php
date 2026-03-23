@@ -32,15 +32,15 @@ namespace Sk\SmartId\Validation;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\HttpFactory;
-use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
 use phpseclib3\File\ASN1;
 use phpseclib3\File\ASN1\Maps\Certificate;
 use phpseclib3\File\ASN1\Maps\Name;
 use phpseclib3\File\X509;
 use phpseclib3\Math\BigInteger;
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
 use Sk\SmartId\Exception\ValidationException;
 use Sk\SmartId\Validation\Maps\OcspBasicResponseMap;
 use Sk\SmartId\Validation\Maps\OcspResponseMap;
@@ -283,7 +283,7 @@ class OcspCertificateRevocationChecker
             $responderCertDer = ASN1::encodeDER($embeddedCerts[0], Certificate::MAP);
             $responderCertPem = "-----BEGIN CERTIFICATE-----\n"
                 . chunk_split(base64_encode($responderCertDer), 64)
-                . "-----END CERTIFICATE-----";
+                . '-----END CERTIFICATE-----';
 
             if ($this->designatedResponderCertPem !== null) {
                 $this->validateDesignatedResponderCertificate($responderCertPem);

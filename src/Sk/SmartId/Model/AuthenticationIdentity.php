@@ -105,7 +105,7 @@ class AuthenticationIdentity
 
         try {
             $date = \DateTimeImmutable::createFromFormat('Y-m-d', $dateString);
-            if ($date === false) {
+            if ($date === false || $date->format('Y-m-d') !== $dateString) {
                 return null;
             }
 

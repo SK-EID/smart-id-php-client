@@ -30,6 +30,8 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Tests\Validation;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
 use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 use phpseclib3\Crypt\RSA\PrivateKey as RSAPrivateKey;
@@ -44,8 +46,6 @@ use Sk\SmartId\Session\SessionStatus;
 use Sk\SmartId\Session\SignatureAlgorithmParameters;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\HttpFactory;
 
 class AuthenticationResponseValidatorTest extends TestCase
 {

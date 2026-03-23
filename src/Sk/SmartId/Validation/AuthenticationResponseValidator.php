@@ -41,6 +41,7 @@ use Sk\SmartId\Model\AuthenticationIdentity;
 use Sk\SmartId\Session\SessionCertificate;
 use Sk\SmartId\Session\SessionSignature;
 use Sk\SmartId\Session\SessionStatus;
+use Sk\SmartId\Util\Base64Url;
 
 class AuthenticationResponseValidator
 {
@@ -113,7 +114,7 @@ class AuthenticationResponseValidator
         }
 
         $hash = hash('sha256', $decoded, true);
-        $expected = rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
+        $expected = Base64Url::encode($hash);
 
         if (!hash_equals($expected, $sessionSecretDigest)) {
             throw new ValidationException(
@@ -136,7 +137,7 @@ class AuthenticationResponseValidator
     public function verifyUserChallenge(string $userChallengeVerifier, string $userChallengeFromResponse): void
     {
         $hash = hash('sha256', $userChallengeVerifier, true);
-        $expected = rtrim(strtr(base64_encode($hash), '+/', '-_'), '=');
+        $expected = Base64Url::encode($hash);
 
         if (!hash_equals($expected, $userChallengeFromResponse)) {
             throw new ValidationException(
@@ -192,15 +193,22 @@ class AuthenticationResponseValidator
             throw new ValidationException('Signature is missing from session response');
         }
 
+        if (empty($this->trustedCaCertificateFiles) && empty($this->trustedCaCertificates)) {
+            throw new ValidationException('No trusted CA certificates configured');
+        }
+
         if ($requiredCertificateLevel !== null) {
             $this->verifyCertificateLevel($cert, $requiredCertificateLevel);
         }
 
-        $this->verifyCertificateTrust($cert);
-        $this->verifyBasicConstraints($cert);
+        $certPem = $cert->getPemEncodedCertificate();
+        $certInfo = $this->parseCertificate($certPem);
+
+        $this->verifyCertificateTrust($certPem, $certInfo);
+        $this->verifyBasicConstraints($certInfo);
         $this->verifyCertificateRevocation($cert);
-        $this->verifyCertificatePolicies($cert);
-        $this->verifyCertificatePurpose($cert);
+        $this->verifyCertificatePolicies($certInfo);
+        $this->verifyCertificatePurpose($certInfo);
 
         $this->verifySignature(
             $sessionStatus,
@@ -212,7 +220,7 @@ class AuthenticationResponseValidator
             $schemeName,
         );
 
-        return $this->extractIdentity($cert);
+        return $this->extractIdentity($certInfo);
     }
 
     /**
@@ -240,17 +248,14 @@ class AuthenticationResponseValidator
     }
 
     /**
+     * Parse a PEM certificate and return its parsed info array.
+     *
+     * @return array<string, mixed>
      * @throws ValidationException
      */
-    private function verifyCertificateTrust(SessionCertificate $cert): void
+    private function parseCertificate(string $certPem): array
     {
-        if (empty($this->trustedCaCertificateFiles) && empty($this->trustedCaCertificates)) {
-            throw new ValidationException('No trusted CA certificates configured');
-        }
-
-        $certPem = $cert->getPemEncodedCertificate();
         $certResource = openssl_x509_read($certPem);
-
         if ($certResource === false) {
             throw new ValidationException('Failed to parse certificate');
         }
@@ -260,6 +265,15 @@ class AuthenticationResponseValidator
             throw new ValidationException('Failed to parse certificate information');
         }
 
+        return $certInfo;
+    }
+
+    /**
+     * @param array<string, mixed> $certInfo
+     * @throws ValidationException
+     */
+    private function verifyCertificateTrust(string $certPem, array $certInfo): void
+    {
         $now = time();
         if (isset($certInfo['validFrom_time_t']) && $certInfo['validFrom_time_t'] > $now) {
             throw new ValidationException('Certificate is not yet valid');
@@ -282,7 +296,9 @@ class AuthenticationResponseValidator
                 if ($tmpFile === false) {
                     throw new ValidationException('Failed to create temporary file for CA certificate');
                 }
-                file_put_contents($tmpFile, $pemCert);
+                if (file_put_contents($tmpFile, $pemCert) === false) {
+                    throw new ValidationException('Failed to write CA certificate to temporary file');
+                }
                 $caFiles[] = $tmpFile;
                 $tempFiles[] = $tmpFile;
             }
@@ -306,22 +322,11 @@ class AuthenticationResponseValidator
      * Per Smart-ID docs: end-entity certificates must either not have the Basic Constraints
      * extension, or if present, the cA boolean must be set to FALSE.
      *
+     * @param array<string, mixed> $certInfo
      * @throws ValidationException
      */
-    private function verifyBasicConstraints(SessionCertificate $cert): void
+    private function verifyBasicConstraints(array $certInfo): void
     {
-        $certPem = $cert->getPemEncodedCertificate();
-        $certResource = openssl_x509_read($certPem);
-
-        if ($certResource === false) {
-            throw new ValidationException('Failed to parse certificate for basic constraints validation');
-        }
-
-        $certInfo = openssl_x509_parse($certResource);
-        if ($certInfo === false) {
-            throw new ValidationException('Failed to parse certificate information');
-        }
-
         $basicConstraints = $certInfo['extensions']['basicConstraints'] ?? null;
 
         // If basicConstraints is absent, that's fine for an EE certificate
@@ -397,22 +402,11 @@ class AuthenticationResponseValidator
      * Non-qualified Smart-ID certs must have:
      *   - 1.3.6.1.4.1.10015.17.1 (SK Smart-ID Non-Qualified policy)
      *
+     * @param array<string, mixed> $certInfo
      * @throws ValidationException
      */
-    private function verifyCertificatePolicies(SessionCertificate $cert): void
+    private function verifyCertificatePolicies(array $certInfo): void
     {
-        $certPem = $cert->getPemEncodedCertificate();
-        $certResource = openssl_x509_read($certPem);
-
-        if ($certResource === false) {
-            throw new ValidationException('Failed to parse certificate for policy validation');
-        }
-
-        $certInfo = openssl_x509_parse($certResource);
-        if ($certInfo === false) {
-            throw new ValidationException('Failed to parse certificate information');
-        }
-
         $policies = $certInfo['extensions']['certificatePolicies'] ?? '';
 
         $hasQualifiedPolicy = str_contains($policies, '1.3.6.1.4.1.10015.17.2');
@@ -433,22 +427,11 @@ class AuthenticationResponseValidator
     }
 
     /**
+     * @param array<string, mixed> $certInfo
      * @throws ValidationException
      */
-    private function verifyCertificatePurpose(SessionCertificate $cert): void
+    private function verifyCertificatePurpose(array $certInfo): void
     {
-        $certPem = $cert->getPemEncodedCertificate();
-        $certResource = openssl_x509_read($certPem);
-
-        if ($certResource === false) {
-            throw new ValidationException('Failed to parse certificate for purpose validation');
-        }
-
-        $certInfo = openssl_x509_parse($certResource);
-        if ($certInfo === false) {
-            throw new ValidationException('Failed to parse certificate information');
-        }
-
         // Check key usage includes digitalSignature
         $keyUsage = $certInfo['extensions']['keyUsage'] ?? '';
         if (stripos($keyUsage, 'Digital Signature') === false) {
@@ -645,19 +628,12 @@ class AuthenticationResponseValidator
     }
 
     /**
+     * @param array<string, mixed> $certInfo
      * @throws ValidationException
      */
-    private function extractIdentity(SessionCertificate $cert): AuthenticationIdentity
+    private function extractIdentity(array $certInfo): AuthenticationIdentity
     {
-        $certPem = $cert->getPemEncodedCertificate();
-        $certResource = openssl_x509_read($certPem);
-
-        if ($certResource === false) {
-            throw new ValidationException('Failed to parse certificate for identity extraction');
-        }
-
-        $certInfo = openssl_x509_parse($certResource);
-        if ($certInfo === false || !isset($certInfo['subject'])) {
+        if (!isset($certInfo['subject'])) {
             throw new ValidationException('Failed to parse certificate subject');
         }
 

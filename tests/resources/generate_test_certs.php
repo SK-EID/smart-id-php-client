@@ -163,7 +163,7 @@ $ocspResponderCert = openssl_csr_sign($ocspResponderCsr, $caCert, $caKey, 365, [
 unlink($ocspResponderConfigFile);
 
 if ($ocspResponderCert === false) {
-    echo "ERROR generating OCSP responder cert: " . openssl_error_string() . "\n";
+    echo 'ERROR generating OCSP responder cert: ' . openssl_error_string() . "\n";
 } else {
     openssl_x509_export($ocspResponderCert, $ocspResponderCertPem);
     file_put_contents($outputDir . '/ocsp_responder.pem.crt', $ocspResponderCertPem);
@@ -268,7 +268,7 @@ function generateOcspResponseFixtures(
     $ocspResponse = derSequence($responseStatus . $responseBytesExplicit);
 
     file_put_contents($outputDir . '/ocsp_response_good.der', $ocspResponse);
-    echo "  Generated: ocsp_response_good.der (" . strlen($ocspResponse) . " bytes)\n";
+    echo '  Generated: ocsp_response_good.der (' . strlen($ocspResponse) . " bytes)\n";
 
     // Generate an OCSP response with a tampered signature (for testing verification failure)
     $tamperedSignature = $signatureValue;
@@ -282,7 +282,7 @@ function generateOcspResponseFixtures(
     $tamperedOcspResponse = derSequence($responseStatus . $tamperedResponseBytesExplicit);
 
     file_put_contents($outputDir . '/ocsp_response_bad_sig.der', $tamperedOcspResponse);
-    echo "  Generated: ocsp_response_bad_sig.der (" . strlen($tamperedOcspResponse) . " bytes)\n";
+    echo '  Generated: ocsp_response_bad_sig.der (' . strlen($tamperedOcspResponse) . " bytes)\n";
 
     // Generate an OCSP response with revoked status
     $certStatusRevoked = "\xA1" . derLengthBytes($thisUpdate) . $thisUpdate; // [1] IMPLICIT SEQUENCE { revokedTime }
@@ -300,7 +300,7 @@ function generateOcspResponseFixtures(
     $revokedOcspResponse = derSequence($responseStatus . $revokedResponseBytesExplicit);
 
     file_put_contents($outputDir . '/ocsp_response_revoked.der', $revokedOcspResponse);
-    echo "  Generated: ocsp_response_revoked.der (" . strlen($revokedOcspResponse) . " bytes)\n";
+    echo '  Generated: ocsp_response_revoked.der (' . strlen($revokedOcspResponse) . " bytes)\n";
 }
 
 function pemToDer(string $pem): string

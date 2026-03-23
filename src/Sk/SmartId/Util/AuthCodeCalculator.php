@@ -75,7 +75,7 @@ class AuthCodeCalculator
 
         $hmac = hash_hmac('sha256', $payload, $decodedSecret, true);
 
-        return self::base64UrlEncode($hmac);
+        return Base64Url::encode($hmac);
     }
 
     /**
@@ -124,10 +124,5 @@ class AuthCodeCalculator
         );
 
         return base64_encode(json_encode($interactionsArray, JSON_THROW_ON_ERROR));
-    }
-
-    private static function base64UrlEncode(string $data): string
-    {
-        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 }

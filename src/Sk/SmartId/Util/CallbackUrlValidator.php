@@ -84,7 +84,7 @@ class CallbackUrlValidator
         }
 
         $calculatedDigest = hash('sha256', $decodedSecret, true);
-        $calculatedDigestBase64Url = self::base64UrlEncode($calculatedDigest);
+        $calculatedDigestBase64Url = Base64Url::encode($calculatedDigest);
 
         return hash_equals($calculatedDigestBase64Url, $sessionSecretDigest);
     }
@@ -104,13 +104,8 @@ class CallbackUrlValidator
     public static function validateUserChallengeVerifier(string $userChallengeVerifier, string $userChallenge): bool
     {
         $hashedVerifier = hash('sha256', $userChallengeVerifier, true);
-        $hashedVerifierBase64Url = self::base64UrlEncode($hashedVerifier);
+        $hashedVerifierBase64Url = Base64Url::encode($hashedVerifier);
 
         return hash_equals($userChallenge, $hashedVerifierBase64Url);
-    }
-
-    private static function base64UrlEncode(string $data): string
-    {
-        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 }
