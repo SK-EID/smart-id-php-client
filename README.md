@@ -11,6 +11,7 @@ This library supports Smart-ID API v3.
 - [Changelog](#changelog)
 - [How to use it with RP API v3](#how-to-use-it-with-rp-api-v3)
     - [Test accounts for testing](#test-accounts-for-testing)
+        - [Uploading certificates to demo OCSP](#uploading-certificates-to-demo-ocsp)
     - [Setting up SmartIdClient](#setting-up-smartidclient)
     - [Setting up the connector](#setting-up-the-connector)
         - [Setting up HTTPS public key pinning](#setting-up-https-public-key-pinning)
@@ -92,6 +93,15 @@ use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 [Test accounts for testing](https://sk-eid.github.io/smart-id-documentation/test_accounts.html)
 
 > **Note:** Smart-ID Basic level accounts (certificate level `ADVANCED`) are not supported in the demo environment.
+
+### Uploading certificates to demo OCSP
+
+Smart-ID demo certificates are **not** automatically available in the demo AIA OCSP responder (`aia.demo.sk.ee`).
+To make them available for OCSP revocation checking, upload them via SK's certificate upload interface:
+
+- **Upload page:** https://demo.sk.ee/upload_cert/ — upload certificates and set their OCSP status (good/revoked/unknown)
+- **Download demo certificates:** https://sid.demo.sk.ee/portal/login — log in to the Smart-ID self-service portal to download certificates
+- **Demo OCSP info:** https://github.com/SK-EID/ocsp/wiki/SK-OCSP-Demo-environment
 
 ## Setting up SmartIdClient
 

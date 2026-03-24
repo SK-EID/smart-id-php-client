@@ -97,6 +97,8 @@ if (isset($_GET['action'])) {
     ob_start();
     header('Content-Type: application/json');
 
+    $interactions = [DeviceLinkInteraction::displayTextAndPin('Test login')];
+
     // -------------------------------------------------------------------------
     // ACTION: init - Start a new authentication session
     // -------------------------------------------------------------------------
@@ -105,9 +107,8 @@ if (isset($_GET['action'])) {
         // This is used to create the authentication request and verify the response
         $rpChallenge = RpChallengeGenerator::generate();
 
-        // Build the interactions and store their Base64 representation
+        // Store the interactions' Base64 representation
         // This exact Base64 value is needed later for response signature verification
-        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test login')];
         $interactionsBase64 = base64_encode(json_encode(
             array_map(fn (DeviceLinkInteraction $i) => $i->toArray(), $interactions),
             JSON_THROW_ON_ERROR,
@@ -172,7 +173,7 @@ if (isset($_GET['action'])) {
             $response,
             $auth['rpChallenge'],
             $auth['rpName'],
-            [DeviceLinkInteraction::displayTextAndPin('Test login')],
+            $interactions,
         );
 
         // Calculate how many seconds have passed since session creation
@@ -239,13 +240,19 @@ if (isset($_GET['action'])) {
                     // For DEMO environment - use mock OCSP with designated responder cert pinning.
                     // The mock endpoint (ocsp_good) uses its own signing cert not chained to the demo CA,
                     // so we pin the exact responder certificate instead of CA chain validation.
-                    $ocspChecker = OcspCertificateRevocationChecker::createDesignated(
-                        'http://demo.sk.ee/ocsp_good',
-                        file_get_contents(__DIR__ . '/demo_ocsp_responder.pem'),
-                    );
+                    // $ocspChecker = OcspCertificateRevocationChecker::createDesignated(
+                    //     'http://demo.sk.ee/ocsp_good',
+                    //     file_get_contents(__DIR__ . '/demo_ocsp_responder.pem'),
+                    // );
+                    // TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
+
+                    // For DEMO environment with uploaded certs - use real AIA OCSP.
+                    // First upload your cert to https://demo.sk.ee/upload_cert/
+                    // then the AIA OCSP responder (aia.demo.sk.ee) will know your cert.
+                    $ocspChecker = OcspCertificateRevocationChecker::create();
                     TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
 
-                    // For PRODUCTION environment - use AIA OCSP with CA chain validation:
+                    // For PRODUCTION environment - use AIA OCSP with production CA certs:
                     // $ocspChecker = OcspCertificateRevocationChecker::create();
                     // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
 
@@ -285,6 +292,10 @@ if (isset($_GET['action'])) {
                     // You can also get the document number for future authentications
                     $response['documentNumber'] = $status->getResult()->getDocumentNumber();
 
+                    // Store certificate PEM in session for download
+                    // This can be uploaded to https://demo.sk.ee/upload_cert/ for demo OCSP testing
+                    $_SESSION['lastCertPem'] = $status->getCert()->getPemEncodedCertificate();
+
                 } catch (\Sk\SmartId\Exception\ValidationException $e) {
                     // Validation failed - do not trust this authentication!
                     $response['endResult'] = 'VALIDATION_ERROR';
@@ -304,6 +315,25 @@ if (isset($_GET['action'])) {
 
         ob_end_clean();
         echo json_encode($response);
+        exit;
+    }
+
+    // -------------------------------------------------------------------------
+    // ACTION: download-cert - Download the authentication certificate as PEM
+    // After downloading, upload it to https://demo.sk.ee/upload_cert/
+    // to make it available in the demo AIA OCSP responder
+    // -------------------------------------------------------------------------
+    if ($_GET['action'] === 'download-cert') {
+        if (!isset($_SESSION['lastCertPem'])) {
+            ob_end_clean();
+            echo json_encode(['error' => 'No certificate available. Complete authentication first.']);
+            exit;
+        }
+
+        ob_end_clean();
+        header('Content-Type: application/x-pem-file');
+        header('Content-Disposition: attachment; filename="smartid_auth_cert.pem"');
+        echo $_SESSION['lastCertPem'];
         exit;
     }
 

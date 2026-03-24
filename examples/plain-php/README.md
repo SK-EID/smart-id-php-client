@@ -99,6 +99,21 @@ Environment details: https://sk-eid.github.io/smart-id-documentation/environment
 - Replace `SslPinnedPublicKeyStore::loadDemo()` with your production SSL pin configuration.
 - Replace `SchemeName::DEMO` with `SchemeName::PRODUCTION`.
 
+### Demo OCSP certificate upload
+
+Smart-ID demo certificates are **not** automatically available in the demo AIA OCSP responder (`aia.demo.sk.ee`). To test OCSP revocation checking, you need to upload your demo certificates manually:
+
+1. Complete a successful authentication using one of the example pages
+2. Click the **"Download Certificate (PEM)"** button that appears after successful authentication
+3. Go to https://demo.sk.ee/upload_cert/ and upload the downloaded `.pem` file
+4. Set the desired OCSP status (good/revoked/unknown)
+
+You can also download certificates from the Smart-ID self-service portal: https://sid.demo.sk.ee/portal/login
+
+More info: https://github.com/SK-EID/ocsp/wiki/SK-OCSP-Demo-environment
+
+This is why the examples use a mock OCSP endpoint (`demo.sk.ee/ocsp_good`) with a pinned designated responder certificate instead of the AIA OCSP flow used in production.
+
 ## File Structure
 
 ```
