@@ -135,4 +135,24 @@ class TrustedCACertificateStoreTest extends TestCase
         $store = TrustedCACertificateStore::create();
         $store->addCertificateFromFile('/nonexistent/path/cert.pem');
     }
+
+    #[Test]
+    public function multiCertPemFileIsSplitIntoIndividualCertificates(): void
+    {
+        $store = TrustedCACertificateStore::loadFromDefaults();
+
+        $certificates = $store->getCertificates();
+
+        // Each entry must be a single PEM block, not a concatenated multi-cert string.
+        // This is critical because openssl_x509_verify() only reads the first PEM block,
+        // so concatenated certs would make findIssuerCertificate() miss intermediates.
+        foreach ($certificates as $i => $cert) {
+            $count = substr_count($cert, '-----BEGIN CERTIFICATE-----');
+            $this->assertSame(
+                1,
+                $count,
+                "Certificate at index {$i} contains {$count} PEM blocks; expected exactly 1",
+            );
+        }
+    }
 }

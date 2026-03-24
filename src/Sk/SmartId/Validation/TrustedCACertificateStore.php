@@ -114,10 +114,34 @@ class TrustedCACertificateStore
             throw new \RuntimeException("Failed to read certificate file: {$filePath}");
         }
 
-        $this->certificates[] = $content;
+        // A single file may contain multiple PEM certificates (e.g. intermediate + root).
+        // Split them so each entry in $this->certificates is a single PEM block,
+        // because openssl_x509_verify() only reads the first PEM block from a string.
+        $certs = self::splitPemCertificates($content);
+        foreach ($certs as $cert) {
+            $this->certificates[] = $cert;
+        }
         $this->certificateFilePaths[] = $filePath;
 
         return $this;
+    }
+
+    /**
+     * Split a PEM string that may contain multiple certificates into individual PEM blocks.
+     *
+     * @return string[]
+     */
+    private static function splitPemCertificates(string $pemContent): array
+    {
+        if (preg_match_all(
+            '/-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----/s',
+            $pemContent,
+            $matches,
+        )) {
+            return $matches[0];
+        }
+
+        return [$pemContent];
     }
 
     /**
