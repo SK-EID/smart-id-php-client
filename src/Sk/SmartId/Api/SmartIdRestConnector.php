@@ -48,8 +48,6 @@ use Sk\SmartId\Notification\NotificationAuthenticationResponse;
 use Sk\SmartId\Session\SessionStatus;
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 
-defined('CURLOPT_PINNEDPUBLICKEY') || define('CURLOPT_PINNEDPUBLICKEY', 10230);
-
 class SmartIdRestConnector implements SmartIdConnector
 {
     private readonly ClientInterface $httpClient;
