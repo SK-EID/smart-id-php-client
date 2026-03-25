@@ -99,4 +99,29 @@ abstract class AbstractInteraction
 
         return $this->type->value . ':' . $textBase64;
     }
+
+    /**
+     * Encode an array of interactions to Base64-encoded JSON string.
+     *
+     * This is the canonical way to encode interactions for Smart-ID API requests
+     * and signature verification. Using this method ensures consistent encoding
+     * across all use cases.
+     *
+     * @param AbstractInteraction[] $interactions Array of interaction objects
+     * @return string Base64-encoded JSON string
+     * @throws \JsonException If JSON encoding fails
+     */
+    public static function encodeInteractionsToBase64(array $interactions): string
+    {
+        if (empty($interactions)) {
+            return '';
+        }
+
+        $interactionsArray = array_map(
+            fn (AbstractInteraction $interaction) => $interaction->toArray(),
+            $interactions,
+        );
+
+        return base64_encode(json_encode($interactionsArray, JSON_THROW_ON_ERROR));
+    }
 }

@@ -45,8 +45,7 @@ class DeviceLinkBuilderTest extends TestCase
 
     private string $rpName;
 
-    /** @var DeviceLinkInteraction[] */
-    private array $interactions;
+    private string $interactionsBase64;
 
     protected function setUp(): void
     {
@@ -58,7 +57,8 @@ class DeviceLinkBuilderTest extends TestCase
         );
         $this->rpChallenge = base64_encode('test-challenge-32-bytes-long!!!');
         $this->rpName = 'Test RP';
-        $this->interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
+        $this->interactionsBase64 = DeviceLinkInteraction::encodeInteractionsToBase64($interactions);
     }
 
     #[Test]
@@ -68,7 +68,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $url = $builder->buildQrCodeUrl();
@@ -89,7 +89,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         // Web2App requires callback URL
@@ -107,7 +107,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $qrUrl = $builder->buildUrl(DeviceLinkType::QR);
@@ -124,7 +124,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $url0 = $builder->withElapsedSeconds(0)->buildQrCodeUrl();
@@ -140,7 +140,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $builder2 = $builder->withElapsedSeconds(10);
@@ -155,7 +155,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         // Test that different callback URLs produce different auth codes for Web2App
@@ -172,7 +172,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $builder2 = $builder->withCallbackUrl('https://example.com');
@@ -187,7 +187,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $urlWithoutBrokered = $builder->buildQrCodeUrl();
@@ -203,7 +203,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $builder2 = $builder->withBrokeredRpName('Brokered');
@@ -218,7 +218,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $urlProduction = $builder->buildQrCodeUrl();
@@ -234,7 +234,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         // QR code should not have callback URL, Web2App requires it
@@ -259,7 +259,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -275,7 +275,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -291,7 +291,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $url = $builder->withLang('est')->buildQrCodeUrl();
@@ -306,7 +306,7 @@ class DeviceLinkBuilderTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
 
         $builder2 = $builder->withProductionEnvironment();

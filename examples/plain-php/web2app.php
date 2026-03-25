@@ -57,8 +57,6 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
-use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
-use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\Enum\SchemeName;
@@ -66,7 +64,6 @@ use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 use Sk\SmartId\Util\CallbackUrlUtil;
 use Sk\SmartId\Util\CallbackUrlValidator;
 use Sk\SmartId\Util\RpChallengeGenerator;
-use Sk\SmartId\Util\VerificationCodeCalculator;
 use Sk\SmartId\Exception\UserRefusedInteractionException;
 use Sk\SmartId\Exception\ProtocolFailureException;
 use Sk\SmartId\Exception\ServerErrorException;
@@ -124,34 +121,30 @@ if (isset($_GET['action'])) {
         $callbackUrl = $callbackResult['callbackUrl'];
         $callbackToken = $callbackResult['token'];
 
+        // Define the interactions to be displayed to the user
         $interactions = [DeviceLinkInteraction::displayTextAndPin('Test login')];
-        $interactionsBase64 = base64_encode(json_encode(
-            array_map(fn (DeviceLinkInteraction $i) => $i->toArray(), $interactions),
-            JSON_THROW_ON_ERROR,
-        ));
 
-        $request = new DeviceLinkAuthenticationRequest(
-            relyingPartyUUID: $client->getRelyingPartyUUID(),
-            relyingPartyName: $client->getRelyingPartyName(),
-            rpChallenge: $rpChallenge,
-            hashAlgorithm: HashAlgorithm::SHA512,
-            allowedInteractionsOrder: $interactions,
-            certificateLevel: CertificateLevel::QUALIFIED,
-            initialCallbackUrl: $callbackUrl,  // Required for Web2App!
-        );
+        // Use the builder to initiate authentication session with callback URL
+        $session = $client->createDeviceLinkAuthentication()
+            ->withRpChallenge($rpChallenge)
+            ->withHashAlgorithm(HashAlgorithm::SHA512)
+            ->withAllowedInteractionsOrder($interactions)
+            ->withCertificateLevel(CertificateLevel::QUALIFIED)
+            ->withCallbackUrl($callbackUrl)  // Required for Web2App!
+            ->initiate();
 
-        $response = $connector->initiateDeviceLinkAuthentication($request);
-        $verificationCode = VerificationCodeCalculator::calculateFromRpChallenge($rpChallenge);
+        // Get the response from the session
+        $response = $session->getResponse();
 
         $_SESSION['auth'] = [
-            'sessionId' => $response->getSessionID(),
+            'sessionId' => $session->getSessionId(),
             'sessionToken' => $response->getSessionToken(),
             'sessionSecret' => $response->getSessionSecret(),
             'deviceLinkBase' => $response->getDeviceLinkBase(),
             'rpChallenge' => $rpChallenge,
             'rpName' => $client->getRelyingPartyName(),
-            'interactionsBase64' => $interactionsBase64,
-            'verificationCode' => $verificationCode,
+            'interactionsBase64' => $session->getInteractionsBase64(), // Get from session
+            'verificationCode' => $session->getVerificationCode(),
             'createdAt' => time(),
             'callbackUrl' => $callbackUrl,   // Store for link generation
             'callbackToken' => $callbackToken, // Store token to verify callback origin
@@ -185,12 +178,14 @@ if (isset($_GET['action'])) {
             $auth['deviceLinkBase'],
         );
 
-        $session = new DeviceLinkAuthenticationSession(
+        // Reconstruct the session with stored interactionsBase64
+        $session = new \Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession(
             $response,
             $auth['rpChallenge'],
             $auth['rpName'],
-            [DeviceLinkInteraction::displayTextAndPin('Test login')],
+            $auth['interactionsBase64'], // Use stored base64 string
             $auth['verificationCode'],
+            $auth['callbackUrl'],
         );
 
         // Build Web2App URL - must use the SAME callback URL sent to API!

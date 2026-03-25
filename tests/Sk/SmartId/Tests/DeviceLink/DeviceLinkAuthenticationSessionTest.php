@@ -45,8 +45,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
 
     private string $rpName;
 
-    /** @var DeviceLinkInteraction[] */
-    private array $interactions;
+    private string $interactionsBase64;
 
     private string $verificationCode;
 
@@ -60,7 +59,8 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
         );
         $this->rpChallenge = base64_encode('test-challenge-32-bytes-long!!!');
         $this->rpName = 'Test RP';
-        $this->interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test')];
+        $this->interactionsBase64 = DeviceLinkInteraction::encodeInteractionsToBase64($interactions);
         $this->verificationCode = '1234';
     }
 
@@ -71,7 +71,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -85,7 +85,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -99,7 +99,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -113,7 +113,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -127,7 +127,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -141,7 +141,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -157,7 +157,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -173,7 +173,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -189,7 +189,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
             'https://example.com/callback?value=random123',
         );
@@ -206,7 +206,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -223,7 +223,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
         );
 
@@ -237,7 +237,7 @@ class DeviceLinkAuthenticationSessionTest extends TestCase
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $this->verificationCode,
             'https://example.com/callback?value=abc',
         );
