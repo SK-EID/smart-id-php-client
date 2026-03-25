@@ -63,8 +63,8 @@ class SmartIdRestConnector implements SmartIdConnector
         SslPinnedPublicKeyStore $sslPinnedKeys,
     ) {
         $this->httpClient = new Client([
-            'verify' => false,
-            'curl' => [
+        'verify' => true,
+        'curl' => [
                 CURLOPT_PINNEDPUBLICKEY => $sslPinnedKeys->toPinnedKeyString(),
             ],
         ]);

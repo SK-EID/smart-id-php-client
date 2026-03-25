@@ -68,6 +68,7 @@ use Sk\SmartId\Validation\TrustedCACertificateStore;
 use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
+use Sk\SmartId\SmartIdClient;
 
 session_start();
 
@@ -75,20 +76,22 @@ session_start();
 // CONFIGURATION
 // ============================================================================
 
+// Set to true for production environment, false for demo environment
+// just for testing purposes
+$isProduction = false;
+
 // Smart-ID API endpoint (use production URL for live environment)
-$baseUrl = 'https://sid.demo.sk.ee/smart-id-rp/v3';
+$baseUrl = $isProduction ? 'https://rp-api.smart-id.com/v3' : 'https://sid.demo.sk.ee/smart-id-rp/v3';
+
 // Demo Relying Party credentials (replace with your own for production)
-$relyingPartyUUID = '00000000-0000-4000-8000-000000000000';
-$relyingPartyName = 'DEMO';
+$relyingPartyUUID = $isProduction ? '<your-relying-party-uuid>' : '00000000-0000-4000-8000-000000000000';
+$relyingPartyName = $isProduction ? '<your-relying-party-name>' : 'DEMO';
+$sslPins = $isProduction ? ['sha256//XAlgTJ+3BlgOexKLttcvXfn6Ecu4e2Xr5NyHWnTinKQ='] : ['sha256//Ps1Im3KeB0Q4AlR+/J9KFd/MOznaARdwo4gURPCLaVA='];
 
 // Initialize the Smart-ID connector with HTTPS pinning
-// For production, load hashes from an environment variable:
-// $sslKeys = SslPinnedPublicKeyStore::fromString(getenv('SMARTID_SSL_PINS'));
-// $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
-$connector = new SmartIdRestConnector(
-    $baseUrl,
-    SslPinnedPublicKeyStore::loadDemo(),
-);
+$sslKeys = SslPinnedPublicKeyStore::fromArray($sslPins);
+$client = new SmartIdClient($relyingPartyUUID, $relyingPartyName, $baseUrl, $sslKeys);
+$connector = $client->getConnector();
 
 // ============================================================================
 // AJAX ENDPOINTS
@@ -116,8 +119,8 @@ if (isset($_GET['action'])) {
 
         // Build the authentication request
         $request = new DeviceLinkAuthenticationRequest(
-            relyingPartyUUID: $relyingPartyUUID,
-            relyingPartyName: $relyingPartyName,
+            relyingPartyUUID: $client->getRelyingPartyUUID(),
+            relyingPartyName: $client->getRelyingPartyName(),
             rpChallenge: $rpChallenge,
             hashAlgorithm: HashAlgorithm::SHA512,
             allowedInteractionsOrder: $interactions,
@@ -134,7 +137,7 @@ if (isset($_GET['action'])) {
             'sessionSecret' => $response->getSessionSecret(),
             'deviceLinkBase' => $response->getDeviceLinkBase(),
             'rpChallenge' => $rpChallenge,
-            'rpName' => $relyingPartyName,
+            'rpName' => $client->getRelyingPartyName(),
             'interactionsBase64' => $interactionsBase64,
             'createdAt' => time(),
         ];
@@ -181,10 +184,15 @@ if (isset($_GET['action'])) {
         $elapsedSeconds = time() - $auth['createdAt'];
 
         // Build the QR code URL with the current elapsed time
-        $qrUrl = $session->createDeviceLinkBuilder()
-            ->withElapsedSeconds($elapsedSeconds)
-            ->withDemoEnvironment()
-            ->buildQrCodeUrl();
+        $qrUrlBuilder = $session->createDeviceLinkBuilder()
+            ->withElapsedSeconds($elapsedSeconds);
+
+        // override to demo env if not in production
+        if (!$isProduction) {
+            $qrUrlBuilder = $qrUrlBuilder->withDemoEnvironment();
+        }
+
+        $qrUrl = $qrUrlBuilder->buildQrCodeUrl();
 
         // Generate QR code image using chillerlan/php-qrcode library
         $options = new QROptions([
@@ -237,24 +245,17 @@ if (isset($_GET['action'])) {
                     // Create validator with trusted CA certificates
                     $validator = new AuthenticationResponseValidator();
 
-                    // For DEMO environment - use mock OCSP with designated responder cert pinning.
-                    // The mock endpoint (ocsp_good) uses its own signing cert not chained to the demo CA,
-                    // so we pin the exact responder certificate instead of CA chain validation.
-                    // $ocspChecker = OcspCertificateRevocationChecker::createDesignated(
-                    //     'http://demo.sk.ee/ocsp_good',
-                    //     file_get_contents(__DIR__ . '/demo_ocsp_responder.pem'),
-                    // );
-                    // TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
-
                     // For DEMO environment with uploaded certs - use real AIA OCSP.
                     // First upload your cert to https://demo.sk.ee/upload_cert/
                     // then the AIA OCSP responder (aia.demo.sk.ee) will know your cert.
                     $ocspChecker = OcspCertificateRevocationChecker::create();
-                    TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
 
-                    // For PRODUCTION environment - use AIA OCSP with production CA certs:
-                    // $ocspChecker = OcspCertificateRevocationChecker::create();
-                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    if (!$isProduction) {
+                        TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    } else {
+                        $caStore = TrustedCACertificateStore::create();
+                        $caStore->loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    }
 
                     // Validate the authentication response and extract user identity
                     // This verifies:
@@ -268,7 +269,7 @@ if (isset($_GET['action'])) {
                         $authData['rpName'],
                         $authData['interactionsBase64'],
                         requiredCertificateLevel: CertificateLevel::QUALIFIED,
-                        schemeName: SchemeName::DEMO,
+                        schemeName: $isProduction ? SchemeName::PRODUCTION : SchemeName::DEMO,
                     );
 
                     // Prevent session fixation: regenerate session ID after successful authentication

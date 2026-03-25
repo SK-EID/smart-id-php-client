@@ -170,13 +170,80 @@ class AuthenticationIdentityTest extends TestCase
     }
 
     #[Test]
-    public function getDateOfBirthWorksForLatvia(): void
+    public function getDateOfBirthWorksForLatviaOldFormat(): void
     {
-        $identity = new AuthenticationIdentity('John', 'Doe', '39005150001', 'LV');
+        // Old LV format: DDMMYY-CXXXX, century indicator at position 7 (1=19xx)
+        $identity = new AuthenticationIdentity('John', 'Doe', '150590-10001', 'LV');
 
         $dob = $identity->getDateOfBirth();
         $this->assertNotNull($dob);
         $this->assertSame('1990-05-15', $dob->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function getDateOfBirthWorksForLatviaOldFormat18xx(): void
+    {
+        // Old LV format with century indicator 0 = 18xx
+        $identity = new AuthenticationIdentity('John', 'Doe', '010185-00001', 'LV');
+
+        $dob = $identity->getDateOfBirth();
+        $this->assertNotNull($dob);
+        $this->assertSame('1885-01-01', $dob->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function getDateOfBirthWorksForLatviaOldFormat20xx(): void
+    {
+        // Old LV format with century indicator 2 = 20xx
+        $identity = new AuthenticationIdentity('John', 'Doe', '010101-20001', 'LV');
+
+        $dob = $identity->getDateOfBirth();
+        $this->assertNotNull($dob);
+        $this->assertSame('2001-01-01', $dob->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function getDateOfBirthReturnsNullForLatviaNewFormat(): void
+    {
+        // New LV codes start with 32-39 and don't carry DOB
+        $identity = new AuthenticationIdentity('John', 'Doe', '329999-00007', 'LV');
+
+        $this->assertNull($identity->getDateOfBirth());
+    }
+
+    #[Test]
+    public function getDateOfBirthReturnsCertDobForNonBalticCountry(): void
+    {
+        $certDob = new \DateTimeImmutable('1990-05-15');
+        $identity = new AuthenticationIdentity('John', 'Doe', '12345', 'FI', $certDob);
+
+        $dob = $identity->getDateOfBirth();
+        $this->assertNotNull($dob);
+        $this->assertSame('1990-05-15', $dob->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function getDateOfBirthReturnsCertDobForLatviaNewFormat(): void
+    {
+        // New LV code can't parse DOB from code, but cert has it
+        $certDob = new \DateTimeImmutable('1985-07-20');
+        $identity = new AuthenticationIdentity('John', 'Doe', '329999-00007', 'LV', $certDob);
+
+        $dob = $identity->getDateOfBirth();
+        $this->assertNotNull($dob);
+        $this->assertSame('1985-07-20', $dob->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function getDateOfBirthPreferssCertDobOverIdentityCode(): void
+    {
+        // Cert DOB should take priority over identity code parsing
+        $certDob = new \DateTimeImmutable('1991-01-01');
+        $identity = new AuthenticationIdentity('John', 'Doe', '39005150001', 'EE', $certDob);
+
+        $dob = $identity->getDateOfBirth();
+        $this->assertNotNull($dob);
+        $this->assertSame('1991-01-01', $dob->format('Y-m-d'));
     }
 
     #[Test]
@@ -307,5 +374,22 @@ class AuthenticationIdentityTest extends TestCase
         $dob = $identity->getDateOfBirth();
         $this->assertNotNull($dob);
         $this->assertSame('1885-01-01', $dob->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function getDateOfBirthReturnsNullForLatviaInvalidCentury(): void
+    {
+        // LV format with invalid century indicator (3)
+        $identity = new AuthenticationIdentity('John', 'Doe', '150590-30001', 'LV');
+
+        $this->assertNull($identity->getDateOfBirth());
+    }
+
+    #[Test]
+    public function getDateOfBirthReturnsNullForLatviaShortCode(): void
+    {
+        $identity = new AuthenticationIdentity('John', 'Doe', '1234', 'LV');
+
+        $this->assertNull($identity->getDateOfBirth());
     }
 }

@@ -57,6 +57,7 @@ class OcspCertificateRevocationChecker
 
     private StreamFactoryInterface $streamFactory;
 
+    // used only for demo mock OCSP server
     private ?string $ocspUrlOverride;
 
     private ?string $designatedResponderCertPem;
@@ -113,10 +114,13 @@ class OcspCertificateRevocationChecker
             $issuerPublicKeyBytes = $this->extractRawPublicKeyBytes($issuerCertPem);
             $serialNumber = $subjectCert['tbsCertificate']['serialNumber'];
 
-            $requestBody = $this->buildOcspRequest($issuerNameDer, $issuerPublicKeyBytes, $serialNumber);
+            $issuerNameHash = sha1($issuerNameDer, true);
+            $issuerKeyHash = sha1($issuerPublicKeyBytes, true);
+
+            $requestBody = $this->buildOcspRequest($issuerNameHash, $issuerKeyHash, $serialNumber);
             $responseBody = $this->sendOcspRequest($ocspResponderUrl, $requestBody);
 
-            $this->parseOcspResponse($responseBody, $issuerCertPem);
+            $this->parseOcspResponse($responseBody, $issuerCertPem, $issuerNameHash, $issuerKeyHash, $serialNumber);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
@@ -126,10 +130,8 @@ class OcspCertificateRevocationChecker
         }
     }
 
-    private function buildOcspRequest(string $issuerNameDer, string $issuerPublicKeyBytes, BigInteger $serialNumber): string
+    private function buildOcspRequest(string $issuerNameHash, string $issuerKeyHash, BigInteger $serialNumber): string
     {
-        $issuerNameHash = sha1($issuerNameDer, true);
-        $issuerKeyHash = sha1($issuerPublicKeyBytes, true);
         $serialBytes = $serialNumber->toBytes(true);
 
         $hashAlgorithm = $this->derSequence(
@@ -152,7 +154,7 @@ class OcspCertificateRevocationChecker
         return $this->derSequence($tbsRequest);
     }
 
-    private function parseOcspResponse(string $responseBody, string $issuerCertPem): void
+    private function parseOcspResponse(string $responseBody, string $issuerCertPem, string $expectedIssuerNameHash, string $expectedIssuerKeyHash, BigInteger $expectedSerialNumber): void
     {
         $decoded = ASN1::decodeBER($responseBody);
         if (!is_array($decoded) || !isset($decoded[0])) {
@@ -195,11 +197,15 @@ class OcspCertificateRevocationChecker
             throw new ValidationException('Failed to decode BasicOCSPResponse');
         }
 
-        $this->verifyCertStatus($basicResponse);
+        $this->verifyCertStatus($basicResponse, $expectedIssuerNameHash, $expectedIssuerKeyHash, $expectedSerialNumber);
+
+        if ($basicResponseRawDer === null) {
+            throw new ValidationException('Failed to extract raw BasicOCSPResponse DER');
+        }
         $this->verifyResponseSignature($basicResponse, $basicResponseRawDer, $issuerCertPem);
     }
 
-    private function verifyCertStatus(array $basicResponse): void
+    private function verifyCertStatus(array $basicResponse, string $expectedIssuerNameHash, string $expectedIssuerKeyHash, BigInteger $expectedSerialNumber): void
     {
         $responses = $basicResponse['tbsResponseData']['responses'] ?? [];
         if (count($responses) !== 1) {
@@ -207,6 +213,8 @@ class OcspCertificateRevocationChecker
                 sprintf('OCSP response must contain exactly one SingleResponse, got %d', count($responses)),
             );
         }
+
+        $this->verifyCertId($responses[0], $expectedIssuerNameHash, $expectedIssuerKeyHash, $expectedSerialNumber);
 
         $certStatus = $responses[0]['certStatus'] ?? null;
         if ($certStatus === null) {
@@ -226,6 +234,44 @@ class OcspCertificateRevocationChecker
         }
 
         throw new ValidationException('Unexpected OCSP certStatus');
+    }
+
+    private function verifyCertId(
+        array $singleResponse,
+        string $expectedIssuerNameHash,
+        string $expectedIssuerKeyHash,
+        BigInteger $expectedSerialNumber,
+    ): void {
+        $certId = $singleResponse['certID'] ?? null;
+        if (!is_array($certId)) {
+            throw new ValidationException('OCSP SingleResponse is missing certID');
+        }
+
+        $responseIssuerNameHash = $certId['issuerNameHash'] ?? null;
+        $responseIssuerKeyHash = $certId['issuerKeyHash'] ?? null;
+        $responseSerialNumber = $certId['serialNumber'] ?? null;
+
+        if ($responseIssuerNameHash === null || $responseIssuerKeyHash === null || $responseSerialNumber === null) {
+            throw new ValidationException('OCSP response certID is missing required fields');
+        }
+
+        if (!hash_equals($expectedIssuerNameHash, $responseIssuerNameHash)) {
+            throw new ValidationException(
+                'OCSP response certID issuerNameHash does not match the requested certificate',
+            );
+        }
+
+        if (!hash_equals($expectedIssuerKeyHash, $responseIssuerKeyHash)) {
+            throw new ValidationException(
+                'OCSP response certID issuerKeyHash does not match the requested certificate',
+            );
+        }
+
+        if (!$expectedSerialNumber->equals($responseSerialNumber)) {
+            throw new ValidationException(
+                'OCSP response certID serialNumber does not match the requested certificate',
+            );
+        }
     }
 
     private function verifyResponseSignature(array $basicResponse, string $basicResponseRawDer, string $issuerCertPem): void

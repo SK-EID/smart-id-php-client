@@ -33,6 +33,7 @@ namespace Sk\SmartId\Validation;
 use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 use phpseclib3\Crypt\RSA\PublicKey as RSAPublicKey;
+use phpseclib3\File\ASN1;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Exception\SmartIdException;
@@ -663,11 +664,14 @@ class AuthenticationResponseValidator
             $country = $this->getSubjectField($subject, ['C']);
         }
 
+        $dateOfBirth = $this->extractDateOfBirthFromCert($certInfo);
+
         return new AuthenticationIdentity(
             givenName: $givenName,
             surname: $surname,
             identityCode: $identityCode,
             country: $country,
+            dateOfBirthFromCert: $dateOfBirth,
         );
     }
 
@@ -691,5 +695,109 @@ class AuthenticationResponseValidator
         }
 
         return '';
+    }
+
+    /**
+     * Extract date-of-birth from the certificate's Subject Directory Attributes
+     * extension (OID 2.5.29.9), looking for the id-pda-dateOfBirth attribute
+     * (OID 1.3.6.1.5.5.7.9.1).
+     *
+     * @param array<string, mixed> $certInfo
+     */
+    private function extractDateOfBirthFromCert(array $certInfo): ?\DateTimeImmutable
+    {
+        // OID for Subject Directory Attributes extension
+        $sdaOid = '2.5.29.9';
+        // OID for id-pda-dateOfBirth
+        $dateOfBirthOid = '1.3.6.1.5.5.7.9.1';
+
+        // openssl_x509_parse may expose the extension under various keys
+        $extensionValue = $certInfo['extensions']['subjectDirectoryAttributes']
+            ?? $certInfo['extensions'][$sdaOid]
+            ?? null;
+
+        if ($extensionValue === null || !is_string($extensionValue)) {
+            return null;
+        }
+
+        try {
+            // The extension value from openssl_x509_parse is the decoded text.
+            // Format is typically: "id-pda-dateOfBirth:\n19900515000000Z"
+            // or "1.3.6.1.5.5.7.9.1:19900515000000Z"
+            if (preg_match('/(?:dateOfBirth|1\.3\.6\.1\.5\.5\.7\.9\.1)\s*[:=]\s*(\d{8,14}Z?)/s', $extensionValue, $matches)) {
+                return $this->parseGeneralizedTimeDate($matches[1]);
+            }
+
+            // If openssl didn't decode it to text, try raw ASN.1 parsing
+            // via phpseclib (Subject Directory Attributes is a SEQUENCE OF Attribute)
+            return $this->parseDateOfBirthFromAsn1($extensionValue, $dateOfBirthOid);
+        } catch (\Exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Parse date-of-birth from raw ASN.1-encoded Subject Directory Attributes value.
+     */
+    private function parseDateOfBirthFromAsn1(string $rawValue, string $dateOfBirthOid): ?\DateTimeImmutable
+    {
+        $decoded = ASN1::decodeBER($rawValue);
+        if ($decoded === null || !isset($decoded[0]['content'])) {
+            return null;
+        }
+
+        // SDA is SEQUENCE OF Attribute; each Attribute is SEQUENCE { OID, SET OF values }
+        $sequence = $decoded[0]['content'];
+        if (!is_array($sequence)) {
+            return null;
+        }
+
+        foreach ($sequence as $attribute) {
+            if (!isset($attribute['content']) || !is_array($attribute['content'])) {
+                continue;
+            }
+
+            $attrContent = $attribute['content'];
+            if (count($attrContent) < 2) {
+                continue;
+            }
+
+            // First element is OID
+            $oid = $attrContent[0]['content'] ?? null;
+            if ($oid !== $dateOfBirthOid) {
+                continue;
+            }
+
+            // Second element is SET OF values
+            $valueSet = $attrContent[1]['content'] ?? null;
+            if (!is_array($valueSet) || empty($valueSet)) {
+                continue;
+            }
+
+            // The value should be a GeneralizedTime
+            $timeValue = $valueSet[0]['content'] ?? null;
+            if (is_string($timeValue)) {
+                return $this->parseGeneralizedTimeDate($timeValue);
+            }
+        }
+
+        return null;
+    }
+
+    private function parseGeneralizedTimeDate(string $time): ?\DateTimeImmutable
+    {
+        // GeneralizedTime: YYYYMMDDHHmmssZ or YYYYMMDD
+        $cleaned = rtrim($time, 'Z');
+
+        // Try YYYYMMDD first (8 digits), then YYYYMMDDHHmmss (14 digits)
+        if (strlen($cleaned) >= 8) {
+            $dateStr = substr($cleaned, 0, 4) . '-' . substr($cleaned, 4, 2) . '-' . substr($cleaned, 6, 2);
+            $date = \DateTimeImmutable::createFromFormat('Y-m-d', $dateStr);
+            if ($date !== false && $date->format('Y-m-d') === $dateStr) {
+                return $date->setTime(0, 0, 0);
+            }
+        }
+
+        return null;
     }
 }

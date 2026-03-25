@@ -432,6 +432,34 @@ function generateOcspResponseFixtures(
 
     file_put_contents($outputDir . '/ocsp_response_unknown.der', $unknownOcspResponse);
     echo '  Generated: ocsp_response_unknown.der (' . strlen($unknownOcspResponse) . " bytes)\n";
+
+    // Generate an OCSP response with a DIFFERENT serial number in the certID
+    // This simulates replaying a valid OCSP response for a different certificate
+    $wrongSerialBytes = gmp_export(gmp_init($serialNumber + 1, 10));
+    if (ord($wrongSerialBytes[0]) & 0x80) {
+        $wrongSerialBytes = "\x00" . $wrongSerialBytes;
+    }
+    $wrongCertId = derSequence(
+        $hashAlgorithm
+        . derOctetString($issuerNameHash)
+        . derOctetString($issuerKeyHash)
+        . derInteger($wrongSerialBytes),
+    );
+    $wrongSingleResponse = derSequence($wrongCertId . $certStatusGood . $thisUpdate);
+    $wrongResponses = derSequence($wrongSingleResponse);
+    $wrongTbsResponseData = derSequence($responderID . $producedAt . $wrongResponses);
+
+    openssl_sign($wrongTbsResponseData, $wrongSignatureValue, $ocspResponderKey, OPENSSL_ALGO_SHA256);
+    $wrongSignatureBitString = derBitString("\x00" . $wrongSignatureValue);
+    $wrongBasicOcspResponse = derSequence($wrongTbsResponseData . $signatureAlgorithm . $wrongSignatureBitString . $certsExplicit);
+
+    $wrongResponseOctetString = derOctetString($wrongBasicOcspResponse);
+    $wrongResponseBytes = derSequence($responseType . $wrongResponseOctetString);
+    $wrongResponseBytesExplicit = "\xA0" . derLengthBytes($wrongResponseBytes) . $wrongResponseBytes;
+    $wrongOcspResponse = derSequence($responseStatus . $wrongResponseBytesExplicit);
+
+    file_put_contents($outputDir . '/ocsp_response_wrong_cert.der', $wrongOcspResponse);
+    echo '  Generated: ocsp_response_wrong_cert.der (' . strlen($wrongOcspResponse) . " bytes)\n";
 }
 
 function pemToDer(string $pem): string
@@ -485,6 +513,70 @@ function derLengthBytes(string $content): string
 
     return "\x83" . chr(($len >> 16) & 0xFF) . pack('n', $len & 0xFFFF);
 }
+
+// 13. Cert with dateOfBirth in Subject Directory Attributes extension (DOB = 1990-05-15)
+// SDA extension (OID 2.5.29.9) containing dateOfBirth attribute (OID 1.3.6.1.5.5.7.9.1)
+// with GeneralizedTime value "19900515000000Z"
+$tmpConfig = tempnam(sys_get_temp_dir(), 'ee_cfg_');
+$config = "[req]\ndefault_bits = 2048\ndistinguished_name = req_dn\nprompt = no\n\n";
+$config .= "[req_dn]\nCN = TESTNUMBER,DOBUSER,PNOEE-39005150001\n\n";
+$config .= "[v3_ee]\nbasicConstraints = CA:FALSE\nkeyUsage = digitalSignature\nextendedKeyUsage = clientAuth\n";
+$config .= "certificatePolicies = 1.3.6.1.4.1.10015.17.1\n";
+$config .= "2.5.29.9=ASN1:SEQUENCE:sda_seq\n\n";
+$config .= "[sda_seq]\nattr=SEQUENCE:dob_attr\n\n";
+$config .= "[dob_attr]\ntype=OID:1.3.6.1.5.5.7.9.1\nvalue=SET:dob_val\n\n";
+$config .= "[dob_val]\ndob=GENERALIZEDTIME:19900515000000Z\n";
+file_put_contents($tmpConfig, $config);
+
+$eeKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+$eeCsr = openssl_csr_new([
+    'CN' => 'TESTNUMBER,DOBUSER,PNOEE-39005150001',
+    'serialNumber' => 'PNOEE-39005150001',
+    'C' => 'EE',
+    'GN' => 'DOBUSER',
+    'SN' => 'TESTNUMBER',
+], $eeKey, ['config' => $tmpConfig]);
+$eeCert = openssl_csr_sign($eeCsr, $caCert, $caKey, 365, ['config' => $tmpConfig, 'x509_extensions' => 'v3_ee'], rand(100, 99999));
+if ($eeCert === false) {
+    echo "ERROR generating dob cert: " . openssl_error_string() . "\n";
+} else {
+    openssl_x509_export($eeCert, $eePem);
+    file_put_contents($outputDir . '/dob_ee.pem.crt', $eePem);
+    openssl_pkey_export($eeKey, $eeKeyPem);
+    file_put_contents($outputDir . '/dob_ee.key.pem', $eeKeyPem);
+}
+unlink($tmpConfig);
+
+// 14. LV cert with dateOfBirth from cert (new-format LV code starting with 32, no DOB in code)
+$tmpConfig = tempnam(sys_get_temp_dir(), 'ee_cfg_');
+$config = "[req]\ndefault_bits = 2048\ndistinguished_name = req_dn\nprompt = no\n\n";
+$config .= "[req_dn]\nCN = TESTNUMBER,LVDOBUSER,PNOLV-329999-00007\n\n";
+$config .= "[v3_ee]\nbasicConstraints = CA:FALSE\nkeyUsage = digitalSignature\nextendedKeyUsage = clientAuth\n";
+$config .= "certificatePolicies = 1.3.6.1.4.1.10015.17.1\n";
+$config .= "2.5.29.9=ASN1:SEQUENCE:sda_seq\n\n";
+$config .= "[sda_seq]\nattr=SEQUENCE:dob_attr\n\n";
+$config .= "[dob_attr]\ntype=OID:1.3.6.1.5.5.7.9.1\nvalue=SET:dob_val\n\n";
+$config .= "[dob_val]\ndob=GENERALIZEDTIME:19850720000000Z\n";
+file_put_contents($tmpConfig, $config);
+
+$eeKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+$eeCsr = openssl_csr_new([
+    'CN' => 'TESTNUMBER,LVDOBUSER,PNOLV-329999-00007',
+    'serialNumber' => 'PNOLV-329999-00007',
+    'C' => 'LV',
+    'GN' => 'LVDOBUSER',
+    'SN' => 'TESTNUMBER',
+], $eeKey, ['config' => $tmpConfig]);
+$eeCert = openssl_csr_sign($eeCsr, $caCert, $caKey, 365, ['config' => $tmpConfig, 'x509_extensions' => 'v3_ee'], rand(100, 99999));
+if ($eeCert === false) {
+    echo "ERROR generating LV dob cert: " . openssl_error_string() . "\n";
+} else {
+    openssl_x509_export($eeCert, $eePem);
+    file_put_contents($outputDir . '/dob_lv.pem.crt', $eePem);
+    openssl_pkey_export($eeKey, $eeKeyPem);
+    file_put_contents($outputDir . '/dob_lv.key.pem', $eeKeyPem);
+}
+unlink($tmpConfig);
 
 echo "Generated test certificates in: {$outputDir}\n";
 foreach (glob($outputDir . '/*.pem.crt') as $f) {

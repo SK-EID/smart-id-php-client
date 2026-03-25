@@ -46,10 +46,6 @@ enum CertificateLevel: string
 
     public static function tryFromString(string $value): ?self
     {
-        return match (strtoupper($value)) {
-            'QUALIFIED' => self::QUALIFIED,
-            'ADVANCED' => self::ADVANCED,
-            default => null,
-        };
+        return self::tryFrom(strtoupper($value));
     }
 }

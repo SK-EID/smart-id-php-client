@@ -478,6 +478,26 @@ class OcspCertificateRevocationCheckerTest extends TestCase
     }
 
     #[Test]
+    public function checkRevocationStatusThrowsWhenResponseCertIdDoesNotMatchRequestedCertificate(): void
+    {
+        $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_wrong_cert.der');
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('serialNumber does not match the requested certificate');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
     public function checkRevocationStatusThrowsForUnknownCertStatus(): void
     {
         $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_unknown.der');

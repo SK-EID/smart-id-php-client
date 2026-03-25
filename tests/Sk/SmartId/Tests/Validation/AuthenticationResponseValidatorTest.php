@@ -1137,6 +1137,58 @@ class AuthenticationResponseValidatorTest extends TestCase
     }
 
 
+    #[Test]
+    public function validateExtractsDateOfBirthFromCertificate(): void
+    {
+        $caCertPem = self::getTestCaCertPem();
+        $status = self::createSignedSessionStatus('dob_ee', 'ADVANCED');
+
+        $validator = new AuthenticationResponseValidator();
+        $validator->setTrustedCaCertificates([$caCertPem]);
+
+        $identity = $validator->validate(
+            $status,
+            self::TEST_RP_CHALLENGE,
+            self::TEST_RP_NAME,
+            self::TEST_INTERACTIONS_BASE64,
+        );
+
+        $this->assertSame('DOBUSER', $identity->getGivenName());
+        $this->assertSame('TESTNUMBER', $identity->getSurname());
+        $this->assertSame('39005150001', $identity->getIdentityCode());
+        $this->assertSame('EE', $identity->getCountry());
+
+        $dob = $identity->getDateOfBirth();
+        $this->assertNotNull($dob);
+        $this->assertSame('1990-05-15', $dob->format('Y-m-d'));
+    }
+
+    #[Test]
+    public function validateExtractsDateOfBirthFromCertForLvNewFormat(): void
+    {
+        $caCertPem = self::getTestCaCertPem();
+        $status = self::createSignedSessionStatus('dob_lv', 'ADVANCED');
+
+        $validator = new AuthenticationResponseValidator();
+        $validator->setTrustedCaCertificates([$caCertPem]);
+
+        $identity = $validator->validate(
+            $status,
+            self::TEST_RP_CHALLENGE,
+            self::TEST_RP_NAME,
+            self::TEST_INTERACTIONS_BASE64,
+        );
+
+        $this->assertSame('LVDOBUSER', $identity->getGivenName());
+        $this->assertSame('LV', $identity->getCountry());
+        $this->assertSame('329999-00007', $identity->getIdentityCode());
+
+        // New LV code (32xxxx) can't parse DOB from code, but cert has it
+        $dob = $identity->getDateOfBirth();
+        $this->assertNotNull($dob);
+        $this->assertSame('1985-07-20', $dob->format('Y-m-d'));
+    }
+
     private static function createSignedSessionStatusWithTrailer(string $certBaseName, string $certLevel, string $trailerField): SessionStatus
     {
         $dir = self::getTestEndEntityCertsDir();
