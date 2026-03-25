@@ -43,9 +43,9 @@ class AuthCodeCalculator
      * @param string $rpChallenge Base64-encoded RP challenge
      * @param string $rpName Relying Party name
      * @param AbstractInteraction[] $interactions Array of interaction objects
+     * @param string $unprotectedDeviceLink The device link URL without authCode parameter
      * @param string|null $initialCallbackUrl Optional callback URL (for Web2App flows)
      * @param string|null $brokeredRpName Optional brokered RP name
-     * @param string $unprotectedDeviceLink The device link URL without authCode parameter
      * @param SchemeName $schemeName Scheme name for the target environment
      */
     public static function calculate(
@@ -53,9 +53,9 @@ class AuthCodeCalculator
         string $rpChallenge,
         string $rpName,
         array $interactions,
+        string $unprotectedDeviceLink,
         ?string $initialCallbackUrl = null,
         ?string $brokeredRpName = null,
-        string $unprotectedDeviceLink = '',
         SchemeName $schemeName = SchemeName::PRODUCTION,
     ): string {
         $decodedSecret = base64_decode($sessionSecret, true);

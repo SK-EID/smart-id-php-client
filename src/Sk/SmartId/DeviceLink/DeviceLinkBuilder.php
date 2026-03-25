@@ -176,9 +176,9 @@ class DeviceLinkBuilder
             $this->rpChallenge,
             $this->rpName,
             $this->interactions,
+            $unprotectedDeviceLink,
             $this->callbackUrl,
             $this->brokeredRpName,
-            $unprotectedDeviceLink,
             $this->schemeName,
         );
 

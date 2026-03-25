@@ -51,6 +51,7 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
+            '',
         );
 
         $this->assertNotEmpty($authCode);
@@ -73,8 +74,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            null,
-            null,
             'https://smart-id.com?deviceLinkType=QR&elapsedSeconds=0&sessionToken=abc',
         );
 
@@ -83,8 +82,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            null,
-            null,
             'https://smart-id.com?deviceLinkType=QR&elapsedSeconds=5&sessionToken=abc',
         );
 
@@ -104,6 +101,7 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
+            '',
             'https://example.com/callback',
         );
 
@@ -112,6 +110,7 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
+            '',
             null,
         );
 
@@ -131,6 +130,7 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
+            '',
             null,
             'Brokered RP',
         );
@@ -140,6 +140,7 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
+            '',
             null,
             null,
         );
@@ -160,8 +161,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            null,
-            null,
             'https://smart-id.com?deviceLinkType=QR&sessionToken=abc',
         );
 
@@ -170,8 +169,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            null,
-            null,
             'https://smart-id.com?deviceLinkType=Web2App&sessionToken=abc',
         );
 
@@ -196,6 +193,7 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions1,
+            '',
         );
 
         $authCode2 = AuthCodeCalculator::calculate(
@@ -203,6 +201,7 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions2,
+            '',
         );
 
         $this->assertNotSame($authCode1, $authCode2);
@@ -219,6 +218,7 @@ class AuthCodeCalculatorTest extends TestCase
             base64_encode(random_bytes(32)),
             'Test RP',
             [DeviceLinkInteraction::displayTextAndPin('Test')],
+            '',
         );
     }
 
@@ -234,6 +234,7 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             [],
+            '',
         );
 
         $this->assertNotEmpty($authCode);
@@ -253,8 +254,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            null,
-            null,
             $unprotectedDeviceLink,
         );
 
@@ -263,8 +262,6 @@ class AuthCodeCalculatorTest extends TestCase
             $rpChallenge,
             $rpName,
             $interactions,
-            null,
-            null,
             $unprotectedDeviceLink,
         );
 
