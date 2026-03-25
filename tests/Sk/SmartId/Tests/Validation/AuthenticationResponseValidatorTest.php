@@ -1073,7 +1073,7 @@ class AuthenticationResponseValidatorTest extends TestCase
         $handlerStack = \GuzzleHttp\HandlerStack::create($mock);
         $client = new Client(['handler' => $handlerStack]);
         $factory = new HttpFactory();
-        $ocspChecker = new OcspCertificateRevocationChecker($client, $factory, $factory);
+        $ocspChecker = new OcspCertificateRevocationChecker($client, $factory, $factory, maxResponseAgeSeconds: 0, useNonce: false, requireEmbeddedResponderCert: false);
 
         $status = self::createSignedSessionStatus('ocsp_ee', 'ADVANCED');
 
@@ -1100,7 +1100,7 @@ class AuthenticationResponseValidatorTest extends TestCase
         // file doesn't contain the actual issuer.
         // Simpler approach: mock the OCSP checker and test the no-issuer path
         $factory = new HttpFactory();
-        $ocspChecker = new OcspCertificateRevocationChecker(new Client(), $factory, $factory);
+        $ocspChecker = new OcspCertificateRevocationChecker(new Client(), $factory, $factory, maxResponseAgeSeconds: 0, useNonce: false, requireEmbeddedResponderCert: false);
 
         // Use a self-signed CA as trusted — the EE cert won't be trusted by it
         // but we can test the flow by using setTrustedCaCertificateFiles with CA file

@@ -314,10 +314,20 @@ function generateOcspResponseFixtures(
         . derInteger($serialBytes),
     );
 
-    // Build SingleResponse: certID, certStatus (good = [0] NULL), thisUpdate
+    // Build Archive Cutoff singleExtension (mandatory per SK OCSP Profile)
+    // OID 1.3.6.1.5.5.7.48.1.6 with CA's "valid from" date as GeneralizedTime
+    $caCertInfo = openssl_x509_parse($caCertPem);
+    $archiveCutoffOid = "\x06\x09\x2B\x06\x01\x05\x05\x07\x30\x01\x06";
+    $archiveCutoffTime = derGeneralizedTime(gmdate('YmdHis', $caCertInfo['validFrom_time_t']) . 'Z');
+    $archiveCutoffExtnValue = derOctetString($archiveCutoffTime);
+    $archiveCutoffExtension = derSequence($archiveCutoffOid . $archiveCutoffExtnValue);
+    $singleExtensionsSeq = derSequence($archiveCutoffExtension);
+    $singleExtensions = "\xA1" . derLengthBytes($singleExtensionsSeq) . $singleExtensionsSeq; // [1] EXPLICIT
+
+    // Build SingleResponse: certID, certStatus (good = [0] NULL), thisUpdate, singleExtensions
     $certStatusGood = "\xA0\x00"; // context-specific [0] implicit NULL (good)
     $thisUpdate = derGeneralizedTime(gmdate('YmdHis') . 'Z');
-    $singleResponse = derSequence($certId . $certStatusGood . $thisUpdate);
+    $singleResponse = derSequence($certId . $certStatusGood . $thisUpdate . $singleExtensions);
     $responses = derSequence($singleResponse);
 
     // Build ResponderID (byName)
@@ -379,7 +389,7 @@ function generateOcspResponseFixtures(
 
     // Generate an OCSP response with revoked status
     $certStatusRevoked = "\xA1" . derLengthBytes($thisUpdate) . $thisUpdate; // [1] IMPLICIT SEQUENCE { revokedTime }
-    $revokedSingleResponse = derSequence($certId . $certStatusRevoked . $thisUpdate);
+    $revokedSingleResponse = derSequence($certId . $certStatusRevoked . $thisUpdate . $singleExtensions);
     $revokedResponses = derSequence($revokedSingleResponse);
     $revokedTbsResponseData = derSequence($responderID . $producedAt . $revokedResponses);
 
@@ -417,7 +427,7 @@ function generateOcspResponseFixtures(
 
     // Generate an OCSP response with unknown cert status
     $certStatusUnknown = "\xA2\x00"; // context-specific [2] implicit NULL (unknown)
-    $unknownSingleResponse = derSequence($certId . $certStatusUnknown . $thisUpdate);
+    $unknownSingleResponse = derSequence($certId . $certStatusUnknown . $thisUpdate . $singleExtensions);
     $unknownResponses = derSequence($unknownSingleResponse);
     $unknownTbsResponseData = derSequence($responderID . $producedAt . $unknownResponses);
 
@@ -445,7 +455,7 @@ function generateOcspResponseFixtures(
         . derOctetString($issuerKeyHash)
         . derInteger($wrongSerialBytes),
     );
-    $wrongSingleResponse = derSequence($wrongCertId . $certStatusGood . $thisUpdate);
+    $wrongSingleResponse = derSequence($wrongCertId . $certStatusGood . $thisUpdate . $singleExtensions);
     $wrongResponses = derSequence($wrongSingleResponse);
     $wrongTbsResponseData = derSequence($responderID . $producedAt . $wrongResponses);
 
@@ -460,6 +470,75 @@ function generateOcspResponseFixtures(
 
     file_put_contents($outputDir . '/ocsp_response_wrong_cert.der', $wrongOcspResponse);
     echo '  Generated: ocsp_response_wrong_cert.der (' . strlen($wrongOcspResponse) . " bytes)\n";
+
+    // Generate a stale OCSP response (thisUpdate 2 hours in the past)
+    $staleTime = derGeneralizedTime(gmdate('YmdHis', time() - 7200) . 'Z');
+    $staleSingleResponse = derSequence($certId . $certStatusGood . $staleTime . $singleExtensions);
+    $staleResponses = derSequence($staleSingleResponse);
+    $staleProducedAt = derGeneralizedTime(gmdate('YmdHis', time() - 7200) . 'Z');
+    $staleTbsResponseData = derSequence($responderID . $staleProducedAt . $staleResponses);
+
+    openssl_sign($staleTbsResponseData, $staleSignatureValue, $ocspResponderKey, OPENSSL_ALGO_SHA256);
+    $staleSignatureBitString = derBitString("\x00" . $staleSignatureValue);
+    $staleBasicOcspResponse = derSequence($staleTbsResponseData . $signatureAlgorithm . $staleSignatureBitString . $certsExplicit);
+
+    $staleResponseOctetString = derOctetString($staleBasicOcspResponse);
+    $staleResponseBytes = derSequence($responseType . $staleResponseOctetString);
+    $staleResponseBytesExplicit = "\xA0" . derLengthBytes($staleResponseBytes) . $staleResponseBytes;
+    $staleOcspResponse = derSequence($responseStatus . $staleResponseBytesExplicit);
+
+    file_put_contents($outputDir . '/ocsp_response_stale.der', $staleOcspResponse);
+    echo '  Generated: ocsp_response_stale.der (' . strlen($staleOcspResponse) . " bytes)\n";
+
+    // Generate an OCSP response with a nonce extension
+    // Use a fixed known nonce so tests can verify against it
+    $knownNonce = str_repeat("\xAB", 32); // 32 bytes of 0xAB
+    file_put_contents($outputDir . '/ocsp_nonce_value.bin', $knownNonce);
+
+    // Build nonce response extension
+    // Extension: SEQUENCE { OID, OCTET STRING { OCTET STRING { nonce } } }
+    $nonceOidBytes = "\x06\x09\x2B\x06\x01\x05\x05\x07\x30\x01\x02"; // OID 1.3.6.1.5.5.7.48.1.2
+    $nonceInnerOctetString = derOctetString($knownNonce);
+    $nonceExtnValue = derOctetString($nonceInnerOctetString);
+    $nonceExtension = derSequence($nonceOidBytes . $nonceExtnValue);
+    $nonceExtensions = derSequence($nonceExtension);
+    $nonceResponseExtensions = "\xA1" . derLengthBytes($nonceExtensions) . $nonceExtensions; // [1] EXPLICIT
+
+    $nonceTbsResponseData = derSequence($responderID . $producedAt . $responses . $nonceResponseExtensions);
+
+    openssl_sign($nonceTbsResponseData, $nonceSignatureValue, $ocspResponderKey, OPENSSL_ALGO_SHA256);
+    $nonceSignatureBitString = derBitString("\x00" . $nonceSignatureValue);
+    $nonceBasicOcspResponse = derSequence($nonceTbsResponseData . $signatureAlgorithm . $nonceSignatureBitString . $certsExplicit);
+
+    $nonceResponseOctetString = derOctetString($nonceBasicOcspResponse);
+    $nonceResponseBytes = derSequence($responseType . $nonceResponseOctetString);
+    $nonceResponseBytesExplicit = "\xA0" . derLengthBytes($nonceResponseBytes) . $nonceResponseBytes;
+    $nonceOcspResponse = derSequence($responseStatus . $nonceResponseBytesExplicit);
+
+    file_put_contents($outputDir . '/ocsp_response_nonce.der', $nonceOcspResponse);
+    echo '  Generated: ocsp_response_nonce.der (' . strlen($nonceOcspResponse) . " bytes)\n";
+
+    // Generate an OCSP response with a WRONG nonce (different from known nonce)
+    $wrongNonce = str_repeat("\xCD", 32); // 32 bytes of 0xCD
+    $wrongNonceInnerOctetString = derOctetString($wrongNonce);
+    $wrongNonceExtnValue = derOctetString($wrongNonceInnerOctetString);
+    $wrongNonceExtension = derSequence($nonceOidBytes . $wrongNonceExtnValue);
+    $wrongNonceExtensions = derSequence($wrongNonceExtension);
+    $wrongNonceResponseExtensions = "\xA1" . derLengthBytes($wrongNonceExtensions) . $wrongNonceExtensions;
+
+    $wrongNonceTbsResponseData = derSequence($responderID . $producedAt . $responses . $wrongNonceResponseExtensions);
+
+    openssl_sign($wrongNonceTbsResponseData, $wrongNonceSignatureValue, $ocspResponderKey, OPENSSL_ALGO_SHA256);
+    $wrongNonceSignatureBitString = derBitString("\x00" . $wrongNonceSignatureValue);
+    $wrongNonceBasicOcspResponse = derSequence($wrongNonceTbsResponseData . $signatureAlgorithm . $wrongNonceSignatureBitString . $certsExplicit);
+
+    $wrongNonceResponseOctetString = derOctetString($wrongNonceBasicOcspResponse);
+    $wrongNonceResponseBytes = derSequence($responseType . $wrongNonceResponseOctetString);
+    $wrongNonceResponseBytesExplicit = "\xA0" . derLengthBytes($wrongNonceResponseBytes) . $wrongNonceResponseBytes;
+    $wrongNonceOcspResponse = derSequence($responseStatus . $wrongNonceResponseBytesExplicit);
+
+    file_put_contents($outputDir . '/ocsp_response_wrong_nonce.der', $wrongNonceOcspResponse);
+    echo '  Generated: ocsp_response_wrong_nonce.der (' . strlen($wrongNonceOcspResponse) . " bytes)\n";
 }
 
 function pemToDer(string $pem): string

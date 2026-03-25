@@ -51,6 +51,14 @@ class OcspCertificateRevocationChecker
 
     private const OCSP_RESPONSE_CONTENT_TYPE = 'application/ocsp-response';
 
+    private const DEFAULT_MAX_RESPONSE_AGE_SECONDS = 900;
+
+    private const OCSP_NONCE_EXTENSION_OID_DER = "\x2B\x06\x01\x05\x05\x07\x30\x01\x02";
+
+    private const NONCE_LENGTH = 32;
+
+    private const ARCHIVE_CUTOFF_OID = '1.3.6.1.5.5.7.48.1.6';
+
     private ClientInterface $httpClient;
 
     private RequestFactoryInterface $requestFactory;
@@ -62,18 +70,33 @@ class OcspCertificateRevocationChecker
 
     private ?string $designatedResponderCertPem;
 
+    private int $maxResponseAgeSeconds;
+
+    private bool $useNonce;
+
+    private bool $requireEmbeddedResponderCert;
+
+    /** @internal For testing only */
+    private ?string $nonceForTesting = null;
+
     public function __construct(
         ClientInterface $httpClient,
         RequestFactoryInterface $requestFactory,
         StreamFactoryInterface $streamFactory,
         ?string $ocspUrlOverride = null,
         ?string $designatedResponderCertPem = null,
+        int $maxResponseAgeSeconds = self::DEFAULT_MAX_RESPONSE_AGE_SECONDS,
+        bool $useNonce = true,
+        bool $requireEmbeddedResponderCert = true,
     ) {
         $this->httpClient = $httpClient;
         $this->requestFactory = $requestFactory;
         $this->streamFactory = $streamFactory;
         $this->ocspUrlOverride = $ocspUrlOverride;
         $this->designatedResponderCertPem = $designatedResponderCertPem;
+        $this->maxResponseAgeSeconds = $maxResponseAgeSeconds;
+        $this->useNonce = $useNonce;
+        $this->requireEmbeddedResponderCert = $requireEmbeddedResponderCert;
     }
 
     /**
@@ -117,10 +140,11 @@ class OcspCertificateRevocationChecker
             $issuerNameHash = sha1($issuerNameDer, true);
             $issuerKeyHash = sha1($issuerPublicKeyBytes, true);
 
-            $requestBody = $this->buildOcspRequest($issuerNameHash, $issuerKeyHash, $serialNumber);
+            $nonce = $this->useNonce ? ($this->nonceForTesting ?? random_bytes(self::NONCE_LENGTH)) : null;
+            $requestBody = $this->buildOcspRequest($issuerNameHash, $issuerKeyHash, $serialNumber, $nonce);
             $responseBody = $this->sendOcspRequest($ocspResponderUrl, $requestBody);
 
-            $this->parseOcspResponse($responseBody, $issuerCertPem, $issuerNameHash, $issuerKeyHash, $serialNumber);
+            $this->parseOcspResponse($responseBody, $issuerCertPem, $issuerNameHash, $issuerKeyHash, $serialNumber, $nonce);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
@@ -130,7 +154,7 @@ class OcspCertificateRevocationChecker
         }
     }
 
-    private function buildOcspRequest(string $issuerNameHash, string $issuerKeyHash, BigInteger $serialNumber): string
+    private function buildOcspRequest(string $issuerNameHash, string $issuerKeyHash, BigInteger $serialNumber, ?string $nonce = null): string
     {
         $serialBytes = $serialNumber->toBytes(true);
 
@@ -149,12 +173,21 @@ class OcspCertificateRevocationChecker
 
         $requestList = $this->derSequence($request);
 
-        $tbsRequest = $this->derSequence($requestList);
+        if ($nonce !== null) {
+            $nonceOid = $this->derOid(self::OCSP_NONCE_EXTENSION_OID_DER);
+            $nonceExtnValue = $this->derOctetString($this->derOctetString($nonce));
+            $nonceExtension = $this->derSequence($nonceOid . $nonceExtnValue);
+            $extensions = $this->derSequence($nonceExtension);
+            $requestExtensions = "\xA2" . $this->derLength($extensions) . $extensions;
+            $tbsRequest = $this->derSequence($requestList . $requestExtensions);
+        } else {
+            $tbsRequest = $this->derSequence($requestList);
+        }
 
         return $this->derSequence($tbsRequest);
     }
 
-    private function parseOcspResponse(string $responseBody, string $issuerCertPem, string $expectedIssuerNameHash, string $expectedIssuerKeyHash, BigInteger $expectedSerialNumber): void
+    private function parseOcspResponse(string $responseBody, string $issuerCertPem, string $expectedIssuerNameHash, string $expectedIssuerKeyHash, BigInteger $expectedSerialNumber, ?string $expectedNonce = null): void
     {
         $decoded = ASN1::decodeBER($responseBody);
         if (!is_array($decoded) || !isset($decoded[0])) {
@@ -197,7 +230,14 @@ class OcspCertificateRevocationChecker
             throw new ValidationException('Failed to decode BasicOCSPResponse');
         }
 
+        $this->verifyResponseVersion($basicResponse);
         $this->verifyCertStatus($basicResponse, $expectedIssuerNameHash, $expectedIssuerKeyHash, $expectedSerialNumber);
+        $this->verifyResponseFreshness($basicResponse);
+        $this->verifyArchiveCutoff($basicResponse);
+
+        if ($expectedNonce !== null) {
+            $this->verifyNonce($basicResponse, $expectedNonce);
+        }
 
         if ($basicResponseRawDer === null) {
             throw new ValidationException('Failed to extract raw BasicOCSPResponse DER');
@@ -274,6 +314,143 @@ class OcspCertificateRevocationChecker
         }
     }
 
+    private function verifyResponseVersion(array $basicResponse): void
+    {
+        $version = $basicResponse['tbsResponseData']['version'] ?? 'v1';
+        if ($version !== 'v1') {
+            throw new ValidationException(
+                sprintf('OCSP response version must be v1, got: %s', (string) $version),
+            );
+        }
+    }
+
+    private function verifyResponseFreshness(array $basicResponse): void
+    {
+        $responses = $basicResponse['tbsResponseData']['responses'] ?? [];
+        if (count($responses) === 0) {
+            return;
+        }
+
+        $thisUpdateRaw = $responses[0]['thisUpdate'] ?? null;
+        if ($thisUpdateRaw === null) {
+            throw new ValidationException('OCSP response SingleResponse is missing thisUpdate');
+        }
+
+        $thisUpdate = $this->parseGeneralizedTime($thisUpdateRaw);
+        $now = time();
+
+        // thisUpdate must not be in the future (with 120s clock skew tolerance)
+        if ($thisUpdate > $now + 120) {
+            throw new ValidationException('OCSP response thisUpdate is in the future');
+        }
+
+        // thisUpdate must not be too old
+        if ($this->maxResponseAgeSeconds > 0) {
+            $age = $now - $thisUpdate;
+            if ($age > $this->maxResponseAgeSeconds) {
+                throw new ValidationException(
+                    sprintf(
+                        'OCSP response is too old: thisUpdate was %d seconds ago (max allowed: %d)',
+                        $age,
+                        $this->maxResponseAgeSeconds,
+                    ),
+                );
+            }
+        }
+
+        // If nextUpdate is present, current time must be before nextUpdate
+        $nextUpdateRaw = $responses[0]['nextUpdate'] ?? null;
+        if ($nextUpdateRaw !== null) {
+            $nextUpdate = $this->parseGeneralizedTime($nextUpdateRaw);
+            if ($now > $nextUpdate) {
+                throw new ValidationException('OCSP response has expired: current time is past nextUpdate');
+            }
+        }
+
+        // Verify producedAt is present (mandatory per SK profile) and not in the future
+        $producedAtRaw = $basicResponse['tbsResponseData']['producedAt'] ?? null;
+        if ($producedAtRaw === null) {
+            throw new ValidationException('OCSP response is missing mandatory producedAt field');
+        }
+
+        $producedAt = $this->parseGeneralizedTime($producedAtRaw);
+        if ($producedAt > $now + 120) {
+            throw new ValidationException('OCSP response producedAt is in the future');
+        }
+    }
+
+    private function verifyArchiveCutoff(array $basicResponse): void
+    {
+        $responses = $basicResponse['tbsResponseData']['responses'] ?? [];
+        if (count($responses) === 0) {
+            return;
+        }
+
+        $singleExtensions = $responses[0]['singleExtensions'] ?? [];
+
+        foreach ($singleExtensions as $ext) {
+            $extId = $ext['extnId'] ?? '';
+            if ($extId === 'id-pkix-ocsp-archive-cutoff' || $extId === self::ARCHIVE_CUTOFF_OID) {
+                return;
+            }
+        }
+
+        throw new ValidationException('OCSP response SingleResponse is missing mandatory Archive Cutoff extension');
+    }
+
+    private function verifyNonce(array $basicResponse, string $expectedNonce): void
+    {
+        $responseExtensions = $basicResponse['tbsResponseData']['responseExtensions'] ?? [];
+
+        foreach ($responseExtensions as $ext) {
+            $extId = $ext['extnId'] ?? '';
+            if ($extId === 'id-pkix-ocsp-nonce' || $extId === '1.3.6.1.5.5.7.48.1.2') {
+                $extnValue = $ext['extnValue'] ?? '';
+
+                // extnValue is an OCTET STRING containing DER-encoded OCTET STRING
+                $decoded = ASN1::decodeBER($extnValue);
+                if (is_array($decoded) && isset($decoded[0]['content'])) {
+                    $responseNonce = $decoded[0]['content'];
+                } else {
+                    $responseNonce = $extnValue;
+                }
+
+                if (!hash_equals($expectedNonce, $responseNonce)) {
+                    throw new ValidationException('OCSP response nonce does not match the request nonce');
+                }
+
+                return;
+            }
+        }
+
+        throw new ValidationException('OCSP response does not contain a nonce extension');
+    }
+
+    /**
+     * @param string|\DateTimeInterface $value
+     */
+    private function parseGeneralizedTime(string|\DateTimeInterface $value): int
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->getTimestamp();
+        }
+
+        $timestamp = strtotime($value);
+        if ($timestamp === false) {
+            throw new ValidationException(
+                sprintf('Failed to parse OCSP response time value: %s', $value),
+            );
+        }
+
+        return $timestamp;
+    }
+
+    /** @internal For testing only */
+    public function setNonceForTesting(string $nonce): void
+    {
+        $this->nonceForTesting = $nonce;
+    }
+
     private function verifyResponseSignature(array $basicResponse, string $basicResponseRawDer, string $issuerCertPem): void
     {
         $responderCertPem = $this->resolveResponderCertificate($basicResponse, $issuerCertPem);
@@ -340,7 +517,14 @@ class OcspCertificateRevocationChecker
             return $responderCertPem;
         }
 
-        // No embedded certs — the issuer CA itself must be the responder ("Authorized Responder" per RFC 6960 §2.2)
+        // No embedded certs — SK OCSP Profile mandates the responder certificate is included.
+        if ($this->requireEmbeddedResponderCert) {
+            throw new ValidationException(
+                'OCSP response does not contain an embedded responder certificate (required by SK OCSP Profile)',
+            );
+        }
+
+        // Fallback: the issuer CA itself is the responder ("Authorized Responder" per RFC 6960 §2.2)
         return $issuerCertPem;
     }
 
@@ -414,18 +598,13 @@ class OcspCertificateRevocationChecker
 
     private function mapSignatureAlgorithm(string $algorithm): int
     {
-        // Map OID names from phpseclib ASN1 decoding to OpenSSL algorithm constants
+        // Per SK Smart-ID OCSP Profile, only sha256WithRSAEncryption and
+        // sha512WithRSAEncryption are allowed signature algorithms.
         return match (true) {
-            str_contains($algorithm, 'sha512') && str_contains($algorithm, 'rsa') => OPENSSL_ALGO_SHA512,
-            str_contains($algorithm, 'sha384') && str_contains($algorithm, 'rsa') => OPENSSL_ALGO_SHA384,
             str_contains($algorithm, 'sha256') && str_contains($algorithm, 'rsa') => OPENSSL_ALGO_SHA256,
-            str_contains($algorithm, 'sha1') && str_contains($algorithm, 'rsa') => OPENSSL_ALGO_SHA1,
-            str_contains($algorithm, 'sha512') => OPENSSL_ALGO_SHA512,
-            str_contains($algorithm, 'sha384') => OPENSSL_ALGO_SHA384,
-            str_contains($algorithm, 'sha256') => OPENSSL_ALGO_SHA256,
-            str_contains($algorithm, 'sha1') => OPENSSL_ALGO_SHA1,
+            str_contains($algorithm, 'sha512') && str_contains($algorithm, 'rsa') => OPENSSL_ALGO_SHA512,
             default => throw new ValidationException(
-                sprintf('Unsupported OCSP response signature algorithm: %s', $algorithm),
+                sprintf('Unsupported OCSP response signature algorithm: %s (only sha256WithRSAEncryption and sha512WithRSAEncryption are allowed)', $algorithm),
             ),
         };
     }

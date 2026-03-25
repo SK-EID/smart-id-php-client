@@ -51,6 +51,9 @@ class OcspCertificateRevocationCheckerTest extends TestCase
         Client $client,
         ?string $ocspUrlOverride = null,
         ?string $designatedResponderCertPem = null,
+        int $maxResponseAgeSeconds = 0,
+        bool $useNonce = false,
+        bool $requireEmbeddedResponderCert = false,
     ): OcspCertificateRevocationChecker {
         $factory = new HttpFactory();
 
@@ -60,6 +63,9 @@ class OcspCertificateRevocationCheckerTest extends TestCase
             $factory,
             $ocspUrlOverride,
             $designatedResponderCertPem,
+            $maxResponseAgeSeconds,
+            $useNonce,
+            $requireEmbeddedResponderCert,
         );
     }
 
@@ -515,5 +521,193 @@ class OcspCertificateRevocationCheckerTest extends TestCase
         $this->expectExceptionMessage('unknown');
 
         $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsWhenResponseIsTooOld(): void
+    {
+        $staleFixture = self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_stale.der';
+        if (!file_exists($staleFixture)) {
+            $this->markTestSkipped('Stale OCSP response fixture not generated yet. Run: php tests/resources/generate_test_certs.php');
+        }
+
+        $ocspResponseDer = file_get_contents($staleFixture);
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        // Enable freshness check with 15 min max age — the stale fixture is 2 hours old
+        $checker = self::createChecker($client, maxResponseAgeSeconds: 900);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('OCSP response is too old');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusPassesWhenFreshnessCheckDisabled(): void
+    {
+        $staleFixture = self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_stale.der';
+        if (!file_exists($staleFixture)) {
+            $this->markTestSkipped('Stale OCSP response fixture not generated yet. Run: php tests/resources/generate_test_certs.php');
+        }
+
+        $ocspResponseDer = file_get_contents($staleFixture);
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        // Disable freshness check (maxResponseAgeSeconds = 0)
+        $checker = self::createChecker($client, maxResponseAgeSeconds: 0);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        // Should not throw — freshness check disabled
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function checkRevocationStatusPassesWithValidNonce(): void
+    {
+        $nonceFixture = self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_nonce.der';
+        $nonceValueFile = self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_nonce_value.bin';
+        if (!file_exists($nonceFixture) || !file_exists($nonceValueFile)) {
+            $this->markTestSkipped('Nonce OCSP response fixture not generated yet. Run: php tests/resources/generate_test_certs.php');
+        }
+
+        $ocspResponseDer = file_get_contents($nonceFixture);
+        $knownNonce = file_get_contents($nonceValueFile);
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client, useNonce: true);
+        $checker->setNonceForTesting($knownNonce);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        // Should not throw — nonce matches
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsWhenNonceMismatch(): void
+    {
+        $nonceFixture = self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_nonce.der';
+        if (!file_exists($nonceFixture)) {
+            $this->markTestSkipped('Nonce OCSP response fixture not generated yet. Run: php tests/resources/generate_test_certs.php');
+        }
+
+        $ocspResponseDer = file_get_contents($nonceFixture);
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client, useNonce: true);
+        // Set a different nonce than what the fixture contains
+        $checker->setNonceForTesting(str_repeat("\xFF", 32));
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('nonce does not match');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsWhenNonceExpectedButMissing(): void
+    {
+        // The good response fixture has no nonce extension
+        $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_good.der');
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client, useNonce: true);
+        $checker->setNonceForTesting(str_repeat("\xAB", 32));
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('does not contain a nonce extension');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusPassesWithFreshnessEnabled(): void
+    {
+        // The good fixture has thisUpdate set to generation time.
+        // With a very large maxResponseAgeSeconds, it should still pass.
+        $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_good.der');
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        // Use a very large max age to accommodate pre-generated fixtures
+        $checker = self::createChecker($client, maxResponseAgeSeconds: 86400 * 365 * 10);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+        $this->assertTrue(true);
+    }
+
+    #[Test]
+    public function checkRevocationStatusThrowsWhenEmbeddedResponderCertRequiredButMissing(): void
+    {
+        // CA-signed response has no embedded responder cert
+        $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_ca_signed.der');
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client, requireEmbeddedResponderCert: true);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('does not contain an embedded responder certificate');
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+    }
+
+    #[Test]
+    public function checkRevocationStatusPassesWithEmbeddedResponderCertRequired(): void
+    {
+        // Good response has embedded responder cert
+        $ocspResponseDer = file_get_contents(self::getTestEndEntityCertsDir() . DIRECTORY_SEPARATOR . 'ocsp_response_good.der');
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/ocsp-response'], $ocspResponseDer),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
+        $checker = self::createChecker($client, requireEmbeddedResponderCert: true);
+
+        [$subjectCert, $issuerCert] = self::getCertPairWithOcspUrl();
+
+        $checker->checkRevocationStatus($subjectCert, $issuerCert);
+        $this->assertTrue(true);
     }
 }
