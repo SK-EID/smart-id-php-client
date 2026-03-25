@@ -416,7 +416,7 @@ use Sk\SmartId\Util\CallbackUrlValidator;
 
 // Validate and create callback URL with a cryptographically random token
 $callbackBase = 'https://your-app.com/callback';
-CallbackUrlValidator::validateOrThrow($callbackBase, requireHttps: true);
+CallbackUrlValidator::validateOrThrow($callbackBase);
 $callbackResult = CallbackUrlUtil::createCallbackUrl($callbackBase);
 $callbackUrl = $callbackResult['callbackUrl']; // e.g., https://your-app.com/callback?value=<random-token>
 $callbackToken = $callbackResult['token'];        // Store to verify the callback later

@@ -56,7 +56,6 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Sk\SmartId\Api\SmartIdRestConnector;
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
@@ -74,6 +73,7 @@ use Sk\SmartId\Exception\ServerErrorException;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
+use Sk\SmartId\SmartIdClient;
 
 session_start();
 
@@ -81,24 +81,26 @@ session_start();
 // CONFIGURATION
 // ============================================================================
 
-$baseUrl = 'https://sid.demo.sk.ee/smart-id-rp/v3';
-$relyingPartyUUID = '00000000-0000-4000-8000-000000000000';
-$relyingPartyName = 'DEMO';
+// Set to true for production environment, false for demo environment
+// just for testing purposes
+$isProduction = false;
+
+// Smart-ID API endpoint (use production URL for live environment)
+$baseUrl = $isProduction ? 'https://rp-api.smart-id.com/v3' : 'https://sid.demo.sk.ee/smart-id-rp/v3';
+
+// Demo Relying Party credentials (replace with your own for production)
+$relyingPartyUUID = $isProduction ? '<your-relying-party-uuid>' : '00000000-0000-4000-8000-000000000000';
+$relyingPartyName = $isProduction ? '<your-relying-party-name>' : 'DEMO';
+$sslPins = $isProduction ? ['sha256//XAlgTJ+3BlgOexKLttcvXfn6Ecu4e2Xr5NyHWnTinKQ='] : ['sha256//Ps1Im3KeB0Q4AlR+/J9KFd/MOznaARdwo4gURPCLaVA='];
 
 // Public HTTPS URL for Web2App callback (required by Smart-ID API)
 // Use ngrok or similar tunnel for local development: ngrok http 8080
 $publicBaseUrl = 'https://errol-unwithholding-westerly.ngrok-free.dev';
 
 // Initialize the Smart-ID connector with HTTPS pinning
-// For production, add key hashes manually:
-// $sslKeys = SslPinnedPublicKeyStore::create()
-//     ->addPublicKeyHash('sha256//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=')
-//     ->addPublicKeyHash('sha256//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY=');
-// $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
-$connector = new SmartIdRestConnector(
-    $baseUrl,
-    SslPinnedPublicKeyStore::loadDemo(),
-);
+$sslKeys = SslPinnedPublicKeyStore::fromArray($sslPins);
+$client = new SmartIdClient($relyingPartyUUID, $relyingPartyName, $baseUrl, $sslKeys);
+$connector = $client->getConnector();
 
 // ============================================================================
 // AJAX ENDPOINTS
@@ -117,7 +119,7 @@ if (isset($_GET['action'])) {
         // This is required so the Smart-ID backend can validate the authCode
         // CallbackUrlUtil generates a random URL-safe token as the `value` query parameter
         $callbackBase = $publicBaseUrl . '/web2app.php?action=callback';
-        CallbackUrlValidator::validateOrThrow($callbackBase, requireHttps: true);
+        CallbackUrlValidator::validateOrThrow($callbackBase);
         $callbackResult = CallbackUrlUtil::createCallbackUrl($callbackBase);
         $callbackUrl = $callbackResult['callbackUrl'];
         $callbackToken = $callbackResult['token'];
@@ -129,8 +131,8 @@ if (isset($_GET['action'])) {
         ));
 
         $request = new DeviceLinkAuthenticationRequest(
-            relyingPartyUUID: $relyingPartyUUID,
-            relyingPartyName: $relyingPartyName,
+            relyingPartyUUID: $client->getRelyingPartyUUID(),
+            relyingPartyName: $client->getRelyingPartyName(),
             rpChallenge: $rpChallenge,
             hashAlgorithm: HashAlgorithm::SHA512,
             allowedInteractionsOrder: $interactions,
@@ -147,7 +149,7 @@ if (isset($_GET['action'])) {
             'sessionSecret' => $response->getSessionSecret(),
             'deviceLinkBase' => $response->getDeviceLinkBase(),
             'rpChallenge' => $rpChallenge,
-            'rpName' => $relyingPartyName,
+            'rpName' => $client->getRelyingPartyName(),
             'interactionsBase64' => $interactionsBase64,
             'verificationCode' => $verificationCode,
             'createdAt' => time(),
@@ -192,10 +194,15 @@ if (isset($_GET['action'])) {
         );
 
         // Build Web2App URL - must use the SAME callback URL sent to API!
-        $web2appUrl = $session->createDeviceLinkBuilder()
-            ->withDemoEnvironment()
-            ->withCallbackUrl($auth['callbackUrl'])
-            ->buildWeb2AppUrl();
+        $web2appUrlBuilder = $session->createDeviceLinkBuilder()
+            ->withCallbackUrl($auth['callbackUrl']);
+
+        // override to demo env if not in production
+        if (!$isProduction) {
+            $web2appUrlBuilder = $web2appUrlBuilder->withDemoEnvironment();
+        }
+
+        $web2appUrl = $web2appUrlBuilder->buildWeb2AppUrl();
 
         ob_end_clean();
         echo json_encode([
@@ -372,18 +379,17 @@ if (isset($_GET['action'])) {
                     // =========================================================
                     $validator = new AuthenticationResponseValidator();
 
-                    // For DEMO environment - use mock OCSP with designated responder cert pinning.
-                    // The mock endpoint (ocsp_good) uses its own signing cert not chained to the demo CA,
-                    // so we pin the exact responder certificate instead of CA chain validation.
-                    $ocspChecker = OcspCertificateRevocationChecker::createDesignated(
-                        'http://demo.sk.ee/ocsp_good',
-                        file_get_contents(__DIR__ . '/demo_ocsp_responder.pem'),
-                    );
-                    TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    // For DEMO environment with uploaded certs - use real AIA OCSP.
+                    // First upload your cert to https://demo.sk.ee/upload_cert/
+                    // then the AIA OCSP responder (aia.demo.sk.ee) will know your cert.
+                    $ocspChecker = OcspCertificateRevocationChecker::create();
 
-                    // For PRODUCTION environment - use AIA OCSP with CA chain validation:
-                    // $ocspChecker = OcspCertificateRevocationChecker::create();
-                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    if (!$isProduction) {
+                        TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    } else {
+                        $caStore = TrustedCACertificateStore::create();
+                        $caStore->loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    }
 
                     $identity = $validator->validate(
                         $status,
@@ -392,7 +398,7 @@ if (isset($_GET['action'])) {
                         $authData['interactionsBase64'],
                         $authData['callbackUrl'],
                         requiredCertificateLevel: CertificateLevel::QUALIFIED,
-                        schemeName: SchemeName::DEMO,
+                        schemeName: $isProduction ? SchemeName::PRODUCTION : SchemeName::DEMO,
                     );
 
                     // Prevent session fixation: regenerate session ID after successful authentication

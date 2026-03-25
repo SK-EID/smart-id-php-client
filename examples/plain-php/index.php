@@ -51,7 +51,6 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Sk\SmartId\Api\SmartIdRestConnector;
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;

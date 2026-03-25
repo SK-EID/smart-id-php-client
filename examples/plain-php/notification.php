@@ -43,7 +43,6 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Sk\SmartId\Api\SmartIdRestConnector;
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\SchemeName;
@@ -56,6 +55,7 @@ use Sk\SmartId\Exception\ServerErrorException;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
+use Sk\SmartId\SmartIdClient;
 
 session_start();
 
@@ -63,21 +63,22 @@ session_start();
 // CONFIGURATION
 // ============================================================================
 
+// Set to true for production environment, false for demo environment
+// just for testing purposes
+$isProduction = false;
+
 // Smart-ID API endpoint (use production URL for live environment)
-$baseUrl = 'https://sid.demo.sk.ee/smart-id-rp/v3';
+$baseUrl = $isProduction ? 'https://rp-api.smart-id.com/v3' : 'https://sid.demo.sk.ee/smart-id-rp/v3';
+
 // Demo Relying Party credentials (replace with your own for production)
-$relyingPartyUUID = '00000000-0000-4000-8000-000000000000';
-$relyingPartyName = 'DEMO';
+$relyingPartyUUID = $isProduction ? '<your-relying-party-uuid>' : '00000000-0000-4000-8000-000000000000';
+$relyingPartyName = $isProduction ? '<your-relying-party-name>' : 'DEMO';
+$sslPins = $isProduction ? ['sha256//XAlgTJ+3BlgOexKLttcvXfn6Ecu4e2Xr5NyHWnTinKQ='] : ['sha256//Ps1Im3KeB0Q4AlR+/J9KFd/MOznaARdwo4gURPCLaVA='];
 
 // Initialize the Smart-ID connector with HTTPS pinning
-// For production, load hashes from an array (e.g. from a secret manager):
-// $hashes = $secretManager->getSecret('smartid-ssl-pins'); // returns string[]
-// $sslKeys = SslPinnedPublicKeyStore::fromArray($hashes);
-// $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys);
-$connector = new SmartIdRestConnector(
-    $baseUrl,
-    SslPinnedPublicKeyStore::loadDemo(),
-);
+$sslKeys = SslPinnedPublicKeyStore::fromArray($sslPins);
+$client = new SmartIdClient($relyingPartyUUID, $relyingPartyName, $baseUrl, $sslKeys);
+$connector = $client->getConnector();
 
 // ============================================================================
 // AJAX ENDPOINTS
@@ -104,8 +105,8 @@ if (isset($_GET['action'])) {
             // Build and initiate the notification authentication request
             $builder = new NotificationAuthenticationRequestBuilder(
                 $connector,
-                $relyingPartyUUID,
-                $relyingPartyName,
+                $client->getRelyingPartyUUID(),
+                $client->getRelyingPartyName(),
             );
 
             $interactions = [
@@ -135,7 +136,7 @@ if (isset($_GET['action'])) {
                 'sessionId' => $session->getSessionId(),
                 'verificationCode' => $session->getVerificationCode(),
                 'rpChallenge' => $session->getRpChallenge(),
-                'rpName' => $relyingPartyName,
+                'rpName' => $client->getRelyingPartyName(),
                 'interactionsBase64' => $interactionsBase64,
             ];
 
@@ -186,18 +187,17 @@ if (isset($_GET['action'])) {
                     // Create validator with trusted CA certificates
                     $validator = new AuthenticationResponseValidator();
 
-                    // For DEMO environment - use mock OCSP with designated responder cert pinning.
-                    // The mock endpoint (ocsp_good) uses its own signing cert not chained to the demo CA,
-                    // so we pin the exact responder certificate instead of CA chain validation.
-                    $ocspChecker = OcspCertificateRevocationChecker::createDesignated(
-                        'http://demo.sk.ee/ocsp_good',
-                        file_get_contents(__DIR__ . '/demo_ocsp_responder.pem'),
-                    );
-                    TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    // For DEMO environment with uploaded certs - use real AIA OCSP.
+                    // First upload your cert to https://demo.sk.ee/upload_cert/
+                    // then the AIA OCSP responder (aia.demo.sk.ee) will know your cert.
+                    $ocspChecker = OcspCertificateRevocationChecker::create();
 
-                    // For PRODUCTION environment - use AIA OCSP with CA chain validation:
-                    // $ocspChecker = OcspCertificateRevocationChecker::create();
-                    // TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    if (!$isProduction) {
+                        TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    } else {
+                        $caStore = TrustedCACertificateStore::create();
+                        $caStore->loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+                    }
 
                     // Validate the authentication response and extract user identity
                     $identity = $validator->validate(
@@ -206,7 +206,7 @@ if (isset($_GET['action'])) {
                         $authData['rpName'],
                         $authData['interactionsBase64'],
                         requiredCertificateLevel: CertificateLevel::QUALIFIED,
-                        schemeName: SchemeName::DEMO,
+                        schemeName: $isProduction ? SchemeName::PRODUCTION : SchemeName::DEMO,
                     );
 
                     // Prevent session fixation: regenerate session ID after successful authentication
