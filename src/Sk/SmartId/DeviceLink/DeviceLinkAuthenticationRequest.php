@@ -91,7 +91,7 @@ class DeviceLinkAuthenticationRequest extends AbstractAuthenticationRequest
     public function toArray(): array
     {
         $data = $this->buildBaseArray();
-        $data['interactions'] = base64_encode(json_encode($this->mapInteractionsToArray(), JSON_THROW_ON_ERROR));
+        $data['interactions'] = DeviceLinkInteraction::encodeInteractionsToBase64($this->allowedInteractionsOrder);
 
         if ($this->initialCallbackUrl !== null) {
             $data['initialCallbackUrl'] = $this->initialCallbackUrl;

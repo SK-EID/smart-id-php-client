@@ -52,8 +52,6 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
-use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
-use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
 use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
@@ -99,8 +97,6 @@ if (isset($_GET['action'])) {
     ob_start();
     header('Content-Type: application/json');
 
-    $interactions = [DeviceLinkInteraction::displayTextAndPin('Test login')];
-
     // -------------------------------------------------------------------------
     // ACTION: init - Start a new authentication session
     // -------------------------------------------------------------------------
@@ -109,35 +105,29 @@ if (isset($_GET['action'])) {
         // This is used to create the authentication request and verify the response
         $rpChallenge = RpChallengeGenerator::generate();
 
-        // Store the interactions' Base64 representation
-        // This exact Base64 value is needed later for response signature verification
-        $interactionsBase64 = base64_encode(json_encode(
-            array_map(fn (DeviceLinkInteraction $i) => $i->toArray(), $interactions),
-            JSON_THROW_ON_ERROR,
-        ));
+        // Define the interactions to be displayed to the user
+        $interactions = [DeviceLinkInteraction::displayTextAndPin('Test login')];
 
-        // Build the authentication request
-        $request = new DeviceLinkAuthenticationRequest(
-            relyingPartyUUID: $client->getRelyingPartyUUID(),
-            relyingPartyName: $client->getRelyingPartyName(),
-            rpChallenge: $rpChallenge,
-            hashAlgorithm: HashAlgorithm::SHA512,
-            allowedInteractionsOrder: $interactions,
-            certificateLevel: CertificateLevel::QUALIFIED,
-        );
+        // Use the builder to initiate authentication session
+        $session = $client->createDeviceLinkAuthentication()
+            ->withRpChallenge($rpChallenge)
+            ->withHashAlgorithm(HashAlgorithm::SHA512)
+            ->withAllowedInteractionsOrder($interactions)
+            ->withCertificateLevel(CertificateLevel::QUALIFIED)
+            ->initiate();
 
-        // Send the request to Smart-ID API
-        $response = $connector->initiateDeviceLinkAuthentication($request);
+        // Get the response from the session
+        $response = $session->getResponse();
 
         // Store session data for subsequent requests (QR refresh, status polling)
         $_SESSION['auth'] = [
-            'sessionId' => $response->getSessionID(),
+            'sessionId' => $session->getSessionId(),
             'sessionToken' => $response->getSessionToken(),
             'sessionSecret' => $response->getSessionSecret(),
             'deviceLinkBase' => $response->getDeviceLinkBase(),
             'rpChallenge' => $rpChallenge,
             'rpName' => $client->getRelyingPartyName(),
-            'interactionsBase64' => $interactionsBase64,
+            'interactionsBase64' => $session->getInteractionsBase64(),
             'createdAt' => time(),
         ];
 
@@ -171,11 +161,12 @@ if (isset($_GET['action'])) {
             $auth['deviceLinkBase'],
         );
 
-        $session = new DeviceLinkAuthenticationSession(
+        // Reconstruct the session with stored interactionsBase64
+        $session = new \Sk\SmartId\DeviceLink\DeviceLinkAuthenticationSession(
             $response,
             $auth['rpChallenge'],
             $auth['rpName'],
-            $interactions,
+            $auth['interactionsBase64'], // Use stored base64 string
         );
 
         // Calculate how many seconds have passed since session creation
@@ -295,7 +286,6 @@ if (isset($_GET['action'])) {
                     // Store certificate PEM in session for download
                     // This can be uploaded to https://demo.sk.ee/upload_cert/ for demo OCSP testing
                     $_SESSION['lastCertPem'] = $status->getCert()->getPemEncodedCertificate();
-
                 } catch (\Sk\SmartId\Exception\ValidationException $e) {
                     // Validation failed - do not trust this authentication!
                     $response['endResult'] = 'VALIDATION_ERROR';

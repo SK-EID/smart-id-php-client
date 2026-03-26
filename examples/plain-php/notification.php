@@ -113,10 +113,6 @@ if (isset($_GET['action'])) {
                 NotificationInteraction::confirmationMessageAndVerificationCodeChoice('Login to Demo'),
                 NotificationInteraction::displayTextAndPin('Login to Demo'),
             ];
-            $interactionsBase64 = base64_encode(json_encode(
-                array_map(fn (NotificationInteraction $i) => $i->toArray(), $interactions),
-                JSON_THROW_ON_ERROR,
-            ));
 
             // Use document number if provided, otherwise use semantics identifier
             if (!empty($documentNumber)) {
@@ -130,6 +126,9 @@ if (isset($_GET['action'])) {
                 ->withCertificateLevel(CertificateLevel::QUALIFIED)
                 ->withAllowedInteractionsOrder($interactions)
                 ->initiate();
+
+            // For notification-based flows, manually encode interactions for validation
+            $interactionsBase64 = NotificationInteraction::encodeInteractionsToBase64($interactions);
 
             // Store session data for status polling
             $_SESSION['auth'] = [

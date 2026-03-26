@@ -52,13 +52,13 @@ class DeviceLinkAuthenticationSession
     private readonly float $createdAt;
 
     /**
-     * @param DeviceLinkInteraction[] $interactions
+     * @param string $interactionsBase64 Base64-encoded JSON string of interactions
      */
     public function __construct(
         private readonly DeviceLinkAuthenticationResponse $response,
         private readonly string $rpChallenge,
         private readonly string $rpName,
-        private readonly array $interactions,
+        private readonly string $interactionsBase64,
         private readonly ?string $verificationCode = null,
         private readonly ?string $callbackUrl = null,
     ) {
@@ -86,8 +86,13 @@ class DeviceLinkAuthenticationSession
             $this->response,
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
         );
+    }
+
+    public function getInteractionsBase64(): string
+    {
+        return $this->interactionsBase64;
     }
 
     public function buildQrCodeUrl(?int $elapsedSeconds = null): string

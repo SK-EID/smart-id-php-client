@@ -61,8 +61,7 @@ class DeviceLinkBuilder
 
     private string $rpName;
 
-    /** @var DeviceLinkInteraction[] */
-    private array $interactions;
+    private string $interactionsBase64;
 
     private int $elapsedSeconds = 0;
 
@@ -79,18 +78,18 @@ class DeviceLinkBuilder
     private SchemeName $schemeName = SchemeName::PRODUCTION;
 
     /**
-     * @param DeviceLinkInteraction[] $interactions
+     * @param string $interactionsBase64 Base64-encoded JSON string of interactions
      */
     public function __construct(
         DeviceLinkAuthenticationResponse $response,
         string $rpChallenge,
         string $rpName,
-        array $interactions,
+        string $interactionsBase64,
     ) {
         $this->response = $response;
         $this->rpChallenge = $rpChallenge;
         $this->rpName = $rpName;
-        $this->interactions = $interactions;
+        $this->interactionsBase64 = $interactionsBase64;
     }
 
     public function withElapsedSeconds(int $elapsedSeconds): self
@@ -175,7 +174,7 @@ class DeviceLinkBuilder
             $this->response->getSessionSecret(),
             $this->rpChallenge,
             $this->rpName,
-            $this->interactions,
+            $this->interactionsBase64,
             $unprotectedDeviceLink,
             $this->callbackUrl,
             $this->brokeredRpName,

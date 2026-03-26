@@ -42,7 +42,7 @@ class AuthCodeCalculator
      * @param string $sessionSecret Base64-encoded session secret from API response
      * @param string $rpChallenge Base64-encoded RP challenge
      * @param string $rpName Relying Party name
-     * @param AbstractInteraction[] $interactions Array of interaction objects
+     * @param string $interactionsBase64 Base64-encoded JSON string of interactions
      * @param string $unprotectedDeviceLink The device link URL without authCode parameter
      * @param string|null $initialCallbackUrl Optional callback URL (for Web2App flows)
      * @param string|null $brokeredRpName Optional brokered RP name
@@ -52,7 +52,7 @@ class AuthCodeCalculator
         string $sessionSecret,
         string $rpChallenge,
         string $rpName,
-        array $interactions,
+        string $interactionsBase64,
         string $unprotectedDeviceLink,
         ?string $initialCallbackUrl = null,
         ?string $brokeredRpName = null,
@@ -67,7 +67,7 @@ class AuthCodeCalculator
             $schemeName->value,
             $rpChallenge,
             $rpName,
-            $interactions,
+            $interactionsBase64,
             $initialCallbackUrl,
             $brokeredRpName,
             $unprotectedDeviceLink,
@@ -79,20 +79,19 @@ class AuthCodeCalculator
     }
 
     /**
-     * @param AbstractInteraction[] $interactions
+     * @param string $interactionsBase64 Base64-encoded JSON string of interactions
      */
     private static function buildPayload(
         string $schemeName,
         string $rpChallenge,
         string $rpName,
-        array $interactions,
+        string $interactionsBase64,
         ?string $initialCallbackUrl,
         ?string $brokeredRpName,
         string $unprotectedDeviceLink,
     ): string {
         $rpNameBase64 = base64_encode($rpName);
         $brokeredRpNameBase64 = $brokeredRpName !== null ? base64_encode($brokeredRpName) : '';
-        $interactionsBase64 = self::formatInteractions($interactions);
         $callbackUrlValue = $initialCallbackUrl ?? '';
 
         return implode('|', [
@@ -105,24 +104,5 @@ class AuthCodeCalculator
             $callbackUrlValue,
             $unprotectedDeviceLink,
         ]);
-    }
-
-    /**
-     * Format interactions as Base64-encoded JSON array.
-     *
-     * @param AbstractInteraction[] $interactions
-     */
-    private static function formatInteractions(array $interactions): string
-    {
-        if (empty($interactions)) {
-            return '';
-        }
-
-        $interactionsArray = array_map(
-            fn (AbstractInteraction $interaction) => $interaction->toArray(),
-            $interactions,
-        );
-
-        return base64_encode(json_encode($interactionsArray, JSON_THROW_ON_ERROR));
     }
 }

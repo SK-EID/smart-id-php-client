@@ -191,11 +191,14 @@ class DeviceLinkAuthenticationRequestBuilder
             $this->rpChallenge,
         );
 
+        // Encode interactions once to ensure consistency across API calls and authCode calculation
+        $interactionsBase64 = DeviceLinkInteraction::encodeInteractionsToBase64($this->allowedInteractionsOrder);
+
         return new DeviceLinkAuthenticationSession(
             $response,
             $this->rpChallenge,
             $this->relyingPartyName,
-            $this->allowedInteractionsOrder,
+            $interactionsBase64,
             $verificationCode,
             $this->callbackUrl,
         );

@@ -730,17 +730,24 @@ TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator
 
 // The interactions Base64 value must match what was sent in the original request
 $interactions = [DeviceLinkInteraction::displayTextAndPin('Log in to example.com')];
-$interactionsBase64 = base64_encode(json_encode(
-    array_map(fn (DeviceLinkInteraction $i) => $i->toArray(), $interactions),
-    JSON_THROW_ON_ERROR,
-));
+
+// Initiate the authentication session
+$session = $client->createDeviceLinkAuthentication()
+    ->withRpChallenge($rpChallenge)
+    ->withHashAlgorithm(HashAlgorithm::SHA512)
+    ->withAllowedInteractionsOrder($interactions)
+    ->initiate();
+
+// The session now contains the pre-encoded interactions Base64 string
+// This ensures the same encoding is used for both API requests and signature verification
+$interactionsBase64 = $session->getInteractionsBase64();
 
 // Validate and extract identity
 $identity = $validator->validate(
     $sessionStatus,
     $rpChallenge,                             // Base64-encoded RP challenge from the original request
     'DEMO',                                   // Relying Party name
-    $interactionsBase64,                      // Base64-encoded interactions JSON
+    $interactionsBase64,                      // Base64-encoded interactions JSON from the session
     requiredCertificateLevel: CertificateLevel::QUALIFIED,
     schemeName: SchemeName::DEMO, // Use SchemeName::PRODUCTION for live
 );
