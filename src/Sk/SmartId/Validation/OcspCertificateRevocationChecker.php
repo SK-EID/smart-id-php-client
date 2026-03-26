@@ -42,6 +42,7 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Sk\SmartId\Exception\ValidationException;
+use Sk\SmartId\Util\DerNavigator;
 use Sk\SmartId\Validation\Maps\OcspBasicResponseMap;
 use Sk\SmartId\Validation\Maps\OcspResponseMap;
 
@@ -58,6 +59,16 @@ class OcspCertificateRevocationChecker
     private const NONCE_LENGTH = 32;
 
     private const ARCHIVE_CUTOFF_OID = '1.3.6.1.5.5.7.48.1.6';
+
+    private const OCSP_NONCE_OID = '1.3.6.1.5.5.7.48.1.2';
+
+    private const OCSP_SIGNING_EKU_OID = '1.3.6.1.5.5.7.3.9';
+
+    /** @var int Clock skew tolerance in seconds for time validation */
+    private const CLOCK_SKEW_TOLERANCE_SECONDS = 120;
+
+    /** @var string SHA-1 OID in DER-encoded form (used for OCSP CertID hash algorithm) */
+    private const SHA1_OID_DER = "\x2B\x0E\x03\x02\x1A";
 
     private ClientInterface $httpClient;
 
@@ -159,7 +170,7 @@ class OcspCertificateRevocationChecker
         $serialBytes = $serialNumber->toBytes(true);
 
         $hashAlgorithm = $this->derSequence(
-            $this->derOid("\x2B\x0E\x03\x02\x1A"),
+            $this->derOid(self::SHA1_OID_DER),
         );
 
         $certId = $this->derSequence(
@@ -339,8 +350,8 @@ class OcspCertificateRevocationChecker
         $thisUpdate = $this->parseGeneralizedTime($thisUpdateRaw);
         $now = time();
 
-        // thisUpdate must not be in the future (with 120s clock skew tolerance)
-        if ($thisUpdate > $now + 120) {
+        // thisUpdate must not be in the future (with clock skew tolerance)
+        if ($thisUpdate > $now + self::CLOCK_SKEW_TOLERANCE_SECONDS) {
             throw new ValidationException('OCSP response thisUpdate is in the future');
         }
 
@@ -374,7 +385,7 @@ class OcspCertificateRevocationChecker
         }
 
         $producedAt = $this->parseGeneralizedTime($producedAtRaw);
-        if ($producedAt > $now + 120) {
+        if ($producedAt > $now + self::CLOCK_SKEW_TOLERANCE_SECONDS) {
             throw new ValidationException('OCSP response producedAt is in the future');
         }
     }
@@ -404,7 +415,7 @@ class OcspCertificateRevocationChecker
 
         foreach ($responseExtensions as $ext) {
             $extId = $ext['extnId'] ?? '';
-            if ($extId === 'id-pkix-ocsp-nonce' || $extId === '1.3.6.1.5.5.7.48.1.2') {
+            if ($extId === 'id-pkix-ocsp-nonce' || $extId === self::OCSP_NONCE_OID) {
                 $extnValue = $ext['extnValue'] ?? '';
 
                 // extnValue is an OCTET STRING containing DER-encoded OCTET STRING
@@ -483,18 +494,12 @@ class OcspCertificateRevocationChecker
 
     private function extractTbsResponseDataDer(string $basicResponseRawDer): string
     {
-        // Decode the raw BasicOCSPResponse to locate the tbsResponseData node.
-        // tbsResponseData is the first child of the outer SEQUENCE.
-        $decoded = ASN1::decodeBER($basicResponseRawDer);
-        if (!is_array($decoded) || !isset($decoded[0]['content'][0])) {
-            throw new ValidationException('Failed to locate tbsResponseData in BasicOCSPResponse');
-        }
+        // tbsResponseData is the first child of the outer BasicOCSPResponse SEQUENCE.
+        // We extract the original bytes to verify the signature against the exact encoding.
+        $tbsNode = DerNavigator::fromDer($basicResponseRawDer, 'BasicOCSPResponse')
+            ->child(0, 'tbsResponseData');
 
-        $tbsNode = $decoded[0]['content'][0];
-
-        // In phpseclib's decodeBER, for child nodes: 'start' is the byte offset
-        // within the input and 'length' is the total occupied bytes (header + content).
-        return substr($basicResponseRawDer, $tbsNode['start'], $tbsNode['length']);
+        return $tbsNode->extractRawBytes($basicResponseRawDer);
     }
 
     private function resolveResponderCertificate(array $basicResponse, string $issuerCertPem): string
@@ -577,7 +582,7 @@ class OcspCertificateRevocationChecker
         }
 
         $extKeyUsage = $certInfo['extensions']['extendedKeyUsage'] ?? '';
-        $hasOcspSigning = str_contains($extKeyUsage, '1.3.6.1.5.5.7.3.9')
+        $hasOcspSigning = str_contains($extKeyUsage, self::OCSP_SIGNING_EKU_OID)
             || stripos($extKeyUsage, 'OCSP Signing') !== false;
 
         if (!$hasOcspSigning) {
@@ -698,14 +703,7 @@ class OcspCertificateRevocationChecker
             throw new ValidationException('Failed to decode issuer certificate DER');
         }
 
-        $decoded = ASN1::decodeBER($der);
-        if ($decoded === null || !isset($decoded[0]['content'][0]['content'][6]['content'][1]['content'])) {
-            throw new ValidationException('Failed to extract public key from issuer certificate');
-        }
-
-        $bitStringContent = $decoded[0]['content'][0]['content'][6]['content'][1]['content'];
-
-        return substr($bitStringContent, 1);
+        return DerNavigator::extractPublicKeyBytesFromCertDer($der);
     }
 
     private function extractOcspUrl(array $cert): string

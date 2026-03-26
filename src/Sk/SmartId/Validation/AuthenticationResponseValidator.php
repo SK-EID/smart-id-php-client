@@ -33,7 +33,7 @@ namespace Sk\SmartId\Validation;
 use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 use phpseclib3\Crypt\RSA\PublicKey as RSAPublicKey;
-use phpseclib3\File\ASN1;
+use phpseclib3\File\X509;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Exception\SmartIdException;
@@ -46,6 +46,24 @@ use Sk\SmartId\Util\Base64Url;
 
 class AuthenticationResponseValidator
 {
+    /** OID for SK Smart-ID Qualified certificate policy */
+    private const POLICY_OID_QUALIFIED = '1.3.6.1.4.1.10015.17.2';
+
+    /** OID for SK Smart-ID Non-Qualified certificate policy */
+    private const POLICY_OID_NON_QUALIFIED = '1.3.6.1.4.1.10015.17.1';
+
+    /** OID for EU Qualified Certificate Policy for electronic signatures */
+    private const POLICY_OID_EU_QCP = '0.4.0.2042.1.2';
+
+    /** OID for Smart-ID authentication Extended Key Usage (April 2025+) */
+    private const EKU_OID_SMART_ID_AUTH = '1.3.6.1.4.1.62306.5.7.0';
+
+    /** OID for TLS Web Client Authentication Extended Key Usage */
+    private const EKU_OID_CLIENT_AUTH = '1.3.6.1.5.5.7.3.2';
+
+    /** OID for id-pda-dateOfBirth attribute */
+    private const DOB_ATTRIBUTE_OID = '1.3.6.1.5.5.7.9.1';
+
     /** @var string[] PEM-encoded CA certificates */
     private array $trustedCaCertificates = [];
 
@@ -284,37 +302,20 @@ class AuthenticationResponseValidator
             throw new ValidationException('Certificate has expired');
         }
 
-        // Use openssl_x509_checkpurpose for proper certificate chain validation.
-        // Unlike openssl_x509_verify (direct issuer check only), this builds the
-        // full chain from leaf through intermediates to root trust anchors.
-        $caFiles = $this->trustedCaCertificateFiles;
-        $tempFiles = [];
+        // Use phpseclib X509 for in-memory certificate chain validation.
+        // This walks the full chain from leaf through intermediates to root
+        // trust anchors without writing any data to disk.
+        $x509 = new X509();
+        X509::disableURLFetch();
 
-        // If only PEM strings available (no file paths), write to temp files
-        if (empty($caFiles) && !empty($this->trustedCaCertificates)) {
-            foreach ($this->trustedCaCertificates as $pemCert) {
-                $tmpFile = tempnam(sys_get_temp_dir(), 'smartid_ca_');
-                if ($tmpFile === false) {
-                    throw new ValidationException('Failed to create temporary file for CA certificate');
-                }
-                if (file_put_contents($tmpFile, $pemCert) === false) {
-                    throw new ValidationException('Failed to write CA certificate to temporary file');
-                }
-                $caFiles[] = $tmpFile;
-                $tempFiles[] = $tmpFile;
-            }
+        foreach ($this->getAllTrustedCaPems() as $caPem) {
+            $x509->loadCA($caPem);
         }
 
-        try {
-            $result = openssl_x509_checkpurpose($certPem, X509_PURPOSE_ANY, $caFiles);
+        $x509->loadX509($certPem);
 
-            if ($result !== true) {
-                throw new ValidationException('Certificate is not signed by a trusted CA');
-            }
-        } finally {
-            foreach ($tempFiles as $tmpFile) {
-                @unlink($tmpFile);
-            }
+        if (!$x509->validateSignature()) {
+            throw new ValidationException('Certificate is not signed by a trusted CA');
         }
     }
 
@@ -371,25 +372,36 @@ class AuthenticationResponseValidator
             return null;
         }
 
-        $pemCerts = $this->trustedCaCertificates;
-
-        // If no PEM strings available, read from file paths
-        if (empty($pemCerts) && !empty($this->trustedCaCertificateFiles)) {
-            foreach ($this->trustedCaCertificateFiles as $file) {
-                $content = file_get_contents($file);
-                if ($content !== false) {
-                    $pemCerts[] = $content;
-                }
-            }
-        }
-
-        foreach ($pemCerts as $caCert) {
+        foreach ($this->getAllTrustedCaPems() as $caCert) {
             if (openssl_x509_verify($certResource, $caCert) === 1) {
                 return $caCert;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Resolve all trusted CA certificates as PEM strings,
+     * reading from file paths if only file paths are configured.
+     *
+     * @return string[]
+     */
+    private function getAllTrustedCaPems(): array
+    {
+        if (!empty($this->trustedCaCertificates)) {
+            return $this->trustedCaCertificates;
+        }
+
+        $pems = [];
+        foreach ($this->trustedCaCertificateFiles as $file) {
+            $content = file_get_contents($file);
+            if ($content !== false) {
+                $pems[] = $content;
+            }
+        }
+
+        return $pems;
     }
 
     /**
@@ -410,19 +422,19 @@ class AuthenticationResponseValidator
     {
         $policies = $certInfo['extensions']['certificatePolicies'] ?? '';
 
-        $hasQualifiedPolicy = str_contains($policies, '1.3.6.1.4.1.10015.17.2');
-        $hasNonQualifiedPolicy = str_contains($policies, '1.3.6.1.4.1.10015.17.1');
+        $hasQualifiedPolicy = str_contains($policies, self::POLICY_OID_QUALIFIED);
+        $hasNonQualifiedPolicy = str_contains($policies, self::POLICY_OID_NON_QUALIFIED);
 
         if (!$hasQualifiedPolicy && !$hasNonQualifiedPolicy) {
             throw new ValidationException(
                 'Certificate does not contain Smart-ID scheme Certificate Policy OIDs '
-                . '(expected 1.3.6.1.4.1.10015.17.2 for Qualified or 1.3.6.1.4.1.10015.17.1 for Non-Qualified)',
+                . '(expected ' . self::POLICY_OID_QUALIFIED . ' for Qualified or ' . self::POLICY_OID_NON_QUALIFIED . ' for Non-Qualified)',
             );
         }
 
-        if ($hasQualifiedPolicy && !str_contains($policies, '0.4.0.2042.1.2')) {
+        if ($hasQualifiedPolicy && !str_contains($policies, self::POLICY_OID_EU_QCP)) {
             throw new ValidationException(
-                'Qualified Smart-ID certificate is missing EU QCP policy OID 0.4.0.2042.1.2',
+                'Qualified Smart-ID certificate is missing EU QCP policy OID ' . self::POLICY_OID_EU_QCP,
             );
         }
     }
@@ -443,8 +455,8 @@ class AuthenticationResponseValidator
         // New certs (April 2025+): Smart-ID authentication OID 1.3.6.1.4.1.62306.5.7.0
         // Older certs: id-kp-clientAuth OID 1.3.6.1.5.5.7.3.2
         $extKeyUsage = $certInfo['extensions']['extendedKeyUsage'] ?? '';
-        $hasSmartIdAuthEku = str_contains($extKeyUsage, '1.3.6.1.4.1.62306.5.7.0');
-        $hasClientAuthEku = str_contains($extKeyUsage, '1.3.6.1.5.5.7.3.2')
+        $hasSmartIdAuthEku = str_contains($extKeyUsage, self::EKU_OID_SMART_ID_AUTH);
+        $hasClientAuthEku = str_contains($extKeyUsage, self::EKU_OID_CLIENT_AUTH)
             || stripos($extKeyUsage, 'TLS Web Client Authentication') !== false;
 
         if (!$hasSmartIdAuthEku && !$hasClientAuthEku) {
@@ -707,8 +719,7 @@ class AuthenticationResponseValidator
      */
     private function extractDateOfBirthFromCert(array $certInfo, string $certPem): ?\DateTimeImmutable
     {
-        // OID for id-pda-dateOfBirth
-        $dateOfBirthOid = '1.3.6.1.5.5.7.9.1';
+        $dateOfBirthOid = self::DOB_ATTRIBUTE_OID;
 
         try {
             // Use phpseclib X509 parser — portable across all OpenSSL versions
@@ -729,6 +740,7 @@ class AuthenticationResponseValidator
                         $timeStr = $val['generalTime'] ?? $val['utcTime'] ?? null;
                         if (is_string($timeStr)) {
                             $dt = new \DateTimeImmutable($timeStr);
+
                             return $dt->setTime(0, 0);
                         }
                     }
