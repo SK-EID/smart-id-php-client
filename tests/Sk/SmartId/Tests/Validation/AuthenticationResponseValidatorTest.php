@@ -430,28 +430,6 @@ class AuthenticationResponseValidatorTest extends TestCase
     }
 
     #[Test]
-    public function setOcspRevocationCheckerReturnsSelf(): void
-    {
-        $validator = new AuthenticationResponseValidator();
-        $factory = new HttpFactory();
-        $checker = new OcspCertificateRevocationChecker(new Client(), $factory, $factory);
-
-        $result = $validator->setOcspRevocationChecker($checker);
-
-        $this->assertSame($validator, $result);
-    }
-
-    #[Test]
-    public function setOcspRevocationCheckerWithNullReturnsSelf(): void
-    {
-        $validator = new AuthenticationResponseValidator();
-
-        $result = $validator->setOcspRevocationChecker(null);
-
-        $this->assertSame($validator, $result);
-    }
-
-    #[Test]
     public function validateThrowsForCaCertificateUsedAsEndEntity(): void
     {
         // Use the test CA cert (has CA:TRUE) as if it were an end-entity cert
@@ -1077,9 +1055,8 @@ class AuthenticationResponseValidatorTest extends TestCase
 
         $status = self::createSignedSessionStatus('ocsp_ee', 'ADVANCED');
 
-        $validator = new AuthenticationResponseValidator();
+        $validator = new AuthenticationResponseValidator(ocspChecker: $ocspChecker);
         $validator->setTrustedCaCertificates([$caCertPem]);
-        $validator->setOcspRevocationChecker($ocspChecker);
 
         $identity = $validator->validate($status, self::TEST_RP_CHALLENGE, self::TEST_RP_NAME, self::TEST_INTERACTIONS_BASE64);
 
@@ -1110,10 +1087,9 @@ class AuthenticationResponseValidatorTest extends TestCase
 
         $status = self::createSignedSessionStatus('qualified_smartid_ee', 'QUALIFIED');
 
-        $validator = new AuthenticationResponseValidator();
+        $validator = new AuthenticationResponseValidator(ocspChecker: $ocspChecker);
         // Trust via files (exercises findIssuerCertificate file-reading path)
         $validator->setTrustedCaCertificateFiles([$caCertPath]);
-        $validator->setOcspRevocationChecker($ocspChecker);
 
         // This should exercise the findIssuerCertificate file-reading path
         // and then pass because the cert IS signed by the CA in the file

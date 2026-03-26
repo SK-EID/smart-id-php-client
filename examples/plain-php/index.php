@@ -234,15 +234,13 @@ if (isset($_GET['action'])) {
             // =========================================================
             if ($status->getResult()->isOk()) {
                 try {
-                    // Create validator and OCSP checker via client (logger is propagated automatically)
+                    // Create validator via client (OCSP revocation checking is enabled automatically)
                     $validator = $client->createAuthenticationResponseValidator();
-                    $ocspChecker = $client->createOcspChecker();
 
                     if (!$isProduction) {
-                        TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
+                        TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
                     } else {
-                        $caStore = TrustedCACertificateStore::create();
-                        $caStore->loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+                        TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
                     }
 
                     // Validate the authentication response and extract user identity

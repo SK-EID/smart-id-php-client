@@ -138,12 +138,7 @@ class SmartIdClient
 
     public function createAuthenticationResponseValidator(): AuthenticationResponseValidator
     {
-        return new AuthenticationResponseValidator($this->logger);
-    }
-
-    public function createOcspChecker(): OcspCertificateRevocationChecker
-    {
-        return OcspCertificateRevocationChecker::create($this->logger);
+        return new AuthenticationResponseValidator($this->logger, OcspCertificateRevocationChecker::create($this->logger));
     }
 
     public function getRelyingPartyUUID(): string

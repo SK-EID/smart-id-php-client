@@ -143,9 +143,8 @@ $notificationBuilder = $client->createNotificationAuthentication();
 // Get the session status poller
 $poller = $client->getSessionStatusPoller();
 
-// Create validator and OCSP checker (logger is propagated automatically)
+// Create validator (OCSP revocation checking is enabled automatically)
 $validator = $client->createAuthenticationResponseValidator();
-$ocspChecker = $client->createOcspChecker();
 
 // Configure polling parameters (optional)
 $client->setPollTimeoutMs(30000);
@@ -704,35 +703,30 @@ It is critical to validate the authentication response to ensure the signature a
 ```php
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 
-// Create via SmartIdClient (logger is propagated automatically)
+// Create via SmartIdClient (OCSP revocation checking is enabled automatically)
 $validator = $client->createAuthenticationResponseValidator();
-$ocspChecker = $client->createOcspChecker();
 
-// PRODUCTION — load bundled certificates with OCSP revocation checking
-TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+// PRODUCTION — load bundled certificates
+TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
 
-// DEMO — demo OCSP responder reports test certs as revoked, so use configureValidator() instead
+// DEMO — load test certificates (upload certs to demo OCSP first, see "Uploading certificates to demo OCSP")
 // TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 
-// Custom directory (with OCSP)
-// TrustedCACertificateStore::loadFromDirectory('/path/to/certs')->configureValidatorWithOcsp($validator, $ocspChecker);
+// Custom directory
+// TrustedCACertificateStore::loadFromDirectory('/path/to/certs')->configureValidator($validator);
 
-// Manual certificates (with OCSP)
+// Manual certificates
 // $store = TrustedCACertificateStore::create()
 //     ->addCertificate($pemEncodedCert)
 //     ->addCertificateFromFile('/path/to/cert.pem.crt');
-// $store->configureValidatorWithOcsp($validator, $ocspChecker);
+// $store->configureValidator($validator);
 ```
 
 ### OCSP certificate revocation checking
 
-The `OcspCertificateRevocationChecker` verifies that the end-entity certificate has not been revoked by reading the OCSP responder URL from the certificate's Authority Information Access (AIA) extension.
+OCSP revocation checking is enabled automatically when creating a validator via `SmartIdClient::createAuthenticationResponseValidator()`. The checker verifies that the end-entity certificate has not been revoked by reading the OCSP responder URL from the certificate's Authority Information Access (AIA) extension.
 
-```php
-use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
-
-$ocspChecker = OcspCertificateRevocationChecker::create();
-```
+> **Note:** For the demo environment, you must first upload your test certificates to the demo OCSP responder — see [Uploading certificates to demo OCSP](#uploading-certificates-to-demo-ocsp).
 
 ### Validating device link authentication
 
@@ -742,7 +736,7 @@ use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
-// Set up validator (demo environment — no OCSP, see note above)
+// Set up validator (demo environment — upload certs to demo OCSP first, see "Uploading certificates to demo OCSP")
 $validator = $client->createAuthenticationResponseValidator();
 TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 
@@ -1072,9 +1066,8 @@ $client = new SmartIdClient(
 // $client->createNotificationAuthentication()...
 // $client->getSessionStatusPoller()->pollUntilComplete(...)
 
-// Validator and OCSP checker also get the logger automatically:
+// Validator (with OCSP checker) also gets the logger automatically:
 $validator = $client->createAuthenticationResponseValidator();
-$ocspChecker = $client->createOcspChecker();
 ```
 
 ### Standalone usage (without SmartIdClient)

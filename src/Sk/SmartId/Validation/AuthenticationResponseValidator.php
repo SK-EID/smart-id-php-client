@@ -74,11 +74,12 @@ class AuthenticationResponseValidator
     /** @var string[] File paths to trusted CA certificate files */
     private array $trustedCaCertificateFiles = [];
 
-    private ?OcspCertificateRevocationChecker $ocspChecker = null;
+    private ?OcspCertificateRevocationChecker $ocspChecker;
 
-    public function __construct(?LoggerInterface $logger = null)
+    public function __construct(?LoggerInterface $logger = null, ?OcspCertificateRevocationChecker $ocspChecker = null)
     {
         $this->logger = $logger ?? new NullLogger();
+        $this->ocspChecker = $ocspChecker;
     }
 
     /**
@@ -116,12 +117,6 @@ class AuthenticationResponseValidator
         return $this;
     }
 
-    public function setOcspRevocationChecker(?OcspCertificateRevocationChecker $checker): self
-    {
-        $this->ocspChecker = $checker;
-
-        return $this;
-    }
 
     /**
      * Verify session secret for Web2App/App2App flows.

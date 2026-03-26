@@ -192,13 +192,4 @@ class TrustedCACertificateStore
         return $validator;
     }
 
-    public function configureValidatorWithOcsp(
-        AuthenticationResponseValidator $validator,
-        OcspCertificateRevocationChecker $ocspChecker,
-    ): AuthenticationResponseValidator {
-        $this->configureValidator($validator);
-        $validator->setOcspRevocationChecker($ocspChecker);
-
-        return $validator;
-    }
 }
