@@ -35,6 +35,7 @@ This library supports Smart-ID API v3.
         - [Single status query](#single-status-query)
     - [Validating authentication response](#validating-authentication-response)
         - [Setting up trusted CA certificates](#setting-up-trusted-ca-certificates)
+        - [OCSP certificate revocation checking](#ocsp-certificate-revocation-checking)
         - [Validating device link authentication](#validating-device-link-authentication)
         - [Validating notification-based authentication](#validating-notification-based-authentication)
         - [Web2App flow validation](#web2app-flow-validation)
@@ -57,6 +58,7 @@ The Smart-ID PHP client can be used for easy integration of the [Smart-ID](https
 - ACSP_V2 signature protocol with RSA-PSS verification
 - SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-384, SHA3-512 hash algorithm support
 - Certificate trust chain validation with full signatureAlgorithmParameters validation
+- OCSP certificate revocation checking via AIA or designated responder
 - Verification code calculation
 - CallbackUrlUtil for Web2App/App2App callback URL creation and validation
 
@@ -170,8 +172,6 @@ $connector = new SmartIdRestConnector('https://rp-api.smart-id.com/v3', $sslKeys
 ### Setting up HTTPS public key pinning
 
 HTTPS public key pinning is used to prevent man-in-the-middle attacks against the Smart-ID API connection.
-The SDK handles this automatically — Guzzle's default SSL verification is disabled and replaced with
-[CURLOPT_PINNEDPUBLICKEY](https://curl.se/libcurl/c/CURLOPT_PINNEDPUBLICKEY.html) pinning against SK's server certificate public keys.
 
 Live SSL certificates: https://sk-eid.github.io/smart-id-documentation/https_pinning.html#_rp_api_smart_id_com_certificates
 
@@ -270,7 +270,7 @@ More info: https://sk-eid.github.io/smart-id-documentation/rp-api/device_link_fl
 - **certificateLevel** — Level of certificate requested. Possible values: `QUALIFIED`, `ADVANCED`. Defaults to `QUALIFIED`.
 - **hashAlgorithm** — Hash algorithm for signatures. Supported: `SHA-256`, `SHA-384`, `SHA-512`, `SHA3-256`, `SHA3-384`, `SHA3-512`. Defaults to `SHA-512`.
 - **interactions** — Required. Array of `DeviceLinkInteraction` objects defining the allowed interactions in order of preference.
-- **callbackUrl** — Optional. HTTPS callback URL for Web2App same-device flows.
+- **initialCallbackUrl** — Optional. HTTPS callback URL for Web2App same-device flows. Set via `withCallbackUrl()` on the builder.
 - **nonce** — Optional. Random string, up to 30 characters. Used to override idempotent behaviour (if the same request is made within a 15-second window, the same response is returned unless a nonce is provided).
 - **capabilities** — Optional. Array of capability strings. Used only when agreed with Smart-ID provider.
 - **requestProperties** — Optional. Set `shareMdClientIpAddress` to `true` to request the IP address of the user's device (see [Requesting IP address](#requesting-ip-address-of-users-device)).
@@ -380,6 +380,7 @@ See: https://sk-eid.github.io/smart-id-documentation/environments.html#_demo
 - **lang** — User language. Default: `eng`.
 - **schemeName** — Controls environment. Default: `SchemeName::PRODUCTION`. Use `SchemeName::DEMO` for demo.
 - **callbackUrl** — Required for Web2App flows. Must be HTTPS.
+- **brokeredRpName** — Optional. Name of the brokered Relying Party, used when acting as a broker. Included in authCode calculation and must match during validation.
 
 #### Generating QR code URL
 
@@ -696,23 +697,35 @@ It is critical to validate the authentication response to ensure the signature a
 ```php
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
+use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 
 $validator = new AuthenticationResponseValidator();
+$ocspChecker = OcspCertificateRevocationChecker::create();
 
 // PRODUCTION — load bundled certificates with OCSP revocation checking
-TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator);
+TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
 
 // DEMO — demo OCSP responder reports test certs as revoked, so use configureValidator() instead
 // TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 
 // Custom directory (with OCSP)
-// TrustedCACertificateStore::loadFromDirectory('/path/to/certs')->configureValidatorWithOcsp($validator);
+// TrustedCACertificateStore::loadFromDirectory('/path/to/certs')->configureValidatorWithOcsp($validator, $ocspChecker);
 
 // Manual certificates (with OCSP)
 // $store = TrustedCACertificateStore::create()
 //     ->addCertificate($pemEncodedCert)
 //     ->addCertificateFromFile('/path/to/cert.pem.crt');
-// $store->configureValidatorWithOcsp($validator);
+// $store->configureValidatorWithOcsp($validator, $ocspChecker);
+```
+
+### OCSP certificate revocation checking
+
+The `OcspCertificateRevocationChecker` verifies that the end-entity certificate has not been revoked by reading the OCSP responder URL from the certificate's Authority Information Access (AIA) extension.
+
+```php
+use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
+
+$ocspChecker = OcspCertificateRevocationChecker::create();
 ```
 
 ### Validating device link authentication
@@ -774,7 +787,7 @@ $identity = $validator->validate(
     $sessionStatus,
     $session->getRpChallenge(),
     'DEMO',
-    $interactionsBase64,
+    $session->getInteractionsBase64(),
     requiredCertificateLevel: CertificateLevel::QUALIFIED,
     schemeName: SchemeName::DEMO,
 );
@@ -808,8 +821,16 @@ $validator->verifyUserChallenge(
     $userChallengeFromResponse,  // from session status response signature.userChallenge
 );
 
-// 3. Then proceed with standard validation
-$identity = $validator->validate($sessionStatus, ...);
+// 3. Then proceed with standard validation — pass the callback URL for Web2App signature verification
+$identity = $validator->validate(
+    $sessionStatus,
+    $rpChallenge,
+    'DEMO',
+    $interactionsBase64,
+    $callbackUrl,                                 // initialCallbackUrl used in Web2App flow
+    requiredCertificateLevel: CertificateLevel::QUALIFIED,
+    schemeName: SchemeName::DEMO,
+);
 ```
 
 ### Validating callback URL with CallbackUrlUtil
@@ -939,6 +960,7 @@ These cover scenarios where user actions or inactions lead to session terminatio
 ### Server-side exceptions
 
 - **`SmartIdException`** — Smart-ID service temporarily unavailable (HTTP 5xx) or other unclassified errors.
+- **`UnderMaintenanceException`** — System is under maintenance (HTTP 580). Retry the request later.
 - **`SessionNotFoundException`** — Session not found (HTTP 404).
 
 ### Example of handling exceptions
@@ -955,6 +977,7 @@ use Sk\SmartId\Exception\RequiredInteractionNotSupportedException;
 use Sk\SmartId\Exception\ProtocolFailureException;
 use Sk\SmartId\Exception\ServerErrorException;
 use Sk\SmartId\Exception\ValidationException;
+use Sk\SmartId\Exception\UnderMaintenanceException;
 
 try {
     $sessionStatus = $poller->pollUntilComplete($sessionId);
@@ -986,6 +1009,8 @@ try {
     // Smart-ID server error — retry later
 } catch (ValidationException $e) {
     // Authentication response validation failed — do not trust!
+} catch (UnderMaintenanceException $e) {
+    // System is under maintenance (HTTP 580) — retry later
 } catch (SmartIdException $e) {
     // General Smart-ID error (includes ACCOUNT_UNUSABLE, EXPECTED_LINKED_SESSION, HTTP 5xx)
 }

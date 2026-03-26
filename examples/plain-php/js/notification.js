@@ -86,8 +86,6 @@ async function checkStatus() {
                     ${data.user.gender ? `<p><strong>Gender:</strong> ${data.user.gender === 'M' ? 'Male' : 'Female'}</p>` : ''}
                     ${data.user.age !== null ? `<p><strong>Age:</strong> ${escapeHtml(String(data.user.age))}</p>` : ''}
                 </div>
-                <a href="?action=download-cert" class="btn btn-secondary" style="margin-top: 12px; display: inline-block; text-decoration: none; font-size: 0.85em;">Download Certificate (PEM)</a>
-                <p style="font-size: 0.75em; color: #6b7280; margin-top: 6px;">Upload to <a href="https://demo.sk.ee/upload_cert/" target="_blank">demo.sk.ee/upload_cert</a> for demo OCSP testing</p>
                 ${tryAgainBtn}`;
         } else if (data.endResult === 'VALIDATION_ERROR') {
             statusEl.innerHTML = `<span style="color: #dc2626;">Validation failed: ${escapeHtml(data.error || 'Unknown error')}</span>${tryAgainBtn}`;

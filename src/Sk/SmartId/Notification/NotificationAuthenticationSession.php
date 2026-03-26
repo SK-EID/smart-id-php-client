@@ -49,6 +49,7 @@ class NotificationAuthenticationSession
         private readonly NotificationAuthenticationResponse $response,
         private readonly string $rpChallenge,
         private readonly string $verificationCode,
+        private readonly string $interactionsBase64,
     ) {
     }
 
@@ -65,6 +66,11 @@ class NotificationAuthenticationSession
     public function getRpChallenge(): string
     {
         return $this->rpChallenge;
+    }
+
+    public function getInteractionsBase64(): string
+    {
+        return $this->interactionsBase64;
     }
 
     public function getResponse(): NotificationAuthenticationResponse

@@ -617,7 +617,7 @@ $eeCsr = openssl_csr_new([
 ], $eeKey, ['config' => $tmpConfig]);
 $eeCert = openssl_csr_sign($eeCsr, $caCert, $caKey, 365, ['config' => $tmpConfig, 'x509_extensions' => 'v3_ee'], rand(100, 99999));
 if ($eeCert === false) {
-    echo "ERROR generating dob cert: " . openssl_error_string() . "\n";
+    echo 'ERROR generating dob cert: ' . openssl_error_string() . "\n";
 } else {
     openssl_x509_export($eeCert, $eePem);
     file_put_contents($outputDir . '/dob_ee.pem.crt', $eePem);
@@ -648,7 +648,7 @@ $eeCsr = openssl_csr_new([
 ], $eeKey, ['config' => $tmpConfig]);
 $eeCert = openssl_csr_sign($eeCsr, $caCert, $caKey, 365, ['config' => $tmpConfig, 'x509_extensions' => 'v3_ee'], rand(100, 99999));
 if ($eeCert === false) {
-    echo "ERROR generating LV dob cert: " . openssl_error_string() . "\n";
+    echo 'ERROR generating LV dob cert: ' . openssl_error_string() . "\n";
 } else {
     openssl_x509_export($eeCert, $eePem);
     file_put_contents($outputDir . '/dob_lv.pem.crt', $eePem);

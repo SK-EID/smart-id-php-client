@@ -45,6 +45,7 @@ class NotificationAuthenticationSessionTest extends TestCase
             $response,
             'rpChallenge',
             '1234',
+            'dGVzdA==',
         );
 
         $this->assertSame('session-123', $session->getSessionId());
@@ -58,6 +59,7 @@ class NotificationAuthenticationSessionTest extends TestCase
             $response,
             'rpChallenge',
             '5678',
+            'dGVzdA==',
         );
 
         $this->assertSame('5678', $session->getVerificationCode());
@@ -72,6 +74,7 @@ class NotificationAuthenticationSessionTest extends TestCase
             $response,
             $rpChallenge,
             '1234',
+            'dGVzdA==',
         );
 
         $this->assertSame($rpChallenge, $session->getRpChallenge());
@@ -85,8 +88,24 @@ class NotificationAuthenticationSessionTest extends TestCase
             $response,
             'rpChallenge',
             '1234',
+            'dGVzdA==',
         );
 
         $this->assertSame($response, $session->getResponse());
+    }
+
+    #[Test]
+    public function getInteractionsBase64ReturnsCorrectValue(): void
+    {
+        $response = new NotificationAuthenticationResponse('session-123');
+        $interactionsBase64 = 'W3sidHlwZSI6ImRpc3BsYXlUZXh0QW5kUElOIiwiZGlzcGxheVRleHQ2MCI6IlRlc3QifV0=';
+        $session = new NotificationAuthenticationSession(
+            $response,
+            'rpChallenge',
+            '1234',
+            $interactionsBase64,
+        );
+
+        $this->assertSame($interactionsBase64, $session->getInteractionsBase64());
     }
 }

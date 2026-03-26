@@ -1136,7 +1136,6 @@ class AuthenticationResponseValidatorTest extends TestCase
         $this->assertSame('30303039918', $identity->getIdentityCode());
     }
 
-
     #[Test]
     public function validateExtractsDateOfBirthFromCertificate(): void
     {

@@ -42,6 +42,7 @@ use Sk\SmartId\Exception\InvalidParametersException;
 use Sk\SmartId\Exception\SessionNotFoundException;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\UnauthorizedException;
+use Sk\SmartId\Exception\UnderMaintenanceException;
 use Sk\SmartId\Exception\UserAccountException;
 use Sk\SmartId\Notification\NotificationAuthenticationRequest;
 use Sk\SmartId\Notification\NotificationAuthenticationResponse;
@@ -220,6 +221,9 @@ class SmartIdRestConnector implements SmartIdConnector
             ),
             500, 502, 503, 504 => throw new SmartIdException(
                 "Smart-ID service temporarily unavailable: HTTP {$statusCode}",
+            ),
+            580 => throw new UnderMaintenanceException(
+                'System is under maintenance, retry again later.',
             ),
             default => throw new SmartIdException(
                 "Smart-ID API error: HTTP {$statusCode} for URL: {$url}. Response: {$contents}",

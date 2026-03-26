@@ -200,10 +200,13 @@ class NotificationAuthenticationRequestBuilder
             $this->rpChallenge,
         );
 
+        $interactionsBase64 = NotificationInteraction::encodeInteractionsToBase64($this->allowedInteractionsOrder);
+
         return new NotificationAuthenticationSession(
             $response,
             $this->rpChallenge,
             $verificationCode,
+            $interactionsBase64,
         );
     }
 }

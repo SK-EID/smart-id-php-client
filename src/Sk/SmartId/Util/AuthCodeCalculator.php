@@ -32,7 +32,6 @@ namespace Sk\SmartId\Util;
 
 use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Enum\SignatureProtocol;
-use Sk\SmartId\Model\AbstractInteraction;
 
 class AuthCodeCalculator
 {

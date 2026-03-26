@@ -181,5 +181,4 @@ class CallbackUrlValidatorTest extends TestCase
     {
         $this->assertFalse(CallbackUrlValidator::validateUserChallengeVerifier('verifier', 'wrong-challenge'));
     }
-
 }

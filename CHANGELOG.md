@@ -20,7 +20,7 @@ Complete rewrite of the SDK to support **Smart-ID RP API v3**. This release is n
 - `TrustedCACertificateStore` for flexible CA certificate management — load from defaults, directory, or manually (replaces directory-only approach in `AuthenticationResponseValidator`)
 - `SslPinnedPublicKeyStore` with SPKI hash-based (`sha256//...`) HTTPS public key pinning via `CURLOPT_PINNEDPUBLICKEY` — supports `addPublicKeyHash()`, `fromString()`, `fromArray()`, `loadFromDirectory()`, `loadDemo()` (replaces raw key string via `setPublicSslKeys()`)
 - `UserAccountException` with `isNoSuitableAccount()`, `isPersonShouldViewApp()`, `isClientTooOld()` for HTTP 471/472/480 responses
-- `ProtocolFailureException`, `ServerErrorException`, `ValidationException`, `UnauthorizedException` exceptions
+- `ProtocolFailureException`, `ServerErrorException`, `ValidationException`, `UnauthorizedException`, `UnderMaintenanceException` exceptions
 - `UserRefusedInteractionException` that extends `UserRefusedException` with `getInteraction()` for identifying which interaction was cancelled
 - Automatic end result to exception mapping in `SessionStatusPoller` (replaces `SmartIdAuthenticationResult` error codes approach)
 - Typed PHP 8.4 enums: `CertificateLevel`, `HashAlgorithm`, `InteractionType`, `SchemeName`, `FlowType`, `SignatureProtocol`, `DeviceLinkType`, `SessionType`

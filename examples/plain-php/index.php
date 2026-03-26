@@ -283,9 +283,6 @@ if (isset($_GET['action'])) {
                     // You can also get the document number for future authentications
                     $response['documentNumber'] = $status->getResult()->getDocumentNumber();
 
-                    // Store certificate PEM in session for download
-                    // This can be uploaded to https://demo.sk.ee/upload_cert/ for demo OCSP testing
-                    $_SESSION['lastCertPem'] = $status->getCert()->getPemEncodedCertificate();
                 } catch (\Sk\SmartId\Exception\ValidationException $e) {
                     // Validation failed - do not trust this authentication!
                     $response['endResult'] = 'VALIDATION_ERROR';
@@ -305,25 +302,6 @@ if (isset($_GET['action'])) {
 
         ob_end_clean();
         echo json_encode($response);
-        exit;
-    }
-
-    // -------------------------------------------------------------------------
-    // ACTION: download-cert - Download the authentication certificate as PEM
-    // After downloading, upload it to https://demo.sk.ee/upload_cert/
-    // to make it available in the demo AIA OCSP responder
-    // -------------------------------------------------------------------------
-    if ($_GET['action'] === 'download-cert') {
-        if (!isset($_SESSION['lastCertPem'])) {
-            ob_end_clean();
-            echo json_encode(['error' => 'No certificate available. Complete authentication first.']);
-            exit;
-        }
-
-        ob_end_clean();
-        header('Content-Type: application/x-pem-file');
-        header('Content-Disposition: attachment; filename="smartid_auth_cert.pem"');
-        echo $_SESSION['lastCertPem'];
         exit;
     }
 
