@@ -133,11 +133,13 @@ class TrustedCACertificateStore
      */
     private static function splitPemCertificates(string $pemContent): array
     {
-        if (preg_match_all(
-            '/-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----/s',
-            $pemContent,
-            $matches,
-        )) {
+        if (
+            preg_match_all(
+                '/-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----/s',
+                $pemContent,
+                $matches,
+            )
+        ) {
             return $matches[0];
         }
 

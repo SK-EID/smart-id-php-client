@@ -576,7 +576,8 @@ class AuthenticationResponseValidator
             }
         }
 
-        if ($parsed->getTrailerField() !== null
+        if (
+            $parsed->getTrailerField() !== null
             && strcasecmp($parsed->getTrailerField(), 'BC') !== 0
             && strcasecmp($parsed->getTrailerField(), '0xBC') !== 0
         ) {
