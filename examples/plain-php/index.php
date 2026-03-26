@@ -248,11 +248,6 @@ if (isset($_GET['action'])) {
                     }
 
                     // Validate the authentication response and extract user identity
-                    // This verifies:
-                    // - Certificate is signed by a trusted CA
-                    // - Certificate is not expired
-                    // - Signature is valid
-                    // - Optionally: certificate level meets requirements
                     $identity = $validator->validate(
                         $status,
                         $authData['rpChallenge'],
