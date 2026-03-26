@@ -41,6 +41,8 @@ use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Sk\SmartId\Exception\ValidationException;
 use Sk\SmartId\Util\DerNavigator;
 use Sk\SmartId\Validation\Maps\OcspBasicResponseMap;
@@ -76,6 +78,8 @@ class OcspCertificateRevocationChecker
 
     private StreamFactoryInterface $streamFactory;
 
+    private LoggerInterface $logger;
+
     // used only for demo mock OCSP server
     private ?string $ocspUrlOverride;
 
@@ -99,6 +103,7 @@ class OcspCertificateRevocationChecker
         int $maxResponseAgeSeconds = self::DEFAULT_MAX_RESPONSE_AGE_SECONDS,
         bool $useNonce = true,
         bool $requireEmbeddedResponderCert = true,
+        ?LoggerInterface $logger = null,
     ) {
         $this->httpClient = $httpClient;
         $this->requestFactory = $requestFactory;
@@ -108,28 +113,29 @@ class OcspCertificateRevocationChecker
         $this->maxResponseAgeSeconds = $maxResponseAgeSeconds;
         $this->useNonce = $useNonce;
         $this->requireEmbeddedResponderCert = $requireEmbeddedResponderCert;
+        $this->logger = $logger ?? new NullLogger();
     }
 
     /**
      * Create a checker that uses the AIA OCSP URL from the certificate
      * and validates the responder certificate against the issuer CA.
      */
-    public static function create(): self
+    public static function create(?LoggerInterface $logger = null): self
     {
         $factory = new HttpFactory();
 
-        return new self(new Client(), $factory, $factory);
+        return new self(new Client(), $factory, $factory, logger: $logger);
     }
 
     /**
      * Create a checker with a designated OCSP responder URL and pinned responder certificate.
      * The responder certificate from the OCSP response must match the provided certificate exactly.
      */
-    public static function createDesignated(string $ocspUrl, string $responderCertPem): self
+    public static function createDesignated(string $ocspUrl, string $responderCertPem, ?LoggerInterface $logger = null): self
     {
         $factory = new HttpFactory();
 
-        return new self(new Client(), $factory, $factory, $ocspUrl, $responderCertPem);
+        return new self(new Client(), $factory, $factory, $ocspUrl, $responderCertPem, logger: $logger);
     }
 
     public function checkRevocationStatus(string $subjectCertPem, string $issuerCertPem): void
@@ -153,12 +159,18 @@ class OcspCertificateRevocationChecker
 
             $nonce = $this->useNonce ? ($this->nonceForTesting ?? random_bytes(self::NONCE_LENGTH)) : null;
             $requestBody = $this->buildOcspRequest($issuerNameHash, $issuerKeyHash, $serialNumber, $nonce);
+
+            $this->logger->debug('Sending OCSP request', ['url' => $ocspResponderUrl]);
             $responseBody = $this->sendOcspRequest($ocspResponderUrl, $requestBody);
+            $this->logger->debug('OCSP response received', ['url' => $ocspResponderUrl]);
 
             $this->parseOcspResponse($responseBody, $issuerCertPem, $issuerNameHash, $issuerKeyHash, $serialNumber, $nonce);
+            $this->logger->debug('OCSP revocation check passed');
         } catch (ValidationException $e) {
+            $this->logger->warning('OCSP revocation check failed', ['error' => $e->getMessage()]);
             throw $e;
         } catch (\Exception $e) {
+            $this->logger->warning('OCSP check failed', ['error' => $e->getMessage()]);
             throw new ValidationException(
                 sprintf('OCSP check failed: %s', $e->getMessage()),
             );

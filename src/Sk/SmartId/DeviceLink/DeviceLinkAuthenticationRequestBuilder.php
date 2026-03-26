@@ -30,6 +30,8 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\DeviceLink;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
@@ -61,6 +63,8 @@ class DeviceLinkAuthenticationRequestBuilder
 
     private string $relyingPartyName;
 
+    private LoggerInterface $logger;
+
     private ?string $rpChallenge = null;
 
     private HashAlgorithm $hashAlgorithm = HashAlgorithm::SHA512;
@@ -83,10 +87,12 @@ class DeviceLinkAuthenticationRequestBuilder
         SmartIdConnector $connector,
         string $relyingPartyUUID,
         string $relyingPartyName,
+        ?LoggerInterface $logger = null,
     ) {
         $this->connector = $connector;
         $this->relyingPartyUUID = $relyingPartyUUID;
         $this->relyingPartyName = $relyingPartyName;
+        $this->logger = $logger ?? new NullLogger();
     }
 
     public function withRpChallenge(string $rpChallenge): self
@@ -185,7 +191,11 @@ class DeviceLinkAuthenticationRequestBuilder
             $this->shareMdClientIpAddress,
         );
 
+        $this->logger->info('Initiating device link authentication session');
         $response = $this->connector->initiateDeviceLinkAuthentication($request);
+        $this->logger->debug('Device link authentication session initiated', [
+            'sessionId' => $response->getSessionID(),
+        ]);
 
         $verificationCode = VerificationCodeCalculator::calculateFromRpChallenge(
             $this->rpChallenge,

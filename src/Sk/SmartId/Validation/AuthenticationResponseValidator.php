@@ -34,6 +34,8 @@ use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Crypt\RSA;
 use phpseclib3\Crypt\RSA\PublicKey as RSAPublicKey;
 use phpseclib3\File\X509;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Exception\SmartIdException;
@@ -64,6 +66,8 @@ class AuthenticationResponseValidator
     /** OID for id-pda-dateOfBirth attribute */
     private const DOB_ATTRIBUTE_OID = '1.3.6.1.5.5.7.9.1';
 
+    private readonly LoggerInterface $logger;
+
     /** @var string[] PEM-encoded CA certificates */
     private array $trustedCaCertificates = [];
 
@@ -71,6 +75,11 @@ class AuthenticationResponseValidator
     private array $trustedCaCertificateFiles = [];
 
     private ?OcspCertificateRevocationChecker $ocspChecker = null;
+
+    public function __construct(?LoggerInterface $logger = null)
+    {
+        $this->logger = $logger ?? new NullLogger();
+    }
 
     /**
      * @return string[]
@@ -186,60 +195,80 @@ class AuthenticationResponseValidator
         ?CertificateLevel $requiredCertificateLevel = null,
         SchemeName $schemeName = SchemeName::PRODUCTION,
     ): AuthenticationIdentity {
-        if (!$sessionStatus->isComplete()) {
-            throw new ValidationException('Cannot validate incomplete session');
-        }
+        $this->logger->info('Starting authentication response validation');
 
-        $result = $sessionStatus->getResult();
-        if ($result === null || !$result->isOk()) {
-            throw new ValidationException('Session result is not OK');
-        }
+        try {
+            if (!$sessionStatus->isComplete()) {
+                throw new ValidationException('Cannot validate incomplete session');
+            }
 
-        $signatureProtocol = $sessionStatus->getSignatureProtocol();
-        if ($signatureProtocol !== 'ACSP_V2') {
-            throw new ValidationException(
-                sprintf('Expected signatureProtocol ACSP_V2, got: %s', $signatureProtocol ?? 'null'),
+            $result = $sessionStatus->getResult();
+            if ($result === null || !$result->isOk()) {
+                throw new ValidationException('Session result is not OK');
+            }
+
+            $signatureProtocol = $sessionStatus->getSignatureProtocol();
+            if ($signatureProtocol !== 'ACSP_V2') {
+                throw new ValidationException(
+                    sprintf('Expected signatureProtocol ACSP_V2, got: %s', $signatureProtocol ?? 'null'),
+                );
+            }
+
+            $cert = $sessionStatus->getCert();
+            if ($cert === null) {
+                throw new ValidationException('Certificate is missing from session response');
+            }
+
+            $signature = $sessionStatus->getSignature();
+            if ($signature === null) {
+                throw new ValidationException('Signature is missing from session response');
+            }
+
+            if (empty($this->trustedCaCertificateFiles) && empty($this->trustedCaCertificates)) {
+                throw new ValidationException('No trusted CA certificates configured');
+            }
+
+            if ($requiredCertificateLevel !== null) {
+                $this->verifyCertificateLevel($cert, $requiredCertificateLevel);
+            }
+
+            $certPem = $cert->getPemEncodedCertificate();
+            $certInfo = $this->parseCertificate($certPem);
+
+            $this->logger->debug('Verifying certificate trust chain');
+            $this->verifyCertificateTrust($certPem, $certInfo);
+            $this->logger->debug('Verifying basic constraints');
+            $this->verifyBasicConstraints($certInfo);
+            $this->logger->debug('Verifying certificate revocation status');
+            $this->verifyCertificateRevocation($cert);
+            $this->logger->debug('Verifying certificate policies');
+            $this->verifyCertificatePolicies($certInfo);
+            $this->logger->debug('Verifying certificate purpose');
+            $this->verifyCertificatePurpose($certInfo);
+
+            $this->logger->debug('Verifying ACSP_V2 signature');
+            $this->verifySignature(
+                $sessionStatus,
+                $rpChallenge,
+                $relyingPartyName,
+                $interactionsBase64,
+                $initialCallbackUrl,
+                $brokeredRpName,
+                $schemeName,
             );
+
+            $identity = $this->extractIdentity($certInfo, $certPem);
+            $this->logger->info('Authentication response validation successful', [
+                'country' => $identity->getCountry(),
+            ]);
+
+            return $identity;
+        } catch (ValidationException $e) {
+            $this->logger->error('Authentication response validation failed', [
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
         }
-
-        $cert = $sessionStatus->getCert();
-        if ($cert === null) {
-            throw new ValidationException('Certificate is missing from session response');
-        }
-
-        $signature = $sessionStatus->getSignature();
-        if ($signature === null) {
-            throw new ValidationException('Signature is missing from session response');
-        }
-
-        if (empty($this->trustedCaCertificateFiles) && empty($this->trustedCaCertificates)) {
-            throw new ValidationException('No trusted CA certificates configured');
-        }
-
-        if ($requiredCertificateLevel !== null) {
-            $this->verifyCertificateLevel($cert, $requiredCertificateLevel);
-        }
-
-        $certPem = $cert->getPemEncodedCertificate();
-        $certInfo = $this->parseCertificate($certPem);
-
-        $this->verifyCertificateTrust($certPem, $certInfo);
-        $this->verifyBasicConstraints($certInfo);
-        $this->verifyCertificateRevocation($cert);
-        $this->verifyCertificatePolicies($certInfo);
-        $this->verifyCertificatePurpose($certInfo);
-
-        $this->verifySignature(
-            $sessionStatus,
-            $rpChallenge,
-            $relyingPartyName,
-            $interactionsBase64,
-            $initialCallbackUrl,
-            $brokeredRpName,
-            $schemeName,
-        );
-
-        return $this->extractIdentity($certInfo, $certPem);
     }
 
     /**

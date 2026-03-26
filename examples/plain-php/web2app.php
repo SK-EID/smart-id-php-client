@@ -55,6 +55,7 @@
  */
 
 require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/SimpleFileLogger.php';
 
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 use Sk\SmartId\Enum\CertificateLevel;
@@ -67,9 +68,7 @@ use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Exception\UserRefusedInteractionException;
 use Sk\SmartId\Exception\ProtocolFailureException;
 use Sk\SmartId\Exception\ServerErrorException;
-use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
-use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 use Sk\SmartId\SmartIdClient;
 
 session_start();
@@ -94,9 +93,12 @@ $sslPins = $isProduction ? ['sha256//XAlgTJ+3BlgOexKLttcvXfn6Ecu4e2Xr5NyHWnTinKQ
 // Use ngrok or similar tunnel for local development: ngrok http 8080
 $publicBaseUrl = 'https://errol-unwithholding-westerly.ngrok-free.dev';
 
-// Initialize the Smart-ID connector with HTTPS pinning
+// Initialize a PSR-3 logger (use Monolog or similar in production)
+$logger = new SimpleFileLogger(__DIR__ . '/smart-id.log');
+
+// Initialize the Smart-ID connector with HTTPS pinning and logging
 $sslKeys = SslPinnedPublicKeyStore::fromArray($sslPins);
-$client = new SmartIdClient($relyingPartyUUID, $relyingPartyName, $baseUrl, $sslKeys);
+$client = new SmartIdClient($relyingPartyUUID, $relyingPartyName, $baseUrl, $sslKeys, $logger);
 $connector = $client->getConnector();
 
 // ============================================================================
@@ -359,7 +361,7 @@ if (isset($_GET['action'])) {
                     // Proves the user actually completed authentication
                     // =========================================================
                     if ($status->getSignature() !== null) {
-                        $validator = new AuthenticationResponseValidator();
+                        $validator = $client->createAuthenticationResponseValidator();
                         $validator->verifyUserChallenge(
                             $authData['callbackUserChallengeVerifier'],
                             $status->getSignature()->getUserChallenge(),
@@ -372,12 +374,9 @@ if (isset($_GET['action'])) {
                     // Certificate trust, basic constraints, policies, purpose,
                     // ACSP_V2 signature verification — everything
                     // =========================================================
-                    $validator = new AuthenticationResponseValidator();
-
-                    // For DEMO environment with uploaded certs - use real AIA OCSP.
-                    // First upload your cert to https://demo.sk.ee/upload_cert/
-                    // then the AIA OCSP responder (aia.demo.sk.ee) will know your cert.
-                    $ocspChecker = OcspCertificateRevocationChecker::create();
+                    // Create validator and OCSP checker via client (logger is propagated automatically)
+                    $validator = $client->createAuthenticationResponseValidator();
+                    $ocspChecker = $client->createOcspChecker();
 
                     if (!$isProduction) {
                         TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
