@@ -221,7 +221,7 @@ class AuthenticationResponseValidator
             $schemeName,
         );
 
-        return $this->extractIdentity($certInfo);
+        return $this->extractIdentity($certInfo, $certPem);
     }
 
     /**
@@ -633,7 +633,7 @@ class AuthenticationResponseValidator
      * @param array<string, mixed> $certInfo
      * @throws ValidationException
      */
-    private function extractIdentity(array $certInfo): AuthenticationIdentity
+    private function extractIdentity(array $certInfo, string $certPem): AuthenticationIdentity
     {
         if (!isset($certInfo['subject'])) {
             throw new ValidationException('Failed to parse certificate subject');
@@ -665,7 +665,7 @@ class AuthenticationResponseValidator
             $country = $this->getSubjectField($subject, ['C']);
         }
 
-        $dateOfBirth = $this->extractDateOfBirthFromCert($certInfo);
+        $dateOfBirth = $this->extractDateOfBirthFromCert($certInfo, $certPem);
 
         return new AuthenticationIdentity(
             givenName: $givenName,
@@ -705,16 +705,42 @@ class AuthenticationResponseValidator
      *
      * @param array<string, mixed> $certInfo
      */
-    private function extractDateOfBirthFromCert(array $certInfo): ?\DateTimeImmutable
+    private function extractDateOfBirthFromCert(array $certInfo, string $certPem): ?\DateTimeImmutable
     {
-        // OID for Subject Directory Attributes extension
-        $sdaOid = '2.5.29.9';
         // OID for id-pda-dateOfBirth
         $dateOfBirthOid = '1.3.6.1.5.5.7.9.1';
 
-        // openssl_x509_parse may expose the extension under various keys
+        try {
+            // Use phpseclib X509 parser — portable across all OpenSSL versions
+            $x509 = new \phpseclib3\File\X509();
+            $parsed = $x509->loadX509($certPem);
+
+            foreach ($parsed['tbsCertificate']['extensions'] ?? [] as $ext) {
+                if ($ext['extnId'] !== 'id-ce-subjectDirectoryAttributes' && $ext['extnId'] !== '2.5.29.9') {
+                    continue;
+                }
+
+                foreach ($ext['extnValue'] as $attr) {
+                    if (($attr['type'] ?? null) !== $dateOfBirthOid) {
+                        continue;
+                    }
+
+                    foreach ($attr['value'] ?? [] as $val) {
+                        $timeStr = $val['generalTime'] ?? $val['utcTime'] ?? null;
+                        if (is_string($timeStr)) {
+                            $dt = new \DateTimeImmutable($timeStr);
+                            return $dt->setTime(0, 0);
+                        }
+                    }
+                }
+            }
+        } catch (\Exception) {
+            // Fall through to openssl_x509_parse approach
+        }
+
+        // Fallback: try openssl_x509_parse extension data
         $extensionValue = $certInfo['extensions']['subjectDirectoryAttributes']
-            ?? $certInfo['extensions'][$sdaOid]
+            ?? $certInfo['extensions']['2.5.29.9']
             ?? null;
 
         if ($extensionValue === null || !is_string($extensionValue)) {
@@ -722,64 +748,11 @@ class AuthenticationResponseValidator
         }
 
         try {
-            // The extension value from openssl_x509_parse is the decoded text.
-            // Format is typically: "id-pda-dateOfBirth:\n19900515000000Z"
-            // or "1.3.6.1.5.5.7.9.1:19900515000000Z"
             if (preg_match('/(?:dateOfBirth|1\.3\.6\.1\.5\.5\.7\.9\.1)\s*[:=]\s*(\d{8,14}Z?)/s', $extensionValue, $matches)) {
                 return $this->parseGeneralizedTimeDate($matches[1]);
             }
-
-            // If openssl didn't decode it to text, try raw ASN.1 parsing
-            // via phpseclib (Subject Directory Attributes is a SEQUENCE OF Attribute)
-            return $this->parseDateOfBirthFromAsn1($extensionValue, $dateOfBirthOid);
         } catch (\Exception) {
-            return null;
-        }
-    }
-
-    /**
-     * Parse date-of-birth from raw ASN.1-encoded Subject Directory Attributes value.
-     */
-    private function parseDateOfBirthFromAsn1(string $rawValue, string $dateOfBirthOid): ?\DateTimeImmutable
-    {
-        $decoded = ASN1::decodeBER($rawValue);
-        if ($decoded === null || !isset($decoded[0]['content'])) {
-            return null;
-        }
-
-        // SDA is SEQUENCE OF Attribute; each Attribute is SEQUENCE { OID, SET OF values }
-        $sequence = $decoded[0]['content'];
-        if (!is_array($sequence)) {
-            return null;
-        }
-
-        foreach ($sequence as $attribute) {
-            if (!isset($attribute['content']) || !is_array($attribute['content'])) {
-                continue;
-            }
-
-            $attrContent = $attribute['content'];
-            if (count($attrContent) < 2) {
-                continue;
-            }
-
-            // First element is OID
-            $oid = $attrContent[0]['content'] ?? null;
-            if ($oid !== $dateOfBirthOid) {
-                continue;
-            }
-
-            // Second element is SET OF values
-            $valueSet = $attrContent[1]['content'] ?? null;
-            if (!is_array($valueSet) || empty($valueSet)) {
-                continue;
-            }
-
-            // The value should be a GeneralizedTime
-            $timeValue = $valueSet[0]['content'] ?? null;
-            if (is_string($timeValue)) {
-                return $this->parseGeneralizedTimeDate($timeValue);
-            }
+            // ignore
         }
 
         return null;
