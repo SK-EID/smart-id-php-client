@@ -127,7 +127,7 @@ if (isset($_GET['action'])) {
             'deviceLinkBase' => $response->getDeviceLinkBase(),
             'rpChallenge' => $rpChallenge,
             'rpName' => $client->getRelyingPartyName(),
-            'interactionsBase64' => $session->getInteractionsBase64(), // Get from session
+            'interactionsBase64' => $session->getInteractionsBase64(),
             'createdAt' => time(),
         ];
 
@@ -286,7 +286,6 @@ if (isset($_GET['action'])) {
                     // Store certificate PEM in session for download
                     // This can be uploaded to https://demo.sk.ee/upload_cert/ for demo OCSP testing
                     $_SESSION['lastCertPem'] = $status->getCert()->getPemEncodedCertificate();
-
                 } catch (\Sk\SmartId\Exception\ValidationException $e) {
                     // Validation failed - do not trust this authentication!
                     $response['endResult'] = 'VALIDATION_ERROR';

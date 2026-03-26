@@ -153,7 +153,7 @@ if (isset($_GET['action'])) {
         ob_end_clean();
         echo json_encode([
             'success' => true,
-            'verificationCode' => $verificationCode,
+            'verificationCode' => $session->getVerificationCode(),
         ]);
         exit;
     }
