@@ -1060,24 +1060,4 @@ $client = new SmartIdClient(
     sslPinnedKeys: SslPinnedPublicKeyStore::loadDemo(),
     logger: $logger,
 );
-
-// All operations through $client will now produce log output:
-// $client->createDeviceLinkAuthentication()...
-// $client->createNotificationAuthentication()...
-// $client->getSessionStatusPoller()->pollUntilComplete(...)
-
-// Validator (with OCSP checker) also gets the logger automatically:
-$validator = $client->createAuthenticationResponseValidator();
-```
-
-### Standalone usage (without SmartIdClient)
-
-If you use `AuthenticationResponseValidator` or `OcspCertificateRevocationChecker` without `SmartIdClient`, you can pass the logger directly:
-
-```php
-use Sk\SmartId\Validation\AuthenticationResponseValidator;
-use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
-
-$validator = new AuthenticationResponseValidator($logger);
-$ocspChecker = OcspCertificateRevocationChecker::create($logger);
 ```
