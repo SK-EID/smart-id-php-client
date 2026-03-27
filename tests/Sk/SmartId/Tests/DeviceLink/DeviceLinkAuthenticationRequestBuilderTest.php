@@ -47,7 +47,7 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->connector = $this->createMock(SmartIdConnector::class);
+        $this->connector = $this->createStub(SmartIdConnector::class);
     }
 
     #[Test]
@@ -60,12 +60,13 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
             'https://sid.demo.sk.ee/v3/device',
         );
 
-        $this->connector->expects($this->once())
+        $connector = $this->createMock(SmartIdConnector::class);
+        $connector->expects($this->once())
             ->method('initiateDeviceLinkAuthentication')
             ->willReturn($response);
 
         $builder = new DeviceLinkAuthenticationRequestBuilder(
-            $this->connector,
+            $connector,
             'rp-uuid',
             'Test RP',
         );
@@ -323,6 +324,21 @@ class DeviceLinkAuthenticationRequestBuilderTest extends TestCase
         $this->assertNotEmpty($capturedRequest->getRpChallenge());
         $decoded = base64_decode($capturedRequest->getRpChallenge(), true);
         $this->assertNotFalse($decoded);
+    }
+
+    #[Test]
+    public function withCallbackUrlThrowsForNonHttpsUrl(): void
+    {
+        $builder = new DeviceLinkAuthenticationRequestBuilder(
+            $this->connector,
+            'rp-uuid',
+            'Test RP',
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('HTTPS required');
+
+        $builder->withCallbackUrl('http://example.com/callback');
     }
 
     #[Test]

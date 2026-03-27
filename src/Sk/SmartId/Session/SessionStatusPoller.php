@@ -30,6 +30,8 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Session;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Exception\DocumentUnusableException;
 use Sk\SmartId\Exception\ProtocolFailureException;
@@ -47,11 +49,15 @@ class SessionStatusPoller
 
     private const DEFAULT_POLL_INTERVAL_MS = 1000;
 
+    private readonly LoggerInterface $logger;
+
     public function __construct(
         private readonly SmartIdConnector $connector,
         private int $pollTimeoutMs = self::DEFAULT_POLL_TIMEOUT_MS,
         private int $pollIntervalMs = self::DEFAULT_POLL_INTERVAL_MS,
+        ?LoggerInterface $logger = null,
     ) {
+        $this->logger = $logger ?? new NullLogger();
     }
 
     public function setPollTimeoutMs(int $pollTimeoutMs): self
@@ -73,9 +79,14 @@ class SessionStatusPoller
      */
     public function poll(string $sessionId): SessionStatus
     {
+        $this->logger->debug('Polling session status', ['sessionId' => $sessionId]);
         $status = $this->connector->getSessionStatus($sessionId, $this->pollTimeoutMs);
 
         if ($status->isComplete()) {
+            $this->logger->info('Session completed', [
+                'sessionId' => $sessionId,
+                'endResult' => $status->getResult()?->getEndResult(),
+            ]);
             $this->validateResult($status);
         }
 
@@ -100,6 +111,10 @@ class SessionStatusPoller
             usleep($this->pollIntervalMs * 1000);
         }
 
+        $this->logger->warning('Session polling timed out', [
+            'sessionId' => $sessionId,
+            'attempts' => $maxAttempts,
+        ]);
         throw new SessionTimeoutException('Session polling timeout after ' . $maxAttempts . ' attempts');
     }
 
@@ -111,6 +126,7 @@ class SessionStatusPoller
         $result = $status->getResult();
 
         if ($result === null) {
+            $this->logger->error('Session completed but no result present');
             throw new SmartIdException('Session completed but no result present');
         }
 
@@ -119,6 +135,7 @@ class SessionStatusPoller
         }
 
         $endResult = $result->getEndResult();
+        $this->logger->warning('Authentication failed', ['endResult' => $endResult]);
 
         if ($result->isUserRefusedInteraction()) {
             $interaction = $result->getDetails()?->getInteraction();

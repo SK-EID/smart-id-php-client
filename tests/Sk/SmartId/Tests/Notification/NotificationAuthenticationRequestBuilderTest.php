@@ -49,7 +49,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->connector = $this->createMock(SmartIdConnector::class);
+        $this->connector = $this->createStub(SmartIdConnector::class);
     }
 
     #[Test]
@@ -57,7 +57,8 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
     {
         $response = new NotificationAuthenticationResponse('session-123');
 
-        $this->connector->expects($this->once())
+        $connector = $this->createMock(SmartIdConnector::class);
+        $connector->expects($this->once())
             ->method('initiateNotificationAuthentication')
             ->with(
                 $this->isInstanceOf(NotificationAuthenticationRequest::class),
@@ -67,7 +68,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
             ->willReturn($response);
 
         $builder = new NotificationAuthenticationRequestBuilder(
-            $this->connector,
+            $connector,
             'rp-uuid',
             'Test RP',
         );
@@ -87,7 +88,8 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $response = new NotificationAuthenticationResponse('session-123');
         $semanticsId = SemanticsIdentifier::forPerson('EE', '12345678901');
 
-        $this->connector->expects($this->once())
+        $connector = $this->createMock(SmartIdConnector::class);
+        $connector->expects($this->once())
             ->method('initiateNotificationAuthentication')
             ->with(
                 $this->isInstanceOf(NotificationAuthenticationRequest::class),
@@ -97,7 +99,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
             ->willReturn($response);
 
         $builder = new NotificationAuthenticationRequestBuilder(
-            $this->connector,
+            $connector,
             'rp-uuid',
             'Test RP',
         );
@@ -131,7 +133,8 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $response = new NotificationAuthenticationResponse('session-123');
         $semanticsId = SemanticsIdentifier::forPerson('EE', '99999999999');
 
-        $this->connector->expects($this->once())
+        $connector = $this->createMock(SmartIdConnector::class);
+        $connector->expects($this->once())
             ->method('initiateNotificationAuthentication')
             ->with(
                 $this->isInstanceOf(NotificationAuthenticationRequest::class),
@@ -141,7 +144,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
             ->willReturn($response);
 
         $builder = new NotificationAuthenticationRequestBuilder(
-            $this->connector,
+            $connector,
             'rp-uuid',
             'Test RP',
         );
@@ -159,7 +162,8 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
         $response = new NotificationAuthenticationResponse('session-123');
         $semanticsId = SemanticsIdentifier::forPerson('EE', '12345678901');
 
-        $this->connector->expects($this->once())
+        $connector = $this->createMock(SmartIdConnector::class);
+        $connector->expects($this->once())
             ->method('initiateNotificationAuthentication')
             ->with(
                 $this->isInstanceOf(NotificationAuthenticationRequest::class),
@@ -169,7 +173,7 @@ class NotificationAuthenticationRequestBuilderTest extends TestCase
             ->willReturn($response);
 
         $builder = new NotificationAuthenticationRequestBuilder(
-            $this->connector,
+            $connector,
             'rp-uuid',
             'Test RP',
         );

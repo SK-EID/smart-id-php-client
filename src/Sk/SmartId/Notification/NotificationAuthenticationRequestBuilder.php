@@ -30,6 +30,8 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Notification;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
@@ -61,6 +63,8 @@ class NotificationAuthenticationRequestBuilder
 
     private string $relyingPartyName;
 
+    private LoggerInterface $logger;
+
     private ?string $documentNumber = null;
 
     private ?SemanticsIdentifier $semanticsIdentifier = null;
@@ -85,10 +89,12 @@ class NotificationAuthenticationRequestBuilder
         SmartIdConnector $connector,
         string $relyingPartyUUID,
         string $relyingPartyName,
+        ?LoggerInterface $logger = null,
     ) {
         $this->connector = $connector;
         $this->relyingPartyUUID = $relyingPartyUUID;
         $this->relyingPartyName = $relyingPartyName;
+        $this->logger = $logger ?? new NullLogger();
     }
 
     public function withDocumentNumber(string $documentNumber): self
@@ -190,11 +196,15 @@ class NotificationAuthenticationRequestBuilder
             $this->shareMdClientIpAddress,
         );
 
+        $this->logger->info('Initiating notification authentication session');
         $response = $this->connector->initiateNotificationAuthentication(
             $request,
             $this->documentNumber,
             $this->semanticsIdentifier !== null ? (string) $this->semanticsIdentifier : null,
         );
+        $this->logger->debug('Notification authentication session initiated', [
+            'sessionId' => $response->getSessionID(),
+        ]);
 
         $verificationCode = VerificationCodeCalculator::calculateFromRpChallenge(
             $this->rpChallenge,

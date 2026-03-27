@@ -62,9 +62,9 @@ class SmartIdRestConnectorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->httpClient = $this->createMock(ClientInterface::class);
-        $this->requestFactory = $this->createMock(RequestFactoryInterface::class);
-        $this->streamFactory = $this->createMock(StreamFactoryInterface::class);
+        $this->httpClient = $this->createStub(ClientInterface::class);
+        $this->requestFactory = $this->createStub(RequestFactoryInterface::class);
+        $this->streamFactory = $this->createStub(StreamFactoryInterface::class);
 
         $this->connector = SmartIdRestConnector::createForTesting(
             'https://sid.demo.sk.ee/smart-id-rp/v3',
@@ -201,24 +201,32 @@ class SmartIdRestConnectorTest extends TestCase
     {
         $responseBody = json_encode(['state' => 'RUNNING']);
 
-        $request = $this->createMock(RequestInterface::class);
+        $request = $this->createStub(RequestInterface::class);
         $request->method('withHeader')->willReturnSelf();
 
-        $this->requestFactory->expects($this->once())
+        $requestFactory = $this->createMock(RequestFactoryInterface::class);
+        $requestFactory->expects($this->once())
             ->method('createRequest')
             ->with('GET', $this->stringContains('timeoutMs=30000'))
             ->willReturn($request);
 
-        $stream = $this->createMock(StreamInterface::class);
+        $stream = $this->createStub(StreamInterface::class);
         $stream->method('getContents')->willReturn($responseBody);
 
-        $response = $this->createMock(ResponseInterface::class);
+        $response = $this->createStub(ResponseInterface::class);
         $response->method('getStatusCode')->willReturn(200);
         $response->method('getBody')->willReturn($stream);
 
         $this->httpClient->method('sendRequest')->willReturn($response);
 
-        $this->connector->getSessionStatus('session-123', 30000);
+        $connector = SmartIdRestConnector::createForTesting(
+            'https://sid.demo.sk.ee/smart-id-rp/v3',
+            $this->httpClient,
+            $requestFactory,
+            $this->streamFactory,
+        );
+
+        $connector->getSessionStatus('session-123', 30000);
     }
 
     #[Test]
@@ -460,20 +468,19 @@ class SmartIdRestConnectorTest extends TestCase
 
     private function setupMockRequest(string $method, string $responseBody, int $statusCode): void
     {
-        $request = $this->createMock(RequestInterface::class);
+        $request = $this->createStub(RequestInterface::class);
         $request->method('withHeader')->willReturnSelf();
         $request->method('withBody')->willReturnSelf();
 
         $this->requestFactory->method('createRequest')
-            ->with($method, $this->anything())
             ->willReturn($request);
 
-        $stream = $this->createMock(StreamInterface::class);
+        $stream = $this->createStub(StreamInterface::class);
         $stream->method('getContents')->willReturn($responseBody);
 
         $this->streamFactory->method('createStream')->willReturn($stream);
 
-        $response = $this->createMock(ResponseInterface::class);
+        $response = $this->createStub(ResponseInterface::class);
         $response->method('getStatusCode')->willReturn($statusCode);
         $response->method('getBody')->willReturn($stream);
 

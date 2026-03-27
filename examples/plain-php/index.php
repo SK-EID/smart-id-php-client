@@ -50,6 +50,7 @@
  */
 
 require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/SimpleFileLogger.php';
 
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
 use Sk\SmartId\Enum\CertificateLevel;
@@ -60,9 +61,7 @@ use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Exception\UserRefusedInteractionException;
 use Sk\SmartId\Exception\ProtocolFailureException;
 use Sk\SmartId\Exception\ServerErrorException;
-use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
-use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Sk\SmartId\SmartIdClient;
@@ -85,9 +84,12 @@ $relyingPartyUUID = $isProduction ? '<your-relying-party-uuid>' : '00000000-0000
 $relyingPartyName = $isProduction ? '<your-relying-party-name>' : 'DEMO';
 $sslPins = $isProduction ? ['sha256//XAlgTJ+3BlgOexKLttcvXfn6Ecu4e2Xr5NyHWnTinKQ='] : ['sha256//Ps1Im3KeB0Q4AlR+/J9KFd/MOznaARdwo4gURPCLaVA='];
 
-// Initialize the Smart-ID connector with HTTPS pinning
+// Initialize a PSR-3 logger (use Monolog or similar in production)
+$logger = new SimpleFileLogger(__DIR__ . '/smart-id.log');
+
+// Initialize the Smart-ID connector with HTTPS pinning and logging
 $sslKeys = SslPinnedPublicKeyStore::fromArray($sslPins);
-$client = new SmartIdClient($relyingPartyUUID, $relyingPartyName, $baseUrl, $sslKeys);
+$client = new SmartIdClient($relyingPartyUUID, $relyingPartyName, $baseUrl, $sslKeys, $logger);
 $connector = $client->getConnector();
 
 // ============================================================================
@@ -232,19 +234,13 @@ if (isset($_GET['action'])) {
             // =========================================================
             if ($status->getResult()->isOk()) {
                 try {
-                    // Create validator with trusted CA certificates
-                    $validator = new AuthenticationResponseValidator();
-
-                    // For DEMO environment with uploaded certs - use real AIA OCSP.
-                    // First upload your cert to https://demo.sk.ee/upload_cert/
-                    // then the AIA OCSP responder (aia.demo.sk.ee) will know your cert.
-                    $ocspChecker = OcspCertificateRevocationChecker::create();
+                    // Create validator via client (OCSP revocation checking is enabled automatically)
+                    $validator = $client->createAuthenticationResponseValidator();
 
                     if (!$isProduction) {
-                        TrustedCACertificateStore::loadTestCertificates()->configureValidatorWithOcsp($validator, $ocspChecker);
+                        TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
                     } else {
-                        $caStore = TrustedCACertificateStore::create();
-                        $caStore->loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+                        TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
                     }
 
                     // Validate the authentication response and extract user identity

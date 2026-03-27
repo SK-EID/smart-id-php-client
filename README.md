@@ -44,6 +44,7 @@ This library supports Smart-ID API v3.
     - [Additional request properties](#additional-request-properties)
         - [Requesting IP address of user's device](#requesting-ip-address-of-users-device)
     - [Exception handling](#exception-handling)
+- [Logging](#logging)
 
 ## Introduction
 
@@ -61,6 +62,7 @@ The Smart-ID PHP client can be used for easy integration of the [Smart-ID](https
 - OCSP certificate revocation checking via AIA or designated responder
 - Verification code calculation
 - CallbackUrlUtil for Web2App/App2App callback URL creation and validation
+- Optional PSR-3 logging support
 
 ## Requirements
 
@@ -121,7 +123,7 @@ $client = new SmartIdClient(
     sslPinnedKeys: SslPinnedPublicKeyStore::loadDemo(),
 );
 
-// Production environment
+// Production environment with logging (see "Logging" section below)
 $sslKeys = SslPinnedPublicKeyStore::create()
     ->addPublicKeyHash('sha256//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=')
     ->addPublicKeyHash('sha256//YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY=');
@@ -131,6 +133,7 @@ $client = new SmartIdClient(
     relyingPartyName: 'Your RP Name',
     hostUrl: 'https://rp-api.smart-id.com/v3',
     sslPinnedKeys: $sslKeys,
+    logger: $logger, // optional PSR-3 LoggerInterface
 );
 
 // Create authentication builders directly from the client
@@ -139,6 +142,9 @@ $notificationBuilder = $client->createNotificationAuthentication();
 
 // Get the session status poller
 $poller = $client->getSessionStatusPoller();
+
+// Create validator (OCSP revocation checking is enabled automatically)
+$validator = $client->createAuthenticationResponseValidator();
 
 // Configure polling parameters (optional)
 $client->setPollTimeoutMs(30000);
@@ -695,50 +701,43 @@ It is critical to validate the authentication response to ensure the signature a
 ### Setting up trusted CA certificates
 
 ```php
-use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
-use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 
-$validator = new AuthenticationResponseValidator();
-$ocspChecker = OcspCertificateRevocationChecker::create();
+// Create via SmartIdClient (OCSP revocation checking is enabled automatically)
+$validator = $client->createAuthenticationResponseValidator();
 
-// PRODUCTION — load bundled certificates with OCSP revocation checking
-TrustedCACertificateStore::loadFromDefaults()->configureValidatorWithOcsp($validator, $ocspChecker);
+// PRODUCTION — load bundled certificates
+TrustedCACertificateStore::loadFromDefaults()->configureValidator($validator);
 
-// DEMO — demo OCSP responder reports test certs as revoked, so use configureValidator() instead
+// DEMO — load test certificates (upload certs to demo OCSP first, see "Uploading certificates to demo OCSP")
 // TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 
-// Custom directory (with OCSP)
-// TrustedCACertificateStore::loadFromDirectory('/path/to/certs')->configureValidatorWithOcsp($validator, $ocspChecker);
+// Custom directory
+// TrustedCACertificateStore::loadFromDirectory('/path/to/certs')->configureValidator($validator);
 
-// Manual certificates (with OCSP)
+// Manual certificates
 // $store = TrustedCACertificateStore::create()
 //     ->addCertificate($pemEncodedCert)
 //     ->addCertificateFromFile('/path/to/cert.pem.crt');
-// $store->configureValidatorWithOcsp($validator, $ocspChecker);
+// $store->configureValidator($validator);
 ```
 
 ### OCSP certificate revocation checking
 
-The `OcspCertificateRevocationChecker` verifies that the end-entity certificate has not been revoked by reading the OCSP responder URL from the certificate's Authority Information Access (AIA) extension.
+OCSP revocation checking is enabled automatically when creating a validator via `SmartIdClient::createAuthenticationResponseValidator()`. The checker verifies that the end-entity certificate has not been revoked by reading the OCSP responder URL from the certificate's Authority Information Access (AIA) extension.
 
-```php
-use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
-
-$ocspChecker = OcspCertificateRevocationChecker::create();
-```
+> **Note:** For the demo environment, you must first upload your test certificates to the demo OCSP responder — see [Uploading certificates to demo OCSP](#uploading-certificates-to-demo-ocsp).
 
 ### Validating device link authentication
 
 ```php
-use Sk\SmartId\Validation\AuthenticationResponseValidator;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\DeviceLink\DeviceLinkInteraction;
 
-// Set up validator (demo environment — no OCSP, see note above)
-$validator = new AuthenticationResponseValidator();
+// Set up validator (demo environment — upload certs to demo OCSP first, see "Uploading certificates to demo OCSP")
+$validator = $client->createAuthenticationResponseValidator();
 TrustedCACertificateStore::loadTestCertificates()->configureValidator($validator);
 
 // The interactions Base64 value must match what was sent in the original request
@@ -1014,4 +1013,71 @@ try {
 } catch (SmartIdException $e) {
     // General Smart-ID error (includes ACCOUNT_UNUSABLE, EXPECTED_LINKED_SESSION, HTTP 5xx)
 }
+```
+
+## Logging
+
+The SDK supports optional [PSR-3](https://www.php-fig.org/psr/psr-3/) logging. Pass any `LoggerInterface` implementation (e.g. [Monolog](https://github.com/Seldaek/monolog)) to `SmartIdClient` and `AuthenticationResponseValidator`. If no logger is provided, a `NullLogger` is used and no output is produced.
+
+### What is logged
+
+| Component | Level | What |
+|---|---|---|
+| `SmartIdRestConnector` | `debug` | Outgoing HTTP request method and URL |
+| `SmartIdRestConnector` | `debug` | Successful response status code |
+| `SmartIdRestConnector` | `warning` | Error response status code |
+| `SessionStatusPoller` | `debug` | Each poll attempt (session ID) |
+| `SessionStatusPoller` | `info` | Session completed (session ID, end result) |
+| `SessionStatusPoller` | `warning` | Authentication failed (end result: TIMEOUT, USER_REFUSED, etc.) |
+| `SessionStatusPoller` | `warning` | Polling timed out (session ID, attempts) |
+| Request builders | `info` | Session initiation |
+| Request builders | `debug` | Session initiated (session ID) |
+| `AuthenticationResponseValidator` | `info` | Validation start and success |
+| `AuthenticationResponseValidator` | `error` | Validation failed (error message) |
+| `AuthenticationResponseValidator` | `debug` | Each validation step (trust chain, constraints, policies, signature) |
+| `OcspCertificateRevocationChecker` | `debug` | OCSP request/response and success |
+| `OcspCertificateRevocationChecker` | `warning` | OCSP check failure |
+
+> **Note:** The SDK never logs request/response bodies, personal data, or secrets. Only metadata such as URLs, status codes, and session IDs are logged.
+
+### Using with SmartIdClient
+
+The logger is passed as the last constructor parameter and automatically propagated to the connector, session status poller, and request builders.
+
+```php
+use Psr\Log\LoggerInterface;
+use Sk\SmartId\SmartIdClient;
+use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
+
+// Example with Monolog
+$logger = new \Monolog\Logger('smart-id');
+$logger->pushHandler(new \Monolog\Handler\StreamHandler('php://stderr', \Monolog\Level::Debug));
+
+$client = new SmartIdClient(
+    relyingPartyUUID: '00000000-0000-4000-8000-000000000000',
+    relyingPartyName: 'DEMO',
+    hostUrl: 'https://sid.demo.sk.ee/smart-id-rp/v3',
+    sslPinnedKeys: SslPinnedPublicKeyStore::loadDemo(),
+    logger: $logger,
+);
+
+// All operations through $client will now produce log output:
+// $client->createDeviceLinkAuthentication()...
+// $client->createNotificationAuthentication()...
+// $client->getSessionStatusPoller()->pollUntilComplete(...)
+
+// Validator (with OCSP checker) also gets the logger automatically:
+$validator = $client->createAuthenticationResponseValidator();
+```
+
+### Standalone usage (without SmartIdClient)
+
+If you use `AuthenticationResponseValidator` or `OcspCertificateRevocationChecker` without `SmartIdClient`, you can pass the logger directly:
+
+```php
+use Sk\SmartId\Validation\AuthenticationResponseValidator;
+use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
+
+$validator = new AuthenticationResponseValidator($logger);
+$ocspChecker = OcspCertificateRevocationChecker::create($logger);
 ```

@@ -36,6 +36,8 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequest;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationResponse;
 use Sk\SmartId\Exception\InvalidParametersException;
@@ -57,10 +59,14 @@ class SmartIdRestConnector implements SmartIdConnector
 
     private readonly StreamFactoryInterface $streamFactory;
 
+    private readonly LoggerInterface $logger;
+
     public function __construct(
         private readonly string $baseUrl,
         SslPinnedPublicKeyStore $sslPinnedKeys,
+        ?LoggerInterface $logger = null,
     ) {
+        $this->logger = $logger ?? new NullLogger();
         $this->httpClient = new Client([
         'verify' => true,
         'curl' => [
@@ -91,6 +97,7 @@ class SmartIdRestConnector implements SmartIdConnector
         $setClosed('httpClient', $httpClient);
         $setClosed('requestFactory', $requestFactory);
         $setClosed('streamFactory', $streamFactory);
+        $setClosed('logger', new NullLogger());
 
         return $instance;
     }
@@ -144,6 +151,8 @@ class SmartIdRestConnector implements SmartIdConnector
      */
     private function postRequest(string $url, array $body): array
     {
+        $this->logger->debug('Sending POST request', ['url' => $url]);
+
         $request = $this->requestFactory->createRequest('POST', $url)
             ->withHeader('Content-Type', 'application/json')
             ->withBody($this->streamFactory->createStream(json_encode($body, JSON_THROW_ON_ERROR)));
@@ -159,6 +168,8 @@ class SmartIdRestConnector implements SmartIdConnector
      */
     private function getRequest(string $url): array
     {
+        $this->logger->debug('Sending GET request', ['url' => $url]);
+
         $request = $this->requestFactory->createRequest('GET', $url)
             ->withHeader('Accept', 'application/json');
 
@@ -177,12 +188,14 @@ class SmartIdRestConnector implements SmartIdConnector
         $contents = $response->getBody()->getContents();
 
         if ($statusCode >= 200 && $statusCode < 300) {
+            $this->logger->debug('Received successful response', ['url' => $url, 'statusCode' => $statusCode]);
             /** @var array<string, mixed> $decoded */
             $decoded = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
 
             return $decoded;
         }
 
+        $this->logger->warning('Received error response', ['url' => $url, 'statusCode' => $statusCode]);
         $this->throwExceptionForStatusCode($statusCode, $url, $contents);
     }
 
@@ -226,7 +239,7 @@ class SmartIdRestConnector implements SmartIdConnector
                 'System is under maintenance, retry again later.',
             ),
             default => throw new SmartIdException(
-                "Smart-ID API error: HTTP {$statusCode} for URL: {$url}. Response: {$contents}",
+                "Smart-ID API error: HTTP {$statusCode}",
             ),
         };
     }

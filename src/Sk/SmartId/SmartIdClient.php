@@ -30,12 +30,16 @@ declare(strict_types=1);
 
 namespace Sk\SmartId;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Api\SmartIdRestConnector;
 use Sk\SmartId\DeviceLink\DeviceLinkAuthenticationRequestBuilder;
 use Sk\SmartId\Notification\NotificationAuthenticationRequestBuilder;
 use Sk\SmartId\Session\SessionStatusPoller;
 use Sk\SmartId\Ssl\SslPinnedPublicKeyStore;
+use Sk\SmartId\Validation\AuthenticationResponseValidator;
+use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 
 class SmartIdClient
 {
@@ -47,12 +51,16 @@ class SmartIdClient
 
     private int $pollIntervalMs = 1000;
 
+    private readonly LoggerInterface $logger;
+
     public function __construct(
         private readonly string $relyingPartyUUID,
         private readonly string $relyingPartyName,
         private readonly string $hostUrl,
         private readonly SslPinnedPublicKeyStore $sslPinnedKeys,
+        ?LoggerInterface $logger = null,
     ) {
+        $this->logger = $logger ?? new NullLogger();
     }
 
     public function createNotificationAuthentication(): NotificationAuthenticationRequestBuilder
@@ -61,6 +69,7 @@ class SmartIdClient
             $this->getConnector(),
             $this->relyingPartyUUID,
             $this->relyingPartyName,
+            $this->logger,
         );
     }
 
@@ -70,6 +79,7 @@ class SmartIdClient
             $this->getConnector(),
             $this->relyingPartyUUID,
             $this->relyingPartyName,
+            $this->logger,
         );
     }
 
@@ -80,6 +90,7 @@ class SmartIdClient
                 $this->getConnector(),
                 $this->pollTimeoutMs,
                 $this->pollIntervalMs,
+                $this->logger,
             );
         }
 
@@ -108,6 +119,7 @@ class SmartIdClient
             $this->connector = new SmartIdRestConnector(
                 $this->hostUrl,
                 $this->sslPinnedKeys,
+                $this->logger,
             );
         }
 
@@ -122,6 +134,11 @@ class SmartIdClient
         $this->connector = $connector;
 
         return $this;
+    }
+
+    public function createAuthenticationResponseValidator(): AuthenticationResponseValidator
+    {
+        return new AuthenticationResponseValidator($this->logger, OcspCertificateRevocationChecker::create($this->logger));
     }
 
     public function getRelyingPartyUUID(): string

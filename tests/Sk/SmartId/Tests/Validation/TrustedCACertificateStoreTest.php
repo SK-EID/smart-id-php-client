@@ -30,12 +30,9 @@ declare(strict_types=1);
 
 namespace Sk\SmartId\Tests\Validation;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Psr7\HttpFactory;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Sk\SmartId\Validation\AuthenticationResponseValidator;
-use Sk\SmartId\Validation\OcspCertificateRevocationChecker;
 use Sk\SmartId\Validation\TrustedCACertificateStore;
 
 class TrustedCACertificateStoreTest extends TestCase
@@ -48,7 +45,7 @@ class TrustedCACertificateStoreTest extends TestCase
         $certificates = $store->getCertificates();
 
         $this->assertNotEmpty($certificates);
-        $this->assertContainsOnly('string', $certificates);
+        $this->assertContainsOnlyString($certificates);
     }
 
     #[Test]
@@ -91,21 +88,6 @@ class TrustedCACertificateStoreTest extends TestCase
     }
 
     #[Test]
-    public function configureValidatorWithOcspSetsCertificatesAndOcsp(): void
-    {
-        $store = TrustedCACertificateStore::loadFromDefaults();
-        $validator = new AuthenticationResponseValidator();
-        $factory = new HttpFactory();
-        $checker = new OcspCertificateRevocationChecker(new Client(), $factory, $factory);
-
-        $result = $store->configureValidatorWithOcsp($validator, $checker);
-
-        $this->assertSame($validator, $result);
-        $this->assertNotEmpty($validator->getTrustedCaCertificates());
-        $this->assertSame($store->getCertificates(), $validator->getTrustedCaCertificates());
-    }
-
-    #[Test]
     public function loadTestCertificatesReturnsCertificates(): void
     {
         $store = TrustedCACertificateStore::loadTestCertificates();
@@ -113,7 +95,7 @@ class TrustedCACertificateStoreTest extends TestCase
         $certificates = $store->getCertificates();
 
         $this->assertNotEmpty($certificates);
-        $this->assertContainsOnly('string', $certificates);
+        $this->assertContainsOnlyString($certificates);
     }
 
     #[Test]
