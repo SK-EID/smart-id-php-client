@@ -11,6 +11,8 @@
     ],
     "require": {
         "php": ">=8.4",
+        "ext-gd": "*",
+        "ext-mbstring": "*",
         "sk-id-solutions/smart-id-php-client": "@dev",
         "chillerlan/php-qrcode": "^5.0"
     },

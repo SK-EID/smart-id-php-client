@@ -5,7 +5,7 @@ Plain PHP examples demonstrating Smart-ID authentication flows.
 ## Prerequisites
 
 - PHP 8.4+
-- `ext-curl`, `ext-json` and `ext-openssl` extensions enabled
+- `ext-curl`, `ext-json`, `ext-openssl`, `ext-gd` and `ext-mbstring` extensions enabled
 - Composer
 
 ## Setup
