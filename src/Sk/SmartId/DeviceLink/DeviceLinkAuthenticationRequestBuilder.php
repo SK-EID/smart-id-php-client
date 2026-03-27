@@ -35,6 +35,7 @@ use Psr\Log\NullLogger;
 use Sk\SmartId\Api\SmartIdConnector;
 use Sk\SmartId\Enum\CertificateLevel;
 use Sk\SmartId\Enum\HashAlgorithm;
+use Sk\SmartId\Util\CallbackUrlValidator;
 use Sk\SmartId\Util\RpChallengeGenerator;
 use Sk\SmartId\Util\VerificationCodeCalculator;
 
@@ -154,6 +155,7 @@ class DeviceLinkAuthenticationRequestBuilder
      */
     public function withCallbackUrl(string $callbackUrl): self
     {
+        CallbackUrlValidator::validateOrThrow($callbackUrl);
         $this->callbackUrl = $callbackUrl;
 
         return $this;

@@ -71,7 +71,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('OK', 'DOC123');
         $expectedStatus = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($expectedStatus);
 
         $poller = new SessionStatusPoller($connector);
@@ -86,7 +86,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('USER_REFUSED');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -103,7 +103,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('USER_REFUSED_VC_CHOICE');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -119,7 +119,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('TIMEOUT');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -136,7 +136,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('DOCUMENT_UNUSABLE');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -153,7 +153,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('WRONG_VC');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -170,7 +170,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('REQUIRED_INTERACTION_NOT_SUPPORTED_BY_APP');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -187,7 +187,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('SOME_UNKNOWN_ERROR');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -203,7 +203,7 @@ class SessionStatusPollerTest extends TestCase
     {
         $status = new SessionStatus('COMPLETE');
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -259,7 +259,7 @@ class SessionStatusPollerTest extends TestCase
     {
         $runningStatus = new SessionStatus('RUNNING');
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($runningStatus);
 
         $poller = new SessionStatusPoller($connector);
@@ -274,7 +274,7 @@ class SessionStatusPollerTest extends TestCase
     #[Test]
     public function setPollTimeoutMsReturnsSelf(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $poller = new SessionStatusPoller($connector);
 
         $result = $poller->setPollTimeoutMs(60000);
@@ -285,7 +285,7 @@ class SessionStatusPollerTest extends TestCase
     #[Test]
     public function setPollIntervalMsReturnsSelf(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $poller = new SessionStatusPoller($connector);
 
         $result = $poller->setPollIntervalMs(2000);
@@ -313,7 +313,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('PROTOCOL_FAILURE');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -330,7 +330,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('SERVER_ERROR');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -347,7 +347,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('ACCOUNT_UNUSABLE');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);
@@ -364,7 +364,7 @@ class SessionStatusPollerTest extends TestCase
         $result = new SessionResult('USER_REFUSED_INTERACTION');
         $status = new SessionStatus('COMPLETE', $result);
 
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $connector->method('getSessionStatus')->willReturn($status);
 
         $poller = new SessionStatusPoller($connector);

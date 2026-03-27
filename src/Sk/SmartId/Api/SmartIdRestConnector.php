@@ -239,7 +239,7 @@ class SmartIdRestConnector implements SmartIdConnector
                 'System is under maintenance, retry again later.',
             ),
             default => throw new SmartIdException(
-                "Smart-ID API error: HTTP {$statusCode} for URL: {$url}. Response: {$contents}",
+                "Smart-ID API error: HTTP {$statusCode}",
             ),
         };
     }

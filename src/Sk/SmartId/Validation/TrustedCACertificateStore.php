@@ -109,6 +109,9 @@ class TrustedCACertificateStore
      */
     public function addCertificateFromFile(string $filePath): self
     {
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            throw new \RuntimeException("Failed to read certificate file: {$filePath}");
+        }
         $content = file_get_contents($filePath);
         if ($content === false) {
             throw new \RuntimeException("Failed to read certificate file: {$filePath}");

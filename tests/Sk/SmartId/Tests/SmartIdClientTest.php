@@ -64,7 +64,7 @@ class SmartIdClientTest extends TestCase
     #[Test]
     public function createNotificationAuthenticationReturnsBuilder(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $this->client->setConnector($connector);
 
         $builder = $this->client->createNotificationAuthentication();
@@ -75,7 +75,7 @@ class SmartIdClientTest extends TestCase
     #[Test]
     public function createDeviceLinkAuthenticationReturnsBuilder(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $this->client->setConnector($connector);
 
         $builder = $this->client->createDeviceLinkAuthentication();
@@ -86,7 +86,7 @@ class SmartIdClientTest extends TestCase
     #[Test]
     public function getSessionStatusPollerReturnsPoller(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $this->client->setConnector($connector);
 
         $poller = $this->client->getSessionStatusPoller();
@@ -97,7 +97,7 @@ class SmartIdClientTest extends TestCase
     #[Test]
     public function getSessionStatusPollerReturnsSameInstance(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $this->client->setConnector($connector);
 
         $poller1 = $this->client->getSessionStatusPoller();
@@ -109,7 +109,7 @@ class SmartIdClientTest extends TestCase
     #[Test]
     public function setPollTimeoutMsResetsPoller(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $this->client->setConnector($connector);
 
         $poller1 = $this->client->getSessionStatusPoller();
@@ -125,7 +125,7 @@ class SmartIdClientTest extends TestCase
     #[Test]
     public function setPollIntervalMsResetsPoller(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $this->client->setConnector($connector);
 
         $poller1 = $this->client->getSessionStatusPoller();
@@ -141,7 +141,7 @@ class SmartIdClientTest extends TestCase
     #[Test]
     public function setConnectorReturnsSelf(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
 
         $result = $this->client->setConnector($connector);
 
@@ -151,7 +151,7 @@ class SmartIdClientTest extends TestCase
     #[Test]
     public function getConnectorReturnsSameInstance(): void
     {
-        $connector = $this->createMock(SmartIdConnector::class);
+        $connector = $this->createStub(SmartIdConnector::class);
         $this->client->setConnector($connector);
 
         $this->assertSame($connector, $this->client->getConnector());

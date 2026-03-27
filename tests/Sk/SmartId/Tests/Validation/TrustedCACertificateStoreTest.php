@@ -45,7 +45,7 @@ class TrustedCACertificateStoreTest extends TestCase
         $certificates = $store->getCertificates();
 
         $this->assertNotEmpty($certificates);
-        $this->assertContainsOnly('string', $certificates);
+        $this->assertContainsOnlyString($certificates);
     }
 
     #[Test]
@@ -95,7 +95,7 @@ class TrustedCACertificateStoreTest extends TestCase
         $certificates = $store->getCertificates();
 
         $this->assertNotEmpty($certificates);
-        $this->assertContainsOnly('string', $certificates);
+        $this->assertContainsOnlyString($certificates);
     }
 
     #[Test]
