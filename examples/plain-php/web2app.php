@@ -118,7 +118,6 @@ if (isset($_GET['action'])) {
         // This is required so the Smart-ID backend can validate the authCode
         // CallbackUrlUtil generates a random URL-safe token as the `value` query parameter
         $callbackBase = $publicBaseUrl . '/web2app.php?action=callback';
-        CallbackUrlValidator::validateOrThrow($callbackBase);
         $callbackResult = CallbackUrlUtil::createCallbackUrl($callbackBase);
         $callbackUrl = $callbackResult['callbackUrl'];
         $callbackToken = $callbackResult['token'];
