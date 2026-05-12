@@ -37,6 +37,7 @@ use phpseclib3\File\X509;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Sk\SmartId\Enum\CertificateLevel;
+use Sk\SmartId\Enum\FlowType;
 use Sk\SmartId\Enum\SchemeName;
 use Sk\SmartId\Exception\SmartIdException;
 use Sk\SmartId\Exception\ValidationException;
@@ -119,6 +120,55 @@ class AuthenticationResponseValidator
 
 
     /**
+     * Refuse to validate web2app/app2app responses without a callback
+     * binding. Without this, an attacker who obtains a leaked or replayed
+     * signed SessionStatus for the same RP can authenticate as the user
+     * the response was issued for — because the ACSP_V2 signed payload
+     * does not include the per-session sessionSecret or sessionId, and
+     * the userChallenge alone is meaningless without the verifier check.
+     *
+     * @throws ValidationException
+     */
+    private function enforceCallbackBinding(
+        SessionStatus $sessionStatus,
+        ?Web2AppCallbackBinding $binding,
+    ): void {
+        $signature = $sessionStatus->getSignature();
+        if ($signature === null) {
+            return;
+        }
+
+        $rawFlowType = $signature->getFlowType();
+        if ($rawFlowType === null || $rawFlowType === '') {
+            return;
+        }
+
+        $flowType = FlowType::fromString($rawFlowType);
+        if ($flowType !== FlowType::WEB2APP && $flowType !== FlowType::APP2APP) {
+            return;
+        }
+
+        if ($binding === null) {
+            throw new ValidationException(sprintf(
+                'Web2AppCallbackBinding is required for flowType=%s — the callback binding '
+                . '(sessionSecret + userChallengeVerifier) must be verified to prevent '
+                . 'replay of signed session responses',
+                $rawFlowType,
+            ));
+        }
+
+        $this->verifySessionSecret($binding->sessionSecret, $binding->sessionSecretDigest);
+
+        $userChallenge = $signature->getUserChallenge();
+        if ($userChallenge === null || $userChallenge === '') {
+            throw new ValidationException(
+                'signature.userChallenge is missing — cannot verify Web2App user challenge binding',
+            );
+        }
+        $this->verifyUserChallenge($binding->userChallengeVerifier, $userChallenge);
+    }
+
+    /**
      * Verify session secret for Web2App/App2App flows.
      * Must be called BEFORE validate() when using Web2App or App2App flows.
      *
@@ -176,6 +226,9 @@ class AuthenticationResponseValidator
      * @param string|null $initialCallbackUrl Callback URL if Web2App flow was used, null otherwise
      * @param string|null $brokeredRpName Brokered RP name if acting as broker, null otherwise
      * @param SchemeName $schemeName Scheme name for the target environment
+     * @param Web2AppCallbackBinding|null $web2AppCallbackBinding Required when the session flow is
+     *        web2app or app2app: carries the values used to verify that the callback came from
+     *        the legitimate Smart-ID flow and was completed in the browser that started it.
      *
      * @throws SmartIdException
      * @throws ValidationException
@@ -189,6 +242,7 @@ class AuthenticationResponseValidator
         ?string $brokeredRpName = null,
         ?CertificateLevel $requiredCertificateLevel = null,
         SchemeName $schemeName = SchemeName::PRODUCTION,
+        ?Web2AppCallbackBinding $web2AppCallbackBinding = null,
     ): AuthenticationIdentity {
         $this->logger->info('Starting authentication response validation');
 
@@ -223,10 +277,6 @@ class AuthenticationResponseValidator
                 throw new ValidationException('No trusted CA certificates configured');
             }
 
-            if ($requiredCertificateLevel !== null) {
-                $this->verifyCertificateLevel($cert, $requiredCertificateLevel);
-            }
-
             $certPem = $cert->getPemEncodedCertificate();
             $certInfo = $this->parseCertificate($certPem);
 
@@ -241,6 +291,16 @@ class AuthenticationResponseValidator
             $this->logger->debug('Verifying certificate purpose');
             $this->verifyCertificatePurpose($certInfo);
 
+            // The level must be derived from the certificate itself (policy OIDs),
+            // never from the server-supplied JSON envelope, which is not part
+            // of the signed ACSP_V2 payload.
+            $actualLevel = $this->deriveCertificateLevelFromPolicies($certInfo);
+            $this->verifyJsonAssertedLevelMatchesCertificate($cert, $actualLevel);
+
+            if ($requiredCertificateLevel !== null) {
+                $this->verifyCertificateLevel($actualLevel, $requiredCertificateLevel);
+            }
+
             $this->logger->debug('Verifying ACSP_V2 signature');
             $this->verifySignature(
                 $sessionStatus,
@@ -251,6 +311,9 @@ class AuthenticationResponseValidator
                 $brokeredRpName,
                 $schemeName,
             );
+
+            $this->logger->debug('Enforcing callback binding for Web2App/App2App flows');
+            $this->enforceCallbackBinding($sessionStatus, $web2AppCallbackBinding);
 
             $identity = $this->extractIdentity($certInfo, $certPem);
             $this->logger->info('Authentication response validation successful', [
@@ -267,27 +330,83 @@ class AuthenticationResponseValidator
     }
 
     /**
+     * Derive the certificate's assurance level from its X.509 certificatePolicies
+     * extension. This is the only trustworthy source for the level — the JSON
+     * envelope's certificateLevel field is not part of the signed payload and
+     * is treated as advisory only.
+     *
+     * @param array<string, mixed> $certInfo
      * @throws ValidationException
      */
-    private function verifyCertificateLevel(SessionCertificate $cert, CertificateLevel $required): void
+    private function deriveCertificateLevelFromPolicies(array $certInfo): CertificateLevel
     {
-        $actualLevel = CertificateLevel::tryFromString($cert->getCertificateLevel());
+        $policies = $certInfo['extensions']['certificatePolicies'] ?? '';
 
-        if ($actualLevel === null) {
-            throw new ValidationException(
-                sprintf('Unknown certificate level: %s', $cert->getCertificateLevel()),
-            );
+        $hasQualifiedPolicy = $this->containsOid($policies, self::POLICY_OID_QUALIFIED);
+        $hasEuQcpPolicy = $this->containsOid($policies, self::POLICY_OID_EU_QCP);
+        $hasNonQualifiedPolicy = $this->containsOid($policies, self::POLICY_OID_NON_QUALIFIED);
+
+        if ($hasQualifiedPolicy && $hasEuQcpPolicy) {
+            return CertificateLevel::QUALIFIED;
         }
 
-        if (!$actualLevel->meetsRequirement($required)) {
+        if ($hasNonQualifiedPolicy) {
+            return CertificateLevel::ADVANCED;
+        }
+
+        throw new ValidationException(
+            'Certificate does not carry a Smart-ID scheme policy OID — cannot determine assurance level',
+        );
+    }
+
+    /**
+     * Defence-in-depth: reject responses whose JSON envelope claims an
+     * assurance level that disagrees with the certificate's policy OIDs.
+     * If the server (or anyone who can influence the response body) lies
+     * about the level, this catches it.
+     *
+     * @throws ValidationException
+     */
+    private function verifyJsonAssertedLevelMatchesCertificate(
+        SessionCertificate $cert,
+        CertificateLevel $actualLevel,
+    ): void {
+        $jsonLevel = CertificateLevel::tryFromString($cert->getCertificateLevel());
+        if ($jsonLevel !== null && $jsonLevel !== $actualLevel) {
+            throw new ValidationException(
+                sprintf(
+                    'certificateLevel %s in session response does not match certificate policy OIDs (actual: %s)',
+                    $jsonLevel->value,
+                    $actualLevel->value,
+                ),
+            );
+        }
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function verifyCertificateLevel(CertificateLevel $actual, CertificateLevel $required): void
+    {
+        if (!$actual->meetsRequirement($required)) {
             throw new ValidationException(
                 sprintf(
                     'Certificate level %s does not meet required level %s',
-                    $actualLevel->value,
+                    $actual->value,
                     $required->value,
                 ),
             );
         }
+    }
+
+    /**
+     * Match an OID against the OpenSSL text-dumped certificatePolicies value
+     * using word-boundary anchors, so that "1.3.6.1.4.1.10015.17.1" does NOT
+     * substring-match "1.3.6.1.4.1.10015.17.10" / "...17.100" / "...17.1.99".
+     */
+    private function containsOid(string $haystack, string $oid): bool
+    {
+        return preg_match('/(?:^|[^0-9.])' . preg_quote($oid, '/') . '(?![0-9.])/', $haystack) === 1;
     }
 
     /**
@@ -333,6 +452,14 @@ class AuthenticationResponseValidator
         X509::disableURLFetch();
 
         foreach ($this->getAllTrustedCaPems() as $caPem) {
+            // Defence in depth: even if a non-CA cert was injected via
+            // setTrustedCaCertificates() (bypassing TrustedCACertificateStore),
+            // reject it here before phpseclib's permissive loadCA() accepts it.
+            try {
+                CaCertificateGuard::assertIsCaCertificate($caPem);
+            } catch (\InvalidArgumentException $e) {
+                throw new ValidationException('Invalid trust anchor: ' . $e->getMessage());
+            }
             $x509->loadCA($caPem);
         }
 
@@ -446,8 +573,8 @@ class AuthenticationResponseValidator
     {
         $policies = $certInfo['extensions']['certificatePolicies'] ?? '';
 
-        $hasQualifiedPolicy = str_contains($policies, self::POLICY_OID_QUALIFIED);
-        $hasNonQualifiedPolicy = str_contains($policies, self::POLICY_OID_NON_QUALIFIED);
+        $hasQualifiedPolicy = $this->containsOid($policies, self::POLICY_OID_QUALIFIED);
+        $hasNonQualifiedPolicy = $this->containsOid($policies, self::POLICY_OID_NON_QUALIFIED);
 
         if (!$hasQualifiedPolicy && !$hasNonQualifiedPolicy) {
             throw new ValidationException(
@@ -456,7 +583,7 @@ class AuthenticationResponseValidator
             );
         }
 
-        if ($hasQualifiedPolicy && !str_contains($policies, self::POLICY_OID_EU_QCP)) {
+        if ($hasQualifiedPolicy && !$this->containsOid($policies, self::POLICY_OID_EU_QCP)) {
             throw new ValidationException(
                 'Qualified Smart-ID certificate is missing EU QCP policy OID ' . self::POLICY_OID_EU_QCP,
             );

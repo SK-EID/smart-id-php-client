@@ -96,9 +96,15 @@ class TrustedCACertificateStore
 
     /**
      * Add a PEM-encoded certificate.
+     *
+     * Rejects end-entity (non-CA) certificates so a misconfigured trust
+     * store cannot silently promote a leaf cert to a trust anchor.
+     *
+     * @throws \InvalidArgumentException if the PEM is not a CA certificate
      */
     public function addCertificate(string $pemCertificate): self
     {
+        CaCertificateGuard::assertIsCaCertificate($pemCertificate);
         $this->certificates[] = $pemCertificate;
 
         return $this;
@@ -122,6 +128,7 @@ class TrustedCACertificateStore
         // because openssl_x509_verify() only reads the first PEM block from a string.
         $certs = self::splitPemCertificates($content);
         foreach ($certs as $cert) {
+            CaCertificateGuard::assertIsCaCertificate($cert);
             $this->certificates[] = $cert;
         }
         $this->certificateFilePaths[] = $filePath;
