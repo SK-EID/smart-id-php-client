@@ -301,21 +301,23 @@ class AuthenticationResponseValidatorTest extends TestCase
     #[Test]
     public function validateThrowsWhenCertificateLevelDoesNotMeetRequirement(): void
     {
+        // Non-qualified cert, JSON envelope honestly says ADVANCED, RP requires QUALIFIED.
+        // The certificate level derived from policy OIDs is ADVANCED, which
+        // does not meet QUALIFIED → must throw.
+        $caCertPem = self::getTestCaCertPem();
+        $status = self::createSignedSessionStatus('non_qualified_smartid_ee', 'ADVANCED');
+
         $validator = new AuthenticationResponseValidator();
-        $validator->setTrustedCaCertificates(['dummy-cert']);
-        $result = new SessionResult('OK', 'DOC123');
-        $cert = new SessionCertificate('certValue', 'ADVANCED');
-        $signature = new SessionSignature(base64_encode('sig'), 'rsassa-pss');
-        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, 'ACSP_V2');
+        $validator->setTrustedCaCertificates([$caCertPem]);
 
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Certificate level ADVANCED does not meet required level QUALIFIED');
 
         $validator->validate(
             $status,
-            base64_encode('challenge'),
-            'DEMO',
-            'aW50ZXJhY3Rpb25z',
+            self::TEST_RP_CHALLENGE,
+            self::TEST_RP_NAME,
+            self::TEST_INTERACTIONS_BASE64,
             null,
             null,
             CertificateLevel::QUALIFIED,
@@ -323,26 +325,24 @@ class AuthenticationResponseValidatorTest extends TestCase
     }
 
     #[Test]
-    public function validateThrowsForUnknownCertificateLevel(): void
+    public function validateThrowsWhenJsonLevelDisagreesWithCertificatePolicies(): void
     {
+        // Non-qualified cert, JSON envelope lies and says QUALIFIED.
+        // The defence-in-depth check must catch the mismatch.
+        $caCertPem = self::getTestCaCertPem();
+        $status = self::createSignedSessionStatus('non_qualified_smartid_ee', 'QUALIFIED');
+
         $validator = new AuthenticationResponseValidator();
-        $validator->setTrustedCaCertificates(['dummy-cert']);
-        $result = new SessionResult('OK', 'DOC123');
-        $cert = new SessionCertificate('certValue', 'UNKNOWN_LEVEL');
-        $signature = new SessionSignature(base64_encode('sig'), 'rsassa-pss');
-        $status = new SessionStatus('COMPLETE', $result, $cert, $signature, 'ACSP_V2');
+        $validator->setTrustedCaCertificates([$caCertPem]);
 
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('Unknown certificate level: UNKNOWN_LEVEL');
+        $this->expectExceptionMessageMatches('/certificateLevel QUALIFIED .* does not match certificate policy OIDs/');
 
         $validator->validate(
             $status,
-            base64_encode('challenge'),
-            'DEMO',
-            'aW50ZXJhY3Rpb25z',
-            null,
-            null,
-            CertificateLevel::QUALIFIED,
+            self::TEST_RP_CHALLENGE,
+            self::TEST_RP_NAME,
+            self::TEST_INTERACTIONS_BASE64,
         );
     }
 
@@ -850,11 +850,41 @@ class AuthenticationResponseValidatorTest extends TestCase
         $dir = self::getTestEndEntityCertsDir();
         $eeCertBase64 = self::pemToBase64($dir . DIRECTORY_SEPARATOR . 'qualified_smartid_ee.pem.crt');
 
-        // Generate a self-signed cert to use as untrusted CA
+        // Generate a self-signed CA to use as untrusted trust anchor.
+        // Must include real CA extensions (CA:TRUE + keyCertSign) so the
+        // CaCertificateGuard accepts it as a trust anchor — the point of
+        // this test is to assert the *signature-chain* check rejects it,
+        // not the CA-flag guard.
+        $cnf = tempnam(sys_get_temp_dir(), 'ucnf_');
+        file_put_contents($cnf, <<<'CFG'
+[req]
+default_bits = 2048
+prompt = no
+distinguished_name = dn
+req_extensions = v3_ca
+x509_extensions = v3_ca
+[dn]
+CN = Untrusted CA
+[v3_ca]
+basicConstraints = critical, CA:TRUE
+keyUsage = critical, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+CFG);
         $untrustedCaKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-        $untrustedCaCsr = openssl_csr_new(['CN' => 'Untrusted CA'], $untrustedCaKey);
-        $untrustedCaCert = openssl_csr_sign($untrustedCaCsr, null, $untrustedCaKey, 365);
+        $untrustedCaCsr = openssl_csr_new(
+            ['commonName' => 'Untrusted CA'],
+            $untrustedCaKey,
+            ['config' => $cnf, 'req_extensions' => 'v3_ca'],
+        );
+        $untrustedCaCert = openssl_csr_sign(
+            $untrustedCaCsr,
+            null,
+            $untrustedCaKey,
+            365,
+            ['config' => $cnf, 'x509_extensions' => 'v3_ca'],
+        );
         openssl_x509_export($untrustedCaCert, $untrustedCaPem);
+        unlink($cnf);
 
         $result = new SessionResult('OK', 'DOC123');
         $cert = new SessionCertificate($eeCertBase64, 'QUALIFIED');
@@ -1102,7 +1132,9 @@ class AuthenticationResponseValidatorTest extends TestCase
     #[Test]
     public function validatePassesForCertWithoutBasicConstraints(): void
     {
-        $status = self::createSignedSessionStatus('no_basic_constraints_ee', 'QUALIFIED');
+        // The fixture has only the non-qualified policy OID, so the JSON
+        // envelope must say ADVANCED for the post-fix consistency check.
+        $status = self::createSignedSessionStatus('no_basic_constraints_ee', 'ADVANCED');
 
         $validator = new AuthenticationResponseValidator();
         $validator->setTrustedCaCertificates([self::getTestCaCertPem()]);

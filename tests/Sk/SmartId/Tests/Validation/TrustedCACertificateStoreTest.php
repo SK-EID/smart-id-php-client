@@ -60,9 +60,26 @@ class TrustedCACertificateStoreTest extends TestCase
     public function addCertificateAddsCertificate(): void
     {
         $store = TrustedCACertificateStore::create();
-        $store->addCertificate('-----BEGIN CERTIFICATE-----TEST-----END CERTIFICATE-----');
+        $store->addCertificate(file_get_contents(
+            __DIR__ . '/../../../../resources/test_end_entity_certs/test_ca.pem.crt',
+        ));
 
         $this->assertCount(1, $store->getCertificates());
+    }
+
+    #[Test]
+    public function addCertificateRejectsNonCaCertificate(): void
+    {
+        $store = TrustedCACertificateStore::create();
+        // The non_qualified_smartid_ee fixture is an EE cert (CA:FALSE).
+        $eePem = file_get_contents(
+            __DIR__ . '/../../../../resources/test_end_entity_certs/non_qualified_smartid_ee.pem.crt',
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/CA:TRUE|trust anchor/i');
+
+        $store->addCertificate($eePem);
     }
 
     #[Test]
