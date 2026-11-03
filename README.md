@@ -1,3 +1,10 @@
+> [!WARNING]
+> **Security Notice!** Critical vulnerabilities CVE-2026-109618 and CVE-2026-109619 have been identified in PHP and may allow unauthenticated remote code execution in applications serving web requests. These vulnerabilities are in the PHP runtime and not in the Smart-ID PHP client library itself.
+>
+> Integrators using this library should ensure that their applications run on a patched and supported PHP version. As of October 21, 2026, the vulnerabilities are fixed in PHP 8.2.35, 8.3.36, 8.4.27 and 8.5.12. PHP 8.1 and earlier are no longer supported by the PHP project, although vendors may provide backported security fixes.
+>
+> We strongly recommend upgrading to a currently supported PHP version and applying all available security updates. PHP 8.4.27 or later is recommended.
+
 # Smart-ID PHP client
 
 This library supports Smart-ID API v3.
